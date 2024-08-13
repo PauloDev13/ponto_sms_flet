@@ -1,5 +1,6 @@
 import flet as ft
 import ctypes
+from components import components
 
 
 def main(page: ft.Page):
@@ -22,54 +23,55 @@ def main(page: ft.Page):
     page.window_left = (screen_width - page.window_width) // 2
     page.window_top = (screen_height - page.window_height) // 2
 
-    def validate_form(e):
-        cpf = cpf_field.value
-        start_date = start_date_field.value
-        end_date = end_date_field.value
+    # def validate_form(e):
+    #     cpf = cpf_field.value
+    #     start_date = start_date_field.value
+    #     end_date = end_date_field.value
+    #
+    #     errors = []
+    #
+    #     if not cpf:
+    #         errors.append('CPF é obrigatório')
+    #         cpf_field.error_text = 'Digite um CPF válido'
+    #     else:
+    #         cpf_field.error_text = None
+    #
+    #     if not start_date:
+    #         errors.append('Data inicial é obrigatória')
+    #         start_date_field.error_text = 'Informe o período inicial'
+    #     else:
+    #         start_date_field.error_text = None
+    #
+    #     if not end_date:
+    #         errors.append('Data inicial é obrigatória')
+    #         end_date_field.error_text = 'Informe o período final'
+    #     else:
+    #         end_date_field.error_text = None
+    #
+    #     cpf_field.update()
+    #     start_date_field.update()
+    #     end_date_field.update()
 
-        errors = []
-
-        if not cpf:
-            errors.append('CPF é obrigatório')
-            cpf_field.error_text = 'Digite um CPF válido'
-        else:
-            cpf_field.error_text = None
-
-        if not start_date:
-            errors.append('Data inicial é obrigatória')
-            start_date_field.error_text = 'Informe a data inicial'
-        else:
-            start_date_field.error_text = None
-
-        if not end_date:
-            errors.append('Data inicial é obrigatória')
-            end_date_field.error_text = 'Informe a data inicial'
-        else:
-            end_date_field.error_text = None
-
-        cpf_field.update()
-        start_date_field.update()
-        end_date_field.update()
-
-        if not errors:
-            dialog = ft.AlertDialog(
-                title=ft.Row([
-                    ft.Icon(name=ft.icons.WARNING, color=ft.colors.RED, size=30),
-                    ft.Text('ATENÇÃO!', weight=ft.FontWeight.BOLD, size=24)
-                ], alignment=ft.MainAxisAlignment.START),
-
-                content=ft.Text('Dados enviados'),
-                actions=[
-                    ft.TextButton('Fechar', on_click=lambda e_: close_dialog(dialog))
-                ],
-                bgcolor=ft.colors.YELLOW_200,
-                shape=ft.RoundedRectangleBorder(radius=10),
-            )
-
-            # Abrindo o diálogo
-            page.dialog = dialog
-            page.dialog.open = True
-            page.update()
+        # if not errors:
+        #     dialog = ft.AlertDialog(
+        #         title=ft.Row([
+        #             ft.Icon(name=ft.icons.WARNING, color=ft.colors.RED, size=30),
+        #             ft.Text('ATENÇÃO!', weight=ft.FontWeight.BOLD, size=24)
+        #         ], alignment=ft.MainAxisAlignment.START),
+        #
+        #         content=ft.Text('Dados enviados'),
+        #         actions=[
+        #             ft.TextButton('Fechar', on_click=lambda e_: close_dialog(dialog))
+        #         ],
+        #         bgcolor=ft.colors.GREEN_300,
+        #         shape=ft.RoundedRectangleBorder(radius=10),
+        #         alignment=ft.alignment.top_center
+        #     )
+        #
+        #     # Abrindo o diálogo
+        #     page.dialog = dialog
+        #     page.dialog.open = True
+        #     page.update()
 
         def close_dialog(dialog_):
             dialog.open = False
@@ -82,13 +84,19 @@ def main(page: ft.Page):
         expand=True
     )
 
-    start_date_field = ft.DatePicker(
+    start_date_field = ft.TextField(
+        label='Período Inicial',
+        hint_text='Mês/Ano',
         col={'md': 6},
+        text_align=ft.TextAlign.RIGHT,
         expand=True
     )
 
-    end_date_field = ft.DatePicker(
+    end_date_field = ft.TextField(
+        label='Período final',
+        hint_text='Mês/Ano',
         col={'md': 6},
+        text_align=ft.TextAlign.RIGHT,
         expand=True
     )
 
@@ -98,17 +106,18 @@ def main(page: ft.Page):
         col={'md': 4},
         expand=True,
         color='white',
-        bgcolor='blue',
+        bgcolor=ft.colors.BLUE_500,
     )
     cancel_button = ft.ElevatedButton(
         col={'md': 4},
         text='Cancelar',
-        expand=True
+        expand=True,
+        bgcolor=ft.colors.AMBER_200,
+        color=ft.colors.BLACK
     )
     exit_button = ft.ElevatedButton(
         col={'md': 4},
         text='Sair',
-
         expand=True
     )
 
@@ -116,7 +125,7 @@ def main(page: ft.Page):
         ft.Card(
             content=ft.Container(
                 width=600,
-                padding=10,
+                padding=20,
                 bgcolor=ft.colors.BLACK12,
                 border_radius=20,
                 border=ft.border.all(1, ft.colors.WHITE30),
@@ -128,15 +137,20 @@ def main(page: ft.Page):
                     ft.ResponsiveRow([
                         cpf_field
                     ]),
-                    ft.ResponsiveRow([
-                        start_date_field, end_date_field
-                    ]),
-                    ft.ResponsiveRow([
-                        generate_button, cancel_button, exit_button
-                    ])
+                    ft.Container(
+                        ft.ResponsiveRow([
+                            start_date_field, end_date_field
+                        ]),
+                        margin=ft.margin.only(top=20)
+                    ),
+                    ft.Container(
+                        ft.ResponsiveRow([
+                            generate_button, cancel_button, exit_button
+                        ]),
+                        margin=ft.margin.only(top=20)
+                    )
                 ]),
             )
-
         )
     )
 
