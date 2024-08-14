@@ -1,12 +1,13 @@
 import flet as ft
 
 
+errors = []
 def validate_form(e):
     cpf = cpf_field.value
     start_date = start_date_field.value
     end_date = end_date_field.value
 
-    errors = []
+    # errors = []
 
     if not cpf:
         errors.append('CPF é obrigatório')
@@ -26,16 +27,22 @@ def validate_form(e):
     else:
         end_date_field.error_text = None
 
+    # if not errors:
+    #     # print(f'CPF: {cpf} - DATA INICIO: {start_date} - DATA FINAL {end_date}')
+    #     snack_bar = ft.SnackBar(ft.Text(f'CPF: {cpf} - DATA INICIO: {start_date} - DATA FINAL {end_date}'))
+    #     snack_bar.open = True
+    #     snack_bar.update()
+
     cpf_field.update()
     start_date_field.update()
     end_date_field.update()
 
 
 cpf_field = ft.TextField(
-        label='CPF',
-        col={'md': 12},
-        hint_text='Digite um CPF',
-        expand=True
+    label='CPF',
+    col={'md': 12},
+    hint_text='Digite um CPF',
+    expand=True
 )
 
 start_date_field = ft.TextField(
