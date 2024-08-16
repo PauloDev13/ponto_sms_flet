@@ -1,37 +1,50 @@
 import flet as ft
+from time import sleep
 
 
-errors = []
-def validate_form(e):
+def validate_form(e) -> None:
     cpf = cpf_field.value
     start_date = start_date_field.value
     end_date = end_date_field.value
 
-    # errors = []
-
     if not cpf:
-        errors.append('CPF é obrigatório')
-        cpf_field.error_text = 'Digite um CPF válido'
-    else:
-        cpf_field.error_text = None
+        snack_show('CPF é obrigatório')
+        return
 
-    if not start_date:
-        errors.append('Data inicial é obrigatória')
-        start_date_field.error_text = 'Informe o período inicial'
-    else:
-        start_date_field.error_text = None
+    elif not start_date:
+        snack_show('Data Inicial é obrigatório')
+        return
 
-    if not end_date:
-        errors.append('Data inicial é obrigatória')
-        end_date_field.error_text = 'Informe o período final'
+    elif not end_date:
+        snack_show('Data Final é obrigatório')
+        return
     else:
-        end_date_field.error_text = None
+        print('TUDO OK')
+        clear_form()
 
-    # if not errors:
-    #     # print(f'CPF: {cpf} - DATA INICIO: {start_date} - DATA FINAL {end_date}')
-    #     snack_bar = ft.SnackBar(ft.Text(f'CPF: {cpf} - DATA INICIO: {start_date} - DATA FINAL {end_date}'))
-    #     snack_bar.open = True
-    #     snack_bar.update()
+
+def snack_show(message: str) -> None:
+    custom_snackbar.content.controls[1].value = message
+    custom_snackbar.visible = True
+    custom_snackbar.opacity = 0.6
+    custom_snackbar.update()
+
+    sleep(3)
+    hide_custom_snackbar()
+
+
+def hide_custom_snackbar() -> None:
+    custom_snackbar.opacity = 0.0
+    custom_snackbar.update()
+    sleep(0.3)
+    custom_snackbar.visible = False,
+    custom_snackbar.update()
+
+
+def clear_form():
+    cpf_field.value = '',
+    start_date_field.value = '',
+    end_date_field.value = '',
 
     cpf_field.update()
     start_date_field.update()
@@ -80,4 +93,25 @@ exit_button = ft.ElevatedButton(
     col={'md': 4},
     text='Sair',
     expand=True
+)
+
+custom_snackbar = ft.Container(
+    content=ft.Row([
+        ft.Icon(
+            name=ft.icons.WARNING,
+            color=ft.colors.BLACK
+        ),
+        ft.Text(
+            color=ft.colors.BLACK,
+            size=20,
+            expand=True
+        )
+    ]),
+    width=600,
+    bgcolor=ft.colors.AMBER_200,
+    padding=10,
+    border_radius=5,
+    visible=False,
+    opacity=0.0,
+    animate_opacity=300
 )
