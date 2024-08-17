@@ -2,10 +2,12 @@ import flet as ft
 import ctypes
 
 from components.components import (
-    custom_snackbar,
+    # Controles
     cpf_field,
     start_date_field,
     end_date_field,
+
+    # Botões
     generate_button,
     cancel_button,
     exit_button
@@ -63,10 +65,6 @@ def main(page: ft.Page):
                         ]),
                         margin=ft.margin.only(top=20)
                     ),
-                    ft.Container(
-                        content=custom_snackbar,
-                        margin=ft.margin.only(top=10)
-                    )
                 ]),
             )
         ),
