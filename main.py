@@ -1,7 +1,8 @@
-import flet as ft
 import ctypes
 
-from components.components import (
+import flet as ft
+
+from controls.components import (
     # Controles
     cpf_field,
     start_date_field,
@@ -69,6 +70,8 @@ def main(page: ft.Page):
             )
         ),
     )
+
+    cpf_field.focus()
 
 
 ft.app(main)
