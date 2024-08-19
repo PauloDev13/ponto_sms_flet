@@ -23,7 +23,7 @@ password = os.getenv("PASSWORD")
 
 
 # FUNÇÃO LOGIN
-def login(page: ft.Page):
+def login(e):
     # Importa a função (snack_show) do módulo (controls)
     from controls.components import snack_show
 
@@ -51,7 +51,7 @@ def login(page: ft.Page):
             sleep(1)
             driver.find_element(By.XPATH, "//*[@id='senha']").send_keys(password)
         else:
-            snack_show(page, 'Erro ao identificar TAGs de login', ft.icons.ERROR, ft.colors.RED)
+            snack_show(e.page, 'Erro ao identificar TAGs de login', ft.icons.ERROR, ft.colors.RED)
 
         # Localiza o primeiro Iframe da página, entra nele, espera 1 segundo
         # Localiza dentro Iframe o elemento o box do recaptcha e clica
@@ -75,34 +75,34 @@ def login(page: ft.Page):
         # Se a página inicial carregou, exibe mensagem de sucesso
         # Se não, exibe mensagem de alerta
         if load_page:
-            snack_show(page, 'Login realizado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+            snack_show(e.page, 'Login realizado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
 
         else:
-            snack_show(page, 'Falha no login! Tente novamente.', ft.icons.INFO)
+            snack_show(e.page, 'Falha no login! Tente novamente.', ft.icons.INFO)
 
         # Retorna uma instância do navegador.
         return driver
 
     # Se ocorrer erros no processo de login exibe mensagens
-    except ElementClickInterceptedException as e:
+    except ElementClickInterceptedException as e_:
         snack_show(
-            page,
+            e.page,
             'Erro ao clicar num elemento da página! Tente novamente',
             ft.icons.ERROR,
             ft.colors.RED
         )
-        print(f'Erro stacktrace: {e}')
+        print(f'Erro stacktrace: {e_}')
         return None
     except TimeoutException as ex:
         snack_show(
-            page,
+            e.page,
             'A pagina demorou a responder! Tente novamente')
         print(f'Erro stacktrace: {ex}')
         return None
 
     except NoSuchWindowException as ex_:
         snack_show(
-            page,
+            e.page,
             'Falha no login! Tente novamente')
         print(f'Erro stacktrace: {ex_}')
         return None

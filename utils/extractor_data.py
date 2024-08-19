@@ -33,7 +33,7 @@ def data_fetch(*args):
     # Importa a função (show_snackbar) do módulo (controls)
     from controls.components import snack_show
 
-    e_page, cpf, month_start, year_start, month_end, year_end, driver = args
+    e, cpf, month_start, year_start, month_end, year_end, driver = args
 
     try:
         # Atribui variáveis para receber o conjunto de dados (dicionário)
@@ -201,12 +201,12 @@ def data_fetch(*args):
 
             # Se ocorrer erro durante o processo de coleta e montagem de dados no DataFrame,
             # exibe mensagem de erro, espera 2 segundos e fecha a mensagem
-            except TimeoutException as e:
+            except TimeoutException as e_:
                 snack_show(
-                    e_page,
+                    e.page,
                     f'Problemas ao carregar dados para {month}/{year}')
 
-                print(f'Erro ao carregar dados: {e}')
+                print(f'Erro ao carregar dados: {e_}')
 
                 sys.exit(1)
 
@@ -225,15 +225,15 @@ def data_fetch(*args):
             #     print(f'Mês/Ano: {month}/{year}\nLinhas por cada ano: {len(df)}')
 
         # Chama a função que cria, formata e salva o arquivo Excel
-        generate_excel_file(e_page, data_by_year, employee_name, cpf)
+        generate_excel_file(e, data_by_year, employee_name, cpf)
 
         # Retorna verdadeiro se toda operação foi realizada com sucesso
         return True
 
     # Se ocorrerem erros, exibe mensagem
-    except Exception as e:
-        snack_show(e_page, 'Erro ao gerar arquivo!', ft.icons.ERROR, ft.colors.RED)
-        print(f'Erro ao gerar arquivo: {e}')
+    except Exception as e_:
+        snack_show(e.page, 'Erro ao gerar arquivo!', ft.icons.ERROR, ft.colors.RED)
+        print(f'Erro ao gerar arquivo: {e_}')
 
         sys.exit(1)
 

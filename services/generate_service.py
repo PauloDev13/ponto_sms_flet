@@ -28,7 +28,7 @@ def file_generate(*args):
 
         if result:
             # Se não houver erros no processamento, exibe mensagem de sucesso
-            snack_show(e, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+            snack_show(e.page, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
 
     else:
         # Se já existir uma sessão aberta no Streamlit, repete o processo de geração do arquivo
@@ -39,4 +39,4 @@ def file_generate(*args):
 
         if result:
             # Se não houver erros no processamento, exibe mensagem de sucesso
-            snack_show(e, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+            snack_show(e.page, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
