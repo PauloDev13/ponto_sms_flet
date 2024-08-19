@@ -210,9 +210,6 @@ def data_fetch(*args):
 
                 sys.exit(1)
 
-                # Faz logout e saí do sistema.
-                # authenticate.logout()
-
             # Incrementa em um mês a data inicial
             current_date += datetime.timedelta(days=32)
             # Modifica o dia da data inicial para o primeiro dia do mês

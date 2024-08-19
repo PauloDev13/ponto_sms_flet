@@ -1,15 +1,9 @@
-import flet as ft
-from time import sleep
 from datetime import datetime
 
+import flet as ft
+
 from services.generate_service import file_generate
-
-
-# Função que insere '.' e '-' no número do CPF, caso tenha sido
-# informado somente números.
-def format_cpf(cpf_field: ft.TextField) -> str:
-    cpf = cpf_field.value
-    return f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
+from utils.share_model import format_cpf, clear_form
 
 
 def validate_date_format(date_str: str) -> datetime | None:
@@ -18,7 +12,6 @@ def validate_date_format(date_str: str) -> datetime | None:
         return date_obj
     except ValueError:
         return None
-
 
 # Função para validar as datas
 def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextField):
@@ -73,10 +66,11 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
     except Exception as ex:
         print(f'Erro stacktrace: {ex}')
 
-
 # Função para validar o CPF
 def validate_cpf(e, cpf_field: ft.TextField):
+    # Importa a função (snack_show) do módulo (controls.components)
     from controls.components import snack_show
+
     cpf = cpf_field.value
 
     try:
@@ -118,8 +112,6 @@ def validate_cpf(e, cpf_field: ft.TextField):
     except Exception as ex:
         print(f'Erro stacktrace: {ex}')
 
-
-# def validate_form(e, cpf_field, start_date_field, end_date_field) -> None:
 def validate_form(
         e,
         cpf_field: ft.TextField,
@@ -130,6 +122,7 @@ def validate_form(
 
     if cpf_is_valid:
         cpf = format_cpf(cpf_field)
+
         dates_is_valid = validate_dates(
             e,
             start_date_field,
@@ -150,21 +143,4 @@ def validate_form(
 
         file_generate(e, cpf, month_start, year_start, month_end, year_end)
 
-        # print(f'CPF: {cpf}\nMÊS INICIO: {month_start}\nANO INICIO: {year_start}')
-        # print(F'MÊS FINAL: {month_end}\nANO FINAL: {year_end}')
-
         clear_form(cpf_field, start_date_field, end_date_field)
-
-def clear_form(
-        cpf_field: ft.TextField,
-        start_date_field: ft.TextField,
-        end_date_field: ft.TextField
-) -> None:
-    cpf_field.value = ''
-    start_date_field.value = ''
-    end_date_field.value = ''
-
-    cpf_field.update()
-    start_date_field.update()
-    end_date_field.update()
-
