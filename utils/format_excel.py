@@ -128,14 +128,14 @@ def apply_formatting(worksheet, df_year, formats):
         elif row.iloc[1] and 0 < len(row.iloc[1]) <= 8:
             worksheet.write(row_index, 1, row.iloc[1], formats['single_border'])
 
-        # Se na coluna índice zero os valores das células forem diferentes de
-        #  'JUSTIFICATIVA' ou 'AVISO', aplica bordas em todas as células da coluna
-        elif row.iloc[0] not in ['JUSTIFICATIVA', 'AVISO']:
+        # Se na coluna índice 0 o conteúdo da célula for igual a 'JUSTIFICATIVA', 'AVISO'
+        # 'AFASTAMENTO' ou 'FERIADO', aplica bordas customizadas em todas as células da coluna
+        elif row.iloc[0] not in ['JUSTIFICATIVA', 'AVISO', 'AFASTAMENTO', 'FERIADO']:
             worksheet.write(row_index, 0, row.iloc[0], formats['single_border'])
 
-        # Se na coluna índice 0 o conteúdo da célula for igual a 'JUSTIFICATIVA'
-        # ou 'AVISO', aplica bordas customizadas em todas as células da coluna
-        elif row.iloc[0] in ['JUSTIFICATIVA', 'AVISO']:
+        # Se na coluna índice 0 o conteúdo da célula for igual a 'JUSTIFICATIVA', 'AVISO'
+        # 'AFASTAMENTO' ou 'FERIADO', aplica bordas customizadas em todas as células da coluna
+        elif row.iloc[0] in ['JUSTIFICATIVA', 'AVISO', 'AFASTAMENTO', 'FERIADO']:
             worksheet.write(row_index, 0, row.iloc[0], formats['custom_1'])
             # Se na coluna índice 1 o conteúdo da célula for >= a 145
             # e <= 380 caracteres, aumenta a altura da linha para 30

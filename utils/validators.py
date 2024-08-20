@@ -112,35 +112,67 @@ def validate_cpf(e, cpf_field: ft.TextField):
     except Exception as ex:
         print(f'Erro stacktrace: {ex}')
 
-def validate_form(
-        e,
-        cpf_field: ft.TextField,
-        start_date_field: ft.TextField,
-        end_date_field: ft.TextField
-) -> None:
-    cpf_is_valid = validate_cpf(e, cpf_field)
+# Função que valida se os campos do formulários
+# foram preenchidos e se o mesmo está válido
+# def validate_form(*args) -> tuple:
+#     e, cpf_field, start_date_field, end_date_field = args
+#
+#     cpf_is_valid = validate_cpf(e, cpf_field)
+#
+#     if cpf_is_valid:
+#         cpf = format_cpf(cpf_field)
+#
+#         dates_is_valid = validate_dates(
+#             e,
+#             start_date_field,
+#             end_date_field
+#         )
+#
+#     if cpf_is_valid and dates_is_valid:
+#         start_date = start_date_field.value
+#         end_date = end_date_field.value
+#
+#         start_date = datetime.strptime(start_date, '%m/%Y').date()
+#         end_date = datetime.strptime(end_date, '%m/%Y').date()
+#
+#         month_start = start_date.month
+#         year_start = start_date.year
+#         month_end = end_date.month
+#         year_end = end_date.year
+#
+#     return e, cpf, month_start, year_start, month_end, year_end
 
-    if cpf_is_valid:
-        cpf = format_cpf(cpf_field)
 
-        dates_is_valid = validate_dates(
-            e,
-            start_date_field,
-            end_date_field
-        )
 
-    if cpf_is_valid and dates_is_valid:
-        start_date = start_date_field.value
-        end_date = end_date_field.value
-
-        start_date = datetime.strptime(start_date, '%m/%Y').date()
-        end_date = datetime.strptime(end_date, '%m/%Y').date()
-
-        month_start = start_date.month
-        year_start = start_date.year
-        month_end = end_date.month
-        year_end = end_date.year
-
-        file_generate(e, cpf, month_start, year_start, month_end, year_end)
-
-        clear_form(cpf_field, start_date_field, end_date_field)
+# def validate_form(
+#         e,
+#         cpf_field: ft.TextField,
+#         start_date_field: ft.TextField,
+#         end_date_field: ft.TextField
+# ) -> None:
+#     cpf_is_valid = validate_cpf(e, cpf_field)
+#
+#     if cpf_is_valid:
+#         cpf = format_cpf(cpf_field)
+#
+#         dates_is_valid = validate_dates(
+#             e,
+#             start_date_field,
+#             end_date_field
+#         )
+#
+#     if cpf_is_valid and dates_is_valid:
+#         start_date = start_date_field.value
+#         end_date = end_date_field.value
+#
+#         start_date = datetime.strptime(start_date, '%m/%Y').date()
+#         end_date = datetime.strptime(end_date, '%m/%Y').date()
+#
+#         month_start = start_date.month
+#         year_start = start_date.year
+#         month_end = end_date.month
+#         year_end = end_date.year
+#
+#         file_generate(e, cpf, month_start, year_start, month_end, year_end)
+#
+#         clear_form(cpf_field, start_date_field, end_date_field)

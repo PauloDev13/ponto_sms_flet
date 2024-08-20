@@ -1,7 +1,8 @@
 import flet as ft
 from time import sleep
 
-from utils.validators import validate_form, clear_form
+from utils.share_model import clear_form, close_app
+from utils.validators import file_generate
 
 # Variável global
 container_snackbar = None
@@ -30,7 +31,7 @@ end_date_field = ft.TextField(
 )
 
 generate_button = ft.ElevatedButton(
-    on_click=lambda e: validate_form(
+    on_click=lambda e: file_generate(
         e,
         cpf_field,
         start_date_field,
@@ -57,6 +58,7 @@ cancel_button = ft.ElevatedButton(
 )
 
 exit_button = ft.ElevatedButton(
+    on_click=close_app,
     col={'md': 4},
     text='Sair',
     expand=True

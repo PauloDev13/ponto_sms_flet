@@ -14,9 +14,12 @@ from controls.components import (
     exit_button
 )
 
+from utils.share_model import on_close
+
 
 def main(page: ft.Page):
     page.title = 'Ponto SMS'
+    page.on_close = on_close
 
     # Centralizando o conteúdo da janela
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
