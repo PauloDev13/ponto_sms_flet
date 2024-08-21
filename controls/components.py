@@ -142,10 +142,16 @@ def no_click(e):
 confirm_dialog = ft.AlertDialog(
     modal=True,
     title=ft.Text('Sair do aplicativo'),
-    content=ft.Text('Deseja encerrar o aplicativo?'),
+    content=ft.Row([
+        ft.Icon(name=ft.icons.WARNING_ROUNDED, color=ft.colors.AMBER_200),
+        ft.Text('Confirma saída do aplicativo?')
+    ],
+    alignment=ft.MainAxisAlignment.START),
+    content_padding=20,
+    shape=ft.RoundedRectangleBorder(radius=10) ,
     actions=[
         ft.ElevatedButton('SIM', on_click=yes_click),
         ft.ElevatedButton('NÃO', on_click=no_click),
     ],
-    actions_alignment=ft.MainAxisAlignment.END
+    actions_alignment=ft.MainAxisAlignment.END,
 )

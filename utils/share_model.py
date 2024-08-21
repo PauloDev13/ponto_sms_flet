@@ -21,19 +21,20 @@ def window_event(e):
     from controls.components import confirm_dialog
 
     if e.data == 'close':
-        e.page.dialog = confirm_dialog
-        confirm_dialog.open = True
-        e.page.update()
+        e.page.open(confirm_dialog)
+        # e.page.dialog = confirm_dialog
+        # confirm_dialog.open = True
+        # e.page.update()
 
 
 # Função que fecha a aplicação e
 # encerra o driver após click no botão sair
 def close_app(e):
     from controls.components import confirm_dialog
-
-    e.page.dialog = confirm_dialog
-    confirm_dialog.open = True
-    e.page.update()
+    e.page.open(confirm_dialog)
+    # e.page.dialog = confirm_dialog
+    # confirm_dialog.open = True
+    # e.page.update()
 
 
 # Função que insere '.' e '-' no número do CPF, caso tenha sido
