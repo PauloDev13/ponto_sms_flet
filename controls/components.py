@@ -76,14 +76,16 @@ def snack_show(
 
     if container_snackbar is None:
         container_snackbar = message_snackbar(icon_name, bg_color)
-        page.add(container_snackbar)
+        # page.add(container_snackbar)
+        page.overlay.append(container_snackbar)
 
     container_snackbar.content.controls[0].name = icon_name
     container_snackbar.content.controls[1].value = message
     container_snackbar.bgcolor = bg_color
     container_snackbar.visible = True
     container_snackbar.opacity = 0.6
-    container_snackbar.update()
+    # container_snackbar.update()
+    page.update()
 
     sleep(3)
     hide_snackbar()
@@ -120,3 +122,30 @@ def message_snackbar(icon_name: str, bg_color: str):
         opacity=0.0,
         animate_opacity=300,
     )
+
+
+def yes_click(e):
+    driver = e.page.session.get('driver')
+
+    if driver is not None:
+        driver.quit()
+
+    e.page.window.destroy()
+
+
+def no_click(e):
+    confirm_dialog.open = False
+    cpf_field.focus()
+    e.page.update()
+
+
+confirm_dialog = ft.AlertDialog(
+    modal=True,
+    title=ft.Text('Sair do aplicativo'),
+    content=ft.Text('Deseja encerrar o aplicativo?'),
+    actions=[
+        ft.ElevatedButton('SIM', on_click=yes_click),
+        ft.ElevatedButton('NÃO', on_click=no_click),
+    ],
+    actions_alignment=ft.MainAxisAlignment.END
+)

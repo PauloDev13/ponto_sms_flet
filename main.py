@@ -14,12 +14,20 @@ from controls.components import (
     exit_button
 )
 
-from utils.share_model import on_close
+# Importa do módulo (share_model) a função (window_event)
+from utils.share_model import window_event
 
 
 def main(page: ft.Page):
     page.title = 'Ponto SMS'
-    page.on_close = on_close
+
+    # Intercepta o evento disparado quando o botão "X" da janela é clicado
+    page.window_prevent_close = True
+    page.on_window_event = window_event
+
+    # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
+    page.window.always_on_top = True
+    page.window.center()
 
     # Centralizando o conteúdo da janela
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -28,15 +36,9 @@ def main(page: ft.Page):
     # Definindo o tamanho da janela
     page.window_width = 800
     page.window_height = 600
-
-    # Obtendo a resolução da tela
-    user32 = ctypes.windll.user32
-    screen_width = user32.GetSystemMetrics(0)
-    screen_height = user32.GetSystemMetrics(1)
-
-    # Calculando a posição para centralizar a janela
-    page.window_left = (screen_width - page.window_width) // 2
-    page.window_top = (screen_height - page.window_height) // 2
+    page.window.max_width = 800
+    page.window.max_height = 800
+    page.window.center()
 
     page.add(
         ft.Card(

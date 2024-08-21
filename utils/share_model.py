@@ -16,21 +16,24 @@ def clear_form(
     end_date_field.update()
 
 
-# Função que captura o evento quando a janela principal do
-# aplicativo é fechada, encerrando o drive do navegador
-def on_close(e):
-    driver = e.page.session.get('driver')
-    if driver is not None:
-        driver.quit()
+# Função que captura o evento quando a janela principal do aplicativo é fechada
+def window_event(e):
+    from controls.components import confirm_dialog
+
+    if e.data == 'close':
+        e.page.dialog = confirm_dialog
+        confirm_dialog.open = True
+        e.page.update()
 
 
 # Função que fecha a aplicação e
 # encerra o driver após click no botão sair
 def close_app(e):
-    driver = e.page.session.get('driver')
-    if driver is not None:
-        driver.quit()
-    e.page.window_close()
+    from controls.components import confirm_dialog
+
+    e.page.dialog = confirm_dialog
+    confirm_dialog.open = True
+    e.page.update()
 
 
 # Função que insere '.' e '-' no número do CPF, caso tenha sido
