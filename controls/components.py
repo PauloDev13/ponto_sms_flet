@@ -3,8 +3,6 @@ from typing import Tuple
 import flet as ft
 from time import sleep
 
-from flet_core import ButtonStyle
-
 from utils.share_model import clear_form, close_app, button_style
 from utils.validators import file_generate
 
@@ -172,3 +170,6 @@ confirm_dialog = ft.AlertDialog(
     actions_alignment=ft.MainAxisAlignment.END,
 )
 
+progress_bar = ft.ProgressBar(
+    width=600
+)
