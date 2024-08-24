@@ -1,24 +1,22 @@
-from typing import Tuple
-
 import flet as ft
 from time import sleep
 
 from utils.share_model import clear_form, close_app, button_style
 from utils.validators import file_generate
 
-
+# CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
     label='CPF',
     col={'md': 12},
     hint_text='Digite um CPF',
-    border_color=ft.colors.WHITE30,
+    border_color='#5a90fc',
     expand=True,
 )
 
 start_date_field = ft.TextField(
     label='Período Inicial',
     hint_text='Mês/Ano',
-    border_color=ft.colors.WHITE30,
+    border_color='#5a90fc',
     col={'md': 6},
     text_align=ft.TextAlign.RIGHT,
     expand=True
@@ -27,12 +25,13 @@ start_date_field = ft.TextField(
 end_date_field = ft.TextField(
     label='Período final',
     hint_text='Mês/Ano',
-    border_color=ft.colors.WHITE30,
+    border_color='#5a90fc',
     col={'md': 6},
     text_align=ft.TextAlign.RIGHT,
     expand=True
 )
 
+# CONTROLES DE BOTÕES
 generate_button = ft.ElevatedButton(
     on_click=lambda e: file_generate(
         e,
@@ -42,7 +41,7 @@ generate_button = ft.ElevatedButton(
     ),
     col={'md': 4},
     text='GERAR AQUIVO',
-    style=button_style(),
+    style=button_style('OK'),
     expand=True,
 )
 
@@ -71,8 +70,8 @@ def snack_show(
         page: ft.Page,
         message: str,
         icon=ft.icons.INFO_ROUNDED,
-        icon_color=ft.colors.BLUE_100,
-        text_color=ft.colors.BLUE_100,
+        icon_color='#4dd0e1',
+        text_color='#abb2bf',
 ) -> None:
     content = [
         ft.Icon(icon, color=icon_color, size=30),
@@ -112,13 +111,15 @@ def message_snackbar(content: list):
         ),
         margin=ft.margin.only(top=50),
         width=600,
-        bgcolor=ft.colors.BLACK12,
+        bgcolor='#21252b',
         padding=10,
-        border=ft.border.all(width=1, color=ft.colors.WHITE30),
+        border=ft.border.all(width=1, color='#5a90fc'),
         border_radius=5,
         visible=False,
         opacity=0.0,
-        animate_opacity=ft.animation.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+        animate_opacity=ft.animation.Animation(
+            500, ft.AnimationCurve.EASE_IN_OUT
+        ),
     )
 
 
@@ -139,34 +140,60 @@ def no_click(e):
 
 
 confirm_dialog = ft.AlertDialog(
+    title=ft.Column(
+        controls=[
+            ft.Container(
+                content=ft.Row(
+                    controls=[
+                        ft.Icon(
+                            col=6,
+                            name=ft.icons.QUESTION_MARK,
+                            color='#4dd0e1',
+                            size=30
+                        ),
+                        ft.Text(
+                            col=6,
+                            value='Confirmar saída',
+                            color='#abb2bf',
+                            size=20
+                        ),
+                    ]
+                )
+            ),
+            ft.Divider(color=ft.colors.GREY_700, thickness=1),
+        ]
+    ),
     modal=True,
     content=ft.Container(
-        width=400,
-        height=50,
+        width=350,
+        height=30,
         content=ft.Row(
             controls=[
-                ft.Icon(
-                    name=ft.icons.QUIZ,
-                    color=ft.colors.BLUE_100,
-                    size=30
-                ),
                 ft.Text(
-                    value='Confirma saída do aplicativo?',
-                    color=ft.colors.BLUE_100,
+                    value='Tem certeza de que deseja sair?',
+                    color='#abb2bf',
                     size=18
                 )
             ],
-            alignment=ft.MainAxisAlignment.START,
+            alignment=ft.MainAxisAlignment.CENTER,
         )),
 
-    content_padding=20,
+    content_padding=ft.padding.only(bottom=20),
     shape=ft.RoundedRectangleBorder(radius=10),
     actions=[
-        ft.ElevatedButton('SIM', on_click=yes_click, style=button_style()),
-        ft.ElevatedButton('NÃO', on_click=no_click, style=button_style()),
+        ft.ElevatedButton(
+            content=ft.Text(value='SIM', size=12),
+            on_click=yes_click,
+            style=button_style('OK')
+        ),
+        ft.ElevatedButton(
+            content=ft.Text(value='NÃO', size=12),
+            on_click=no_click,
+            style=button_style()
+        ),
     ],
     elevation=20,
-    surface_tint_color=ft.colors.GREY_900,
+    surface_tint_color='#2b2d30',
     actions_alignment=ft.MainAxisAlignment.END,
 )
 

@@ -27,7 +27,6 @@ def main(page: ft.Page):
 
     # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
     page.window.always_on_top = True
-    page.window.center()
 
     # Centralizando o conteúdo da janela
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -36,8 +35,10 @@ def main(page: ft.Page):
     # Definindo o tamanho da janela
     page.window.width = 800
     page.window.height = 600
-    page.window.max_width = 800
-    page.window.max_height = 800
+
+    # Definindo que a janela não pode ser redimensionada
+    page.window_resizable = False
+    page.window_maximizable = False
     page.window.center()
 
     page.add(
@@ -45,9 +46,9 @@ def main(page: ft.Page):
             content=ft.Container(
                 width=600,
                 padding=20,
-                bgcolor=ft.colors.BLACK12,
-                border_radius=20,
-                border=ft.border.all(1, ft.colors.WHITE30),
+                bgcolor='#1e1f22',
+                border_radius=15,
+                border=ft.border.all(1, '#5a90fc'),
 
                 content=ft.Column([
                     ft.ListTile(

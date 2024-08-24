@@ -23,9 +23,6 @@ def window_event(e):
 
     if e.data == 'close':
         e.page.open(confirm_dialog)
-        # e.page.dialog = confirm_dialog
-        # confirm_dialog.open = True
-        # e.page.update()
 
 
 # Função que fecha a aplicação e
@@ -33,9 +30,6 @@ def window_event(e):
 def close_app(e):
     from controls.components import confirm_dialog
     e.page.open(confirm_dialog)
-    # e.page.dialog = confirm_dialog
-    # confirm_dialog.open = True
-    # e.page.update()
 
 
 # Função que insere '.' e '-' no número do CPF, caso tenha sido
@@ -45,18 +39,32 @@ def format_cpf(cpf_field: ft.TextField) -> str:
     return f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
 
 
-def button_style() -> ft.ButtonStyle:
-    return ft.ButtonStyle(
-        side={
-            ft.ControlState.DEFAULT: ft.BorderSide(width=0.5, color=ft.colors.BLUE_100),
-            ft.ControlState.HOVERED: ft.BorderSide(width=2, color=ft.colors.BLUE_200),
-        },
-        bgcolor={
-            ft.ControlState.DEFAULT: ft.colors.GREY_900,
-            ft.ControlState.HOVERED: ft.colors.BLACK,
-        },
-        color={
-            ft.ControlState.DEFAULT: ft.colors.BLUE_100,
-            ft.ControlState.HOVERED: ft.colors.BLUE_200
-        }
-    )
+def button_style(btn_name: str = '') -> ft.ButtonStyle:
+    if btn_name == 'OK':
+        return ft.ButtonStyle(
+            shape={
+                ft.ControlState.DEFAULT: ft.RoundedRectangleBorder(radius=5)
+            },
+            bgcolor={
+                ft.ControlState.DEFAULT: '#5a90fc',
+                ft.ControlState.HOVERED: ft.colors.BLUE_ACCENT_400,
+            },
+            color={
+                ft.ControlState.DEFAULT: '#abb2bf',
+                ft.ControlState.HOVERED: ft.colors.WHITE
+            },
+        )
+    else:
+        return ft.ButtonStyle(
+            shape={
+                ft.ControlState.DEFAULT:ft.RoundedRectangleBorder(radius=5)
+            },
+            bgcolor={
+                ft.ControlState.DEFAULT: '#2b2d30',
+                ft.ControlState.HOVERED: '#aac0d5',
+            },
+            color={
+                ft.ControlState.DEFAULT: '#abb2bf',
+                ft.ControlState.HOVERED: ft.colors.WHITE
+            }
+        )
