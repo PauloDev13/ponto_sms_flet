@@ -25,45 +25,70 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
 
         if not date_start:
             date_start_field.focus()
-            snack_show(e.page, 'A Data Inicial é obrigatória!')
+            snack_show(
+                page=e.page,
+                message='A Data Inicial é obrigatória!'
+            )
             return False
         elif start_date is None:
             date_start_field.focus()
-            snack_show(e.page, f'A Data Inicial ({date_start}) é inválida!')
+            snack_show(
+                page=e.page,
+                message=f'A Data Inicial ({date_start}) é inválida!'
+            )
             return False
 
         start_year = start_date.year
 
         if start_year < 2000:
             date_start_field.focus()
-            snack_show(e.page, f'O Ano da Data Inicial deve ser igual ou maior que 2000')
+            snack_show(
+                page=e.page,
+                message=f'O Ano da Data Inicial deve ser igual ou maior que 2000'
+            )
             return False
 
         if not date_end:
             date_end_field.focus()
-            snack_show(e.page, 'A Data Final é obrigatória!')
+            snack_show(
+                page=e.page,
+                message='A Data Final é obrigatória!'
+            )
             return False
         elif end_date is None:
             date_end_field.focus()
-            snack_show(e.page, f'A Data Final ({date_end}) é inválida!')
+            snack_show(
+                page=e.page,
+                message=f'A Data Final ({date_end}) é inválida!'
+            )
             return False
 
         end_year = end_date.year
 
         if end_year < 2000:
             date_end_field.focus()
-            snack_show(e.page, f'O Ano da Data Final deve ser igual ou maior que 2000')
+            snack_show(
+                page=e.page,
+                message=f'O Ano da Data Final deve ser igual ou maior que 2000'
+            )
             return False
 
         if start_date > end_date:
             date_start_field.focus()
             snack_show(
-                e.page,
-                f'A services inicial {start_date.date().strftime('%d/%m/%Y')} deve ser \n'
+                page=e.page,
+                message=f'A services inicial {start_date.date().strftime('%d/%m/%Y')} deve ser \n'
                 f'anterior a services final {end_date.date().strftime('%d/%m/%Y')}')
             return False
         return True
     except Exception as ex:
+        snack_show(
+            page=e.page,
+            message='Erro ao validar datas!',
+            icon=ft.icons.ERROR,
+            icon_color=ft.colors.RED,
+            text_color=ft.colors.RED
+        )
         print(f'Erro stacktrace: {ex}')
 
 # Função para validar o CPF
@@ -76,22 +101,40 @@ def validate_cpf(e, cpf_field: ft.TextField):
     try:
         if not cpf:
             cpf_field.focus()
-            snack_show(e.page, 'O CPF é obrigatório!')
+            snack_show(
+                page=e.page,
+                message='O CPF é obrigatório!'
+            )
             return False
 
         if not cpf.isdigit():
             cpf_field.focus()
-            snack_show(e.page, 'O CPF deve conter somente números!')
+            snack_show(
+                page=e.page,
+                message='O CPF deve conter somente números!'
+            )
             return False
 
         if len(cpf) != 11:
             cpf_field.focus()
-            snack_show(e.page, 'CPF inválido!', ft.icons.WARNING)
+            snack_show(
+                page=e.page,
+                message='CPF inválido!',
+                icon=ft.icons.ERROR,
+                icon_color=ft.colors.RED,
+                text_color=ft.colors.RED
+            )
             return False
 
         if cpf == cpf[0] * 11:
             cpf_field.focus()
-            snack_show(e.page, 'CPF inválido!', ft.icons.WARNING)
+            snack_show(
+                page=e.page,
+                message='CPF inválido!',
+                icon=ft.icons.ERROR,
+                icon_color=ft.colors.RED,
+                text_color=ft.colors.RED
+            )
             return False
 
         # Calcula o primeiro dígito verificador
@@ -107,7 +150,13 @@ def validate_cpf(e, cpf_field: ft.TextField):
             return True
         else:
             cpf_field.focus()
-            snack_show(e.page, 'CPF inválido!', ft.icons.WARNING, ft.colors.RED)
+            snack_show(
+                page=e.page,
+                message='CPF inválido!',
+                icon=ft.icons.ERROR,
+                icon_color=ft.colors.RED,
+                text_color=ft.colors.RED
+            )
             return False
     except Exception as ex:
         print(f'Erro stacktrace: {ex}')

@@ -11,6 +11,7 @@ def clear_form(
     start_date_field.value = ''
     end_date_field.value = ''
 
+    cpf_field.focus()
     cpf_field.update()
     start_date_field.update()
     end_date_field.update()
@@ -42,3 +43,20 @@ def close_app(e):
 def format_cpf(cpf_field: ft.TextField) -> str:
     cpf = cpf_field.value
     return f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
+
+
+def button_style() -> ft.ButtonStyle:
+    return ft.ButtonStyle(
+        side={
+            ft.ControlState.DEFAULT: ft.BorderSide(width=0.5, color=ft.colors.BLUE_100),
+            ft.ControlState.HOVERED: ft.BorderSide(width=2, color=ft.colors.BLUE_200),
+        },
+        bgcolor={
+            ft.ControlState.DEFAULT: ft.colors.GREY_900,
+            ft.ControlState.HOVERED: ft.colors.BLACK,
+        },
+        color={
+            ft.ControlState.DEFAULT: ft.colors.BLUE_100,
+            ft.ControlState.HOVERED: ft.colors.BLUE_200
+        }
+    )

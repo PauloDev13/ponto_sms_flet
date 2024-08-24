@@ -22,7 +22,7 @@ def main(page: ft.Page):
     page.title = 'Ponto SMS'
 
     # Intercepta o evento disparado quando o botão "X" da janela é clicado
-    page.window_prevent_close = True
+    page.window.prevent_close = True
     page.on_window_event = window_event
 
     # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
@@ -34,8 +34,8 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     # Definindo o tamanho da janela
-    page.window_width = 800
-    page.window_height = 600
+    page.window.width = 800
+    page.window.height = 600
     page.window.max_width = 800
     page.window.max_height = 800
     page.window.center()
