@@ -15,7 +15,7 @@ if not file_path:
     raise ValueError('O caminho para o arquivo do Excel não está definido no .env')
 
 
-# Cria o arquivo Excel
+# FUNÇÃO QUE CRIA O ARQUIVO EXCEL
 def generate_excel_file(
         page: ft.Page,
         data_dic: Dict[int, pd.DataFrame],

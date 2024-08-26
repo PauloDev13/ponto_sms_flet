@@ -4,7 +4,7 @@ import flet as ft
 from time import sleep
 
 from utils.share_model import clear_form, close_app, button_style
-from utils.validators import file_generate
+from services.generate_service import file_generate
 
 # CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
@@ -33,6 +33,13 @@ end_date_field = ft.TextField(
     expand=True
 )
 
+# Dicionário com os controles do formulário
+dict_controls: dict = {
+    'cpf_field': cpf_field,
+    'start_date_field': start_date_field,
+    'end_date_field': end_date_field
+}
+
 # CONTROLES DE BOTÕES
 generate_button = ft.ElevatedButton(
     on_click=lambda e: file_generate(
@@ -49,9 +56,7 @@ generate_button = ft.ElevatedButton(
 
 cancel_button = ft.ElevatedButton(
     on_click=lambda _: clear_form(
-        cpf_field,
-        start_date_field,
-        end_date_field
+        **dict_controls
     ),
     col={'md': 4},
     text='CANCELAR',
@@ -68,7 +73,7 @@ exit_button = ft.ElevatedButton(
 )
 
 
-# Função que exibe a snackbar de mensagens
+# FUNÇÃO QUE EXIBE O CONTROLE QUE SIMULA UMA SNACKBAR DE MENSAGENS
 def snack_show(
         page: ft.Page,
         message: str,
@@ -124,9 +129,11 @@ def snack_show(
     page.update()
 
 
-# Função para criar o snackbar de mensagens
+# FUNÇÃO QUE CRIA O CONTROLE PARA SIMULAR UMA SNACBAR DE MENSAGENS
 def message_snackbar(content: list[ft.Control], container_height: int):
+    # Customiza o valor da margem superior dependendo da altura do controle
     margin = ft.margin.only(top=30) if container_height > 50 else ft.margin.only(top=50)
+
     return ft.Container(
         content=ft.Row(
             controls=content
@@ -146,7 +153,7 @@ def message_snackbar(content: list[ft.Control], container_height: int):
     )
 
 
-# Evento para o click no botão 'SIM' da caixa de diálogo
+# FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
 def yes_click(e):
     # Pega a instância de Page
     page = e.page
@@ -162,7 +169,7 @@ def yes_click(e):
     page.window.destroy()
 
 
-# Evento para o click no botão 'NÃO' do dialog
+# FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
 def no_click(e):
     # Pega a instância de Page
     page = e.page
@@ -172,7 +179,7 @@ def no_click(e):
     cpf_field.focus()
 
 
-# Cria um caixa de diálogo de confirmação para saída da aplicação
+# CRIA CAIXA DE DIÁLOGO DE CONFIRMAÇÃO PARA SAIR DA APLICAÇÃO
 confirm_dialog = ft.AlertDialog(
     title=ft.Column(
         controls=[
@@ -234,7 +241,7 @@ confirm_dialog = ft.AlertDialog(
 )
 
 
-# Função para exibir uma progress
+# FUNÇÃO QUE CRIA UM CONTROLE PARA EXIBIR A BARRA DE PROGRESSO
 def progress_control(
     progress_bar: ft.ProgressBar,
     message: str,

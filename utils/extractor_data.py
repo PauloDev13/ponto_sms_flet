@@ -55,7 +55,7 @@ def data_fetch(*args):
 
             # Monta e atribui a variável 'table' a URL com os query params
             # da pesquisa e abre no navegador
-            url_search = f'{url_data}?cpf={cpf}&mes={month}&ano={year}&unidade=149'
+            url_search = f'{url_data}?cpf={cpf}&mes={month}&ano={year}'
             driver.get(url_search)
 
             try:
@@ -128,7 +128,7 @@ def data_fetch(*args):
 
                 # Após criadas, as colunas vão receber os valore 1 ou vazio ('').
                 # É aplicado no Dataframe (df_table) a função (columns_update) que
-                # retorna esses valores
+                # retorna uma 'Series' com esses valores setados
                 df_table[['HT', 'HJ', 'ST', 'ADN']] = df_table.apply(columns_update, axis=1)
 
                 # Remove do dataframe (df_table) a coluna (EDITAR)
@@ -242,6 +242,7 @@ def data_fetch(*args):
 
             # Incrementa em um mês a data inicial
             current_date += datetime.timedelta(days=32)
+
             # Modifica o dia da data inicial para o primeiro dia do mês
             current_date = current_date.replace(day=1)
 
@@ -261,8 +262,6 @@ def data_fetch(*args):
     except Exception as e_:
         snack_show(e.page, 'Erro ao gerar arquivo!', ft.icons.ERROR, ft.colors.RED)
         print(f'Erro ao gerar arquivo: {e_}')
-
-        sys.exit(1)
 
         # Retorna falso em caso de erro
         return False

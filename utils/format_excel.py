@@ -93,6 +93,9 @@ def define_formats(workbook):
             'border': 1,
             'align': 'center',
         }),
+        'test': workbook.add_format({
+            'align': 'right',
+        }),
         'cell_unblocked': workbook.add_format({'locked': False}),
     }
     return formats
@@ -128,7 +131,7 @@ def apply_formatting(worksheet, df_year, formats):
         elif row.iloc[1] and 0 < len(row.iloc[1]) <= 8:
             worksheet.write(row_index, 1, row.iloc[1], formats['single_border'])
 
-        # Se na coluna índice 0 o conteúdo da célula for igual a 'JUSTIFICATIVA', 'AVISO'
+        # Se na coluna índice 0 o conteúdo da célula for diferente de 'JUSTIFICATIVA', 'AVISO'
         # 'AFASTAMENTO' ou 'FERIADO', aplica bordas customizadas em todas as células da coluna
         elif row.iloc[0] not in ['JUSTIFICATIVA', 'AVISO', 'AFASTAMENTO', 'FERIADO']:
             worksheet.write(row_index, 0, row.iloc[0], formats['single_border'])

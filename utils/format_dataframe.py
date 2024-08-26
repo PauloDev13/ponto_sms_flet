@@ -17,7 +17,7 @@ def format_validation(hour_str) -> bool:
         return False
 
 
-# Função para converter string para datetime.time
+# Função para converter string para datetime.time NO FORMATO 'DD/MM/YYYY'
 def str_to_time(hour_str):
     try:
         return datetime.strptime(hour_str, '%H:%M:%S').time()
@@ -28,7 +28,7 @@ def str_to_time(hour_str):
 # Atualiza as colunas 'HT', 'HJ', 'ST' se nas colunas 'TRABALHADA' e
 # 'HORA JUSTIFICADA' os valores forem iguais ou maiores que '12:00:00'.
 # Na coluna 'STATUS' se o valor for igual a 'APROVADO'
-def columns_update(row):
+def columns_update(row) -> pd.Series:
     try:
         # Se os dados da coluna 'TRABALHADA' estiver no formado '00:00:00',
         # faz a conversão para datetime.time. Se não, retorna None

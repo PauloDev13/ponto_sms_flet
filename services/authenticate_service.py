@@ -70,6 +70,9 @@ def login(e):
         # uma barra de progresso até que o processo de login seha concluído
         start_login(page=e.page, total_time=30, message='Conectando Sistema de Ponto. AGUARDE...')
 
+        # Minimiza a janela do navegador
+        driver.minimize_window()
+
         # Clica no botão de login da página HTML
         button_login.click()
 
@@ -112,8 +115,13 @@ def login(e):
             message='A pagina demorou a responder! Tente novamente')
         print(f'Erro stacktrace: {ex}')
         return None
-
     except NoSuchWindowException as ex_:
+        snack_show(
+            page=e.page,
+            message='Falha no login! Tente novamente')
+        print(f'Erro stacktrace: {ex_}')
+        return None
+    except Exception as ex_:
         snack_show(
             page=e.page,
             message='Falha no login! Tente novamente')

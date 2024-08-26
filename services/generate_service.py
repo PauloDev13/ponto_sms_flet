@@ -1,5 +1,6 @@
-import flet as ft
 from datetime import datetime
+
+import flet as ft
 
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
@@ -10,11 +11,6 @@ def file_generate(*args):
     from utils.validators import (
         validate_cpf, validate_dates, format_cpf
     )
-    # Importa a função (show_snackbar) do módulo (controls)
-    from controls.components import snack_show
-
-    # Define o dicionário (data_dict)
-    data_dict: dict = {}
 
     # Desempacota os argumentos enviados através do (*args)
     e, cpf_field, start_date_field, end_date_field = args
@@ -42,7 +38,8 @@ def file_generate(*args):
         start_date = datetime.strptime(start_date, '%m/%Y').date()
         end_date = datetime.strptime(end_date, '%m/%Y').date()
 
-        # Extrai o mês e o ano das datas inicial e final
+        # Extrai o mês e o ano das datas inicial e final atribuindo os
+        # resultados às variáveis (month_start, year_start, month_end, year_end)
         month_start = start_date.month
         year_start = start_date.year
         month_end = end_date.month
@@ -52,70 +49,87 @@ def file_generate(*args):
         # driver guardado na session do Flet.
         driver = e.page.session.get('driver')
 
+        # Atribui à variável (data_dict), um dicionário com as chaves
+        # e valores que serão repassados para a função (get_data)
+        data_dict: dict = {
+            'page': e.page,
+            'cpf': cpf,
+            'month_start': month_start,
+            'year_start': year_start,
+            'month_end': month_end,
+            'year_end': year_end,
+            'driver': driver,
+            'cpf_field': cpf_field,
+            'start_date_field': start_date_field,
+            'end_date_field': end_date_field
+        }
+
         # Verifica se existe o argumento driver na sessão do Flet.
         # Se NÃO, chama a função 'login' do módulo 'authenticate'
         # que retorna uma instância do driver do navegador e
         # armazena a instância retornada na sessão do Flet
         if driver is None:
             if driver := login(e):
-                driver.minimize_window()
+                # driver.minimize_window()
                 e.page.session.set('driver', driver)
 
-                data_dict = {
-                    'page': e.page,
-                    'cpf': cpf,
-                    'month_start': month_start,
-                    'year_start': year_start,
-                    'month_end': month_end,
-                    'year_end': year_end,
-                    'driver': driver,
-                    'cpf_field': cpf_field,
-                    'start_date_field': start_date_field,
-                    'end_date_field': end_date_field
-                }
+                # Seta o valor do driver no dicionário (data_dict)
+                data_dict['driver'] = driver
 
-                # Chama a função local (get_data)
+                # Chama a função local (get_data) passando
+                # o dicionário como argumento
                 get_data(**data_dict)
 
         else:
+            # Seta o valor do driver no dicionário (data_dict)
+            data_dict['driver'] = driver
+
+            # Chama a função local (get_data) passando
+            # o dicionário como argumento
             get_data(**data_dict)
 
 
+# FUNÇÃO QUE CHAMA O 'SCRAPING' NO HTML
 def get_data(**kwargs):
+    # Importa as funções dos módulos utils e controls
     from utils.validators import clear_form
     from controls.components import snack_show
 
-    dic_data_fetch = {
+    # Cria um dicionário com parte dos dados vindos no atributo **kwargs
+    dic_data_fetch: dict = {
         k: v for k, v in kwargs.items() if k in [
             'page', 'cpf', 'month_start', 'year_start', 'month_end', 'year_end', 'driver'
         ]
     }
 
+    # Cria outro dicionário com os dados restantes vindos no atributo **kwargs
     dic_clear_form = {
         k: v for k, v in kwargs.items() if k in [
             'cpf_field', 'start_date_field', 'end_date_field'
         ]
     }
 
+    # Atribui a variável (page) o valor da chave 'page' do dicionário (dic_data_fetch)
     page = dic_data_fetch.get('page')
+
+    # Transforma o dicionário (dic_data_fetch) numa tupla apenas
+    # com os valores e atribui à variável (tuple_data_fetch)
     tuple_data_fetch = tuple(dic_data_fetch.values())
 
+    # Chama a função que exibe a barra de progresso
     data_progress_bar(page=page)
 
-    result = data_fetch(
-        *tuple_data_fetch,
-    )
+    # Chama a função que busca os dados passando a tupla como
+    # argumento e atribui o retorno (um booleano) à variável result
+    result = data_fetch(*tuple_data_fetch)
 
+    # Se resulto for TRUE, remove da página a barra de progresso e atualiza a página
     if result:
         page.overlay.pop()
         page.update()
 
         # Limpa o formulário
-        clear_form(
-            dic_clear_form.get('cpf_field'),
-            dic_clear_form.get('start_date_field'),
-            dic_clear_form.get('end_date_field')
-        )
+        clear_form(**dic_clear_form)
 
         # Se não houver erros no processamento, exibe mensagem de sucesso
         snack_show(

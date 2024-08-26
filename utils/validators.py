@@ -2,10 +2,10 @@ from datetime import datetime
 
 import flet as ft
 
-from services.generate_service import file_generate
 from utils.share_model import format_cpf, clear_form
 
 
+# FUNÇÃO QUE FORMATA AS DATAS PARA 'MM/yyyy'
 def validate_date_format(date_str: str) -> datetime | None:
     try:
         date_obj = datetime.strptime(date_str, '%m/%Y')
@@ -13,7 +13,7 @@ def validate_date_format(date_str: str) -> datetime | None:
     except ValueError:
         return None
 
-# Função para validar as datas
+# FUNÇÃO QUE VALIDA AS DATAS
 def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextField):
     from controls.components import snack_show
     try:
@@ -78,7 +78,7 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
             snack_show(
                 page=e.page,
                 container_height=70,
-                message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser'
+                message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser '
                 f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
             return False
         return True
@@ -92,7 +92,7 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
         )
         print(f'Erro stacktrace: {ex}')
 
-# Função para validar o CPF
+# FUNÇÃO QUE VALIDA O NÚMERO DO CPF
 def validate_cpf(e, cpf_field: ft.TextField):
     # Importa a função (snack_show) do módulo (controls.components)
     from controls.components import snack_show
