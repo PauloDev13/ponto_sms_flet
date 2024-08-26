@@ -12,6 +12,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
+from utils.share_model import start_login
+
 # Carrega o arquivo .env
 load_dotenv()
 
@@ -60,13 +62,17 @@ def login(e):
         driver.switch_to.frame(0)
         driver.find_element(by=By.XPATH, value="//*[@id='recaptcha-anchor']").click()
         driver.switch_to.default_content()
-        sleep(60)
 
-        # Localiza o botão de login e clica
+        # Localiza o botão de login
         button_login = driver.find_element(by=By.XPATH, value="//*[@id='form']/input")
+
+        # Chama a função (start_login) do (shared_module) que exibe
+        # uma barra de progresso até que o processo de login seha concluído
+        start_login(page=e.page, total_time=30, message='Conectando Sistema de Ponto. AGUARDE...')
+
+        # Clica no botão de login da página HTML
         button_login.click()
 
-        sleep(1)
         # Checa se a URL da página inicial foi carregada no navegador
         load_page = WebDriverWait(driver, 10).until(
             ec.url_contains(url_init)
@@ -75,10 +81,17 @@ def login(e):
         # Se a página inicial carregou, exibe mensagem de sucesso
         # Se não, exibe mensagem de alerta
         if load_page:
-            snack_show(e.page, 'Login realizado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+            snack_show(
+                page=e.page,
+                message='Login realizado com sucesso!',
+                icon=ft.icons.LOGIN_SHARP,
+                icon_color=ft.colors.GREEN)
 
         else:
-            snack_show(e.page, 'Falha no login! Tente novamente.', ft.icons.INFO)
+            snack_show(
+                page=e.page,
+                message='Falha no login! Tente novamente.',
+                icon=ft.icons.INFO)
 
         # Retorna uma instância do navegador.
         return driver
@@ -86,23 +99,23 @@ def login(e):
     # Se ocorrer erros no processo de login exibe mensagens
     except ElementClickInterceptedException as e_:
         snack_show(
-            e.page,
-            'Erro ao clicar num elemento da página! Tente novamente',
-            ft.icons.ERROR,
-            ft.colors.RED
+            page=e.page,
+            message='Erro ao clicar num elemento da página! Tente novamente',
+            icon=ft.icons.ERROR,
+            icon_color=ft.colors.RED
         )
         print(f'Erro stacktrace: {e_}')
         return None
     except TimeoutException as ex:
         snack_show(
-            e.page,
-            'A pagina demorou a responder! Tente novamente')
+            page=e.page,
+            message='A pagina demorou a responder! Tente novamente')
         print(f'Erro stacktrace: {ex}')
         return None
 
     except NoSuchWindowException as ex_:
         snack_show(
-            e.page,
-            'Falha no login! Tente novamente')
+            page=e.page,
+            message='Falha no login! Tente novamente')
         print(f'Erro stacktrace: {ex_}')
         return None

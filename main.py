@@ -1,6 +1,6 @@
-import ctypes
-
 import flet as ft
+from time import sleep
+import threading
 
 from controls.components import (
     # Controles
@@ -13,13 +13,13 @@ from controls.components import (
     cancel_button,
     exit_button
 )
-
 # Importa do módulo (share_model) a função (window_event)
 from utils.share_model import window_event
 
 
 def main(page: ft.Page):
     page.title = 'Ponto SMS'
+    page.theme_mode = ft.ThemeMode.DARK
 
     # Intercepta o evento disparado quando o botão "X" da janela é clicado
     page.window.prevent_close = True
@@ -47,32 +47,38 @@ def main(page: ft.Page):
                 width=600,
                 padding=20,
                 bgcolor='#1e1f22',
-                border_radius=15,
+                border_radius=10,
                 border=ft.border.all(1, '#5a90fc'),
-
-                content=ft.Column([
-                    ft.ListTile(
-                        title=ft.Text('Consulta ponto SMS')
-                    ),
-                    ft.ResponsiveRow([
-                        cpf_field
-                    ]),
-                    ft.Container(
+                content=ft.Column(
+                    spacing=20,
+                    controls=[
+                        ft.ListTile(
+                            title=ft.Text(
+                                value='Consulta ponto SMS',
+                                size=25,
+                                weight=ft.FontWeight.W_500
+                            )
+                        ),
                         ft.ResponsiveRow([
-                            start_date_field,
-                            end_date_field
+                            cpf_field
                         ]),
-                        margin=ft.margin.only(top=20)
-                    ),
-                    ft.Container(
-                        ft.ResponsiveRow([
-                            generate_button,
-                            cancel_button,
-                            exit_button
-                        ]),
-                        margin=ft.margin.only(top=20)
-                    ),
-                ]),
+                        ft.Container(
+                            ft.ResponsiveRow([
+                                start_date_field,
+                                end_date_field
+                            ]),
+                            margin=ft.margin.only(top=20)
+                        ),
+                        ft.Container(
+                            ft.ResponsiveRow([
+                                generate_button,
+                                cancel_button,
+                                exit_button
+                            ]),
+                            margin=ft.margin.only(top=20)
+                        ),
+                    ]
+                ),
             )
         ),
     )

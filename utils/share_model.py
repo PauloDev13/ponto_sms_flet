@@ -1,4 +1,6 @@
 import flet as ft
+from time import sleep, time
+import threading
 
 
 # Função que limpa os controles do formulário
@@ -68,3 +70,72 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
                 ft.ControlState.HOVERED: ft.colors.WHITE
             }
         )
+
+
+def update_progress(
+        page: ft.Page,
+        progress_bar: ft.ProgressBar,
+        total_time: float,
+        message: str,
+        status: bool,
+):
+    from controls.components import progress_control
+
+    control = progress_control(
+        progress_bar=progress_bar,
+        message=message
+    )
+
+    page.overlay.append(control)
+
+    start = time()
+
+    while not status[0]:
+        elapsed = time() - start
+        progress = min(elapsed / total_time, 1)
+        progress_bar.value = progress
+        page.update()
+        sleep(0.15)
+
+    progress_bar.value = 1
+    page.update()
+
+    page.overlay.remove(control)
+    page.update()
+
+
+def start_login(
+        page: ft.Page,
+        total_time: float = 0,
+        message: str = '',
+):
+    progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
+    status = [False]
+
+    threading.Thread(target=update_progress, args=(
+        page,
+        progress_bar,
+        total_time,
+        message,
+        status
+    )).start()
+
+    sleep(total_time)
+    status[0] = True
+
+
+def data_progress_bar(page: ft.Page):
+    from controls.components import progress_control
+
+    progress_bar = ft.ProgressBar(width=600, color='#5a90fc')
+
+    control = progress_control(
+        message='Gerando arquivo. AGUARDE...',
+        progress_bar=progress_bar
+    )
+
+    page.overlay.append(control)
+    page.update()
+
+
+

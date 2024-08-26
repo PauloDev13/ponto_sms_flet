@@ -3,14 +3,18 @@ from datetime import datetime
 
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
+from utils.share_model import data_progress_bar
 
 
 def file_generate(*args):
     from utils.validators import (
-        validate_cpf, validate_dates, format_cpf, clear_form
+        validate_cpf, validate_dates, format_cpf
     )
     # Importa a função (show_snackbar) do módulo (controls)
-    from controls.components import snack_show, progress_bar
+    from controls.components import snack_show
+
+    # Define o dicionário (data_dict)
+    data_dict: dict = {}
 
     # Desempacota os argumentos enviados através do (*args)
     e, cpf_field, start_date_field, end_date_field = args
@@ -19,7 +23,6 @@ def file_generate(*args):
 
     # Valida o CPF
     if cpf_is_valid:
-
         # Valida as datas
         dates_is_valid = validate_dates(
             e,
@@ -57,42 +60,67 @@ def file_generate(*args):
             if driver := login(e):
                 driver.minimize_window()
                 e.page.session.set('driver', driver)
-                #
-                #         # Exibe um spinner até que a funçao 'data_fetch'
-                #         # do módulo 'extrator_data' conclua a execução
-                #         # with st.spinner(f'Processamento em andamento, AGUARDE...'):
-                #
-                # Chama a função (data_fetch) do módulo (extract_data)
-                result = data_fetch(
-                    e, cpf, month_start, year_start, month_end, year_end, driver
-                )
 
-                if not result:
-                    e.page.overlay.append(progress_bar)
-                    e.page.update()
+                data_dict = {
+                    'page': e.page,
+                    'cpf': cpf,
+                    'month_start': month_start,
+                    'year_start': year_start,
+                    'month_end': month_end,
+                    'year_end': year_end,
+                    'driver': driver,
+                    'cpf_field': cpf_field,
+                    'start_date_field': start_date_field,
+                    'end_date_field': end_date_field
+                }
 
-                if result:
-                    clear_form(cpf_field, start_date_field, end_date_field)
-                    progress_bar.visible = False
-                    progress_bar.update()
-                    # Se não houver erros no processamento, exibe mensagem de sucesso
-                    snack_show(e.page, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+                # Chama a função local (get_data)
+                get_data(**data_dict)
 
         else:
-            # Se já existir uma sessão aberta no Streamlit, repete o processo de geração do arquivo
-            # with st.spinner('Processamento em andamento, AGUARDE...'):
-            result = data_fetch(
-                e, cpf, month_start, year_start, month_end, year_end, driver
-            )
+            get_data(**data_dict)
 
-            if not result:
-                e.page.overlay.append(progress_bar)
-                e.page.update()
 
-            if result:
-                clear_form(cpf_field, start_date_field, end_date_field)
-                progress_bar.visible = False
-                progress_bar.update()
-                # Se não houver erros no processamento, exibe mensagem de sucesso
-                snack_show(e.page, 'Arquivo criado com sucesso!', ft.icons.CHECK, ft.colors.GREEN)
+def get_data(**kwargs):
+    from utils.validators import clear_form
+    from controls.components import snack_show
 
+    dic_data_fetch = {
+        k: v for k, v in kwargs.items() if k in [
+            'page', 'cpf', 'month_start', 'year_start', 'month_end', 'year_end', 'driver'
+        ]
+    }
+
+    dic_clear_form = {
+        k: v for k, v in kwargs.items() if k in [
+            'cpf_field', 'start_date_field', 'end_date_field'
+        ]
+    }
+
+    page = dic_data_fetch.get('page')
+    tuple_data_fetch = tuple(dic_data_fetch.values())
+
+    data_progress_bar(page=page)
+
+    result = data_fetch(
+        *tuple_data_fetch,
+    )
+
+    if result:
+        page.overlay.pop()
+        page.update()
+
+        # Limpa o formulário
+        clear_form(
+            dic_clear_form.get('cpf_field'),
+            dic_clear_form.get('start_date_field'),
+            dic_clear_form.get('end_date_field')
+        )
+
+        # Se não houver erros no processamento, exibe mensagem de sucesso
+        snack_show(
+            page=page,
+            message='Arquivo criado com sucesso!',
+            icon=ft.icons.CHECK_CIRCLE_SHARP,
+            icon_color=ft.colors.GREEN
+        )

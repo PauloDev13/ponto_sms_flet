@@ -1,3 +1,5 @@
+import time
+
 import flet as ft
 from time import sleep
 
@@ -66,12 +68,14 @@ exit_button = ft.ElevatedButton(
 )
 
 
+# Função que exibe a snackbar de mensagens
 def snack_show(
         page: ft.Page,
         message: str,
         icon=ft.icons.INFO_ROUNDED,
         icon_color='#4dd0e1',
         text_color='#abb2bf',
+        container_height=50,
 ) -> None:
     content = [
         ft.Icon(icon, color=icon_color, size=30),
@@ -79,16 +83,26 @@ def snack_show(
             message,
             color=text_color,
             size=18,
+            width=500,
             weight=ft.FontWeight.W_500
         ),
     ]
 
-    container_snackbar = message_snackbar(content)
+    # Atribui a variável (container_snackbar) o resultado da
+    # função (message_snackbar) que recebe como argumento o
+    # conteúdo que será exibido
+    container_snackbar = message_snackbar(
+        content=content,
+        container_height=container_height
+    )
 
+    # Atribui a variável (column_snackbar) uma linha com o
+    # (container_snackbar) para deixar conteúdo centralizado
     column_snackbar = ft.Row(
         controls=[container_snackbar],
         alignment=ft.MainAxisAlignment.SPACE_EVENLY,
     )
+    # Adiciona o snack bar e atualiza a página
     page.overlay.append(column_snackbar)
     page.update()
 
@@ -96,6 +110,8 @@ def snack_show(
     container_snackbar.visible = True
     container_snackbar.update()
 
+    # Espera 3 segundos para retirar
+    # snackbar da tela com efeito de fade
     sleep(3)
     container_snackbar.opacity = 0.0
     container_snackbar.update()
@@ -103,18 +119,25 @@ def snack_show(
     container_snackbar.visible = False,
     container_snackbar.update()
 
+    # Remove da página o snackbar de mensagem e atualiza a página
+    page.overlay.remove(column_snackbar)
+    page.update()
 
-def message_snackbar(content: list):
+
+# Função para criar o snackbar de mensagens
+def message_snackbar(content: list[ft.Control], container_height: int):
+    margin = ft.margin.only(top=30) if container_height > 50 else ft.margin.only(top=50)
     return ft.Container(
         content=ft.Row(
             controls=content
         ),
-        margin=ft.margin.only(top=50),
+        margin=margin,
+        height=container_height,
         width=600,
         bgcolor='#21252b',
         padding=10,
-        border=ft.border.all(width=1, color='#5a90fc'),
-        border_radius=5,
+        border=ft.border.all(width=2, color='#5a90fc'),
+        border_radius=10,
         visible=False,
         opacity=0.0,
         animate_opacity=ft.animation.Animation(
@@ -123,22 +146,33 @@ def message_snackbar(content: list):
     )
 
 
+# Evento para o click no botão 'SIM' da caixa de diálogo
 def yes_click(e):
-    driver = e.page.session.get('driver')
+    # Pega a instância de Page
+    page = e.page
 
+    # pega a instância do navegador na sessão do Flet
+    driver = page.session.get('driver')
+
+    # Se existir a instância, encerra a instância
     if driver is not None:
         driver.quit()
 
-    e.page.window.destroy()
+    # Fecha a janela da aplicação
+    page.window.destroy()
 
 
+# Evento para o click no botão 'NÃO' do dialog
 def no_click(e):
-    e.page.close(confirm_dialog)
+    # Pega a instância de Page
+    page = e.page
+
+    # Fecha a caixa de diálogo e atribui o foco para o campo CPF
+    page.close(confirm_dialog)
     cpf_field.focus()
-    # confirm_dialog.open = False
-    # e.page.update()
 
 
+# Cria um caixa de diálogo de confirmação para saída da aplicação
 confirm_dialog = ft.AlertDialog(
     title=ft.Column(
         controls=[
@@ -180,6 +214,7 @@ confirm_dialog = ft.AlertDialog(
 
     content_padding=ft.padding.only(bottom=20),
     shape=ft.RoundedRectangleBorder(radius=10),
+
     actions=[
         ft.ElevatedButton(
             content=ft.Text(value='SIM', size=12),
@@ -192,11 +227,45 @@ confirm_dialog = ft.AlertDialog(
             style=button_style()
         ),
     ],
+
     elevation=20,
     surface_tint_color='#2b2d30',
     actions_alignment=ft.MainAxisAlignment.END,
 )
 
-progress_bar = ft.ProgressBar(
-    width=600
-)
+
+# Função para exibir uma progress
+def progress_control(
+    progress_bar: ft.ProgressBar,
+    message: str,
+):
+
+    content_row = ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        controls=[
+            ft.Icon(ft.icons.INFO, color='#4dd0e1', size=30),
+            ft.Text(value=message, color='#abb2bf', size=20),
+        ]
+    )
+
+    content_progress_bar = ft.Column(
+        controls=[
+            progress_bar,
+        ]
+    )
+    content = ft.Column(
+        controls=[
+            content_row,
+            content_progress_bar,
+        ]
+    )
+
+    return ft.Container(
+        margin=ft.margin.only(top=50),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+            controls=[content]
+        )
+    )
+
+

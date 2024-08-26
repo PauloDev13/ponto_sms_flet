@@ -77,8 +77,9 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
             date_start_field.focus()
             snack_show(
                 page=e.page,
-                message=f'A services inicial {start_date.date().strftime('%d/%m/%Y')} deve ser \n'
-                f'anterior a services final {end_date.date().strftime('%d/%m/%Y')}')
+                container_height=70,
+                message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser'
+                f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
             return False
         return True
     except Exception as ex:
