@@ -17,6 +17,7 @@ lxml = "^5.2.2"
 psutil = "^6.0.0"
 numpy = "2.0.0"
 pandas = "^2.2.2"
+cx-freeze = "^7.2.0"
 
 
 [build-system]

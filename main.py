@@ -1,6 +1,7 @@
+import time
+
 import flet as ft
-from time import sleep
-import threading
+import logging
 
 from controls.components import (
     # Controles
@@ -16,9 +17,14 @@ from controls.components import (
 # Importa do módulo (share_model) a função (window_event)
 from utils.share_model import window_event
 
+logging.basicConfig(filename="app_debug.log", level=logging.DEBUG)
+
 
 def main(page: ft.Page):
+    logging.debug("main() started")
+
     page.title = 'Ponto SMS'
+
     page.theme_mode = ft.ThemeMode.DARK
 
     # Intercepta o evento disparado quando o botão "X" da janela é clicado
@@ -40,6 +46,8 @@ def main(page: ft.Page):
     page.window_resizable = False
     page.window_maximizable = False
     page.window.center()
+
+    logging.debug("main() Card")
 
     page.add(
         ft.Card(
@@ -86,4 +94,8 @@ def main(page: ft.Page):
     cpf_field.focus()
 
 
-ft.app(main)
+logging.debug("main() finished")
+
+time.sleep(20)
+
+ft.app(target=main)
