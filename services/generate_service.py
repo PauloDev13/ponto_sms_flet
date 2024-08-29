@@ -4,10 +4,11 @@ import flet as ft
 
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
-from utils.share_model import data_progress_bar
+from utils.share_model import data_progress_bar, open_file_excel
 
 
 def file_generate(*args):
+
     from utils.validators import (
         validate_cpf, validate_dates, format_cpf
     )
@@ -78,7 +79,9 @@ def file_generate(*args):
 
                 # Chama a função local (get_data) passando
                 # o dicionário como argumento
-                get_data(**data_dict)
+                path_file = get_data(**data_dict)
+
+                open_file_excel(path_file)
 
         else:
             # Seta o valor do driver no dicionário (data_dict)
@@ -86,7 +89,9 @@ def file_generate(*args):
 
             # Chama a função local (get_data) passando
             # o dicionário como argumento
-            get_data(**data_dict)
+            path_file = get_data(**data_dict)
+
+            open_file_excel(path_file)
 
 
 # FUNÇÃO QUE CHAMA O 'SCRAPING' NO HTML
@@ -117,7 +122,8 @@ def get_data(**kwargs):
     tuple_data_fetch = tuple(dic_data_fetch.values())
 
     # Chama a função que exibe a barra de progresso
-    data_progress_bar(page=page)
+    data_progress_bar()
+    # data_progress_bar(page=page)
 
     # Chama a função que busca os dados passando a tupla como
     # argumento e atribui o retorno (um booleano) à variável result
@@ -133,8 +139,9 @@ def get_data(**kwargs):
 
         # Se não houver erros no processamento, exibe mensagem de sucesso
         snack_show(
-            page=page,
             message='Arquivo criado com sucesso!',
             icon=ft.icons.CHECK_CIRCLE_SHARP,
             icon_color=ft.colors.GREEN
         )
+    return result
+

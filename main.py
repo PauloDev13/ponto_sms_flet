@@ -9,13 +9,17 @@ from controls.components import (
     # Botões
     generate_button,
     cancel_button,
-    exit_button
+    exit_button,
+    open_folder_button,
 )
 # Importa do módulo (share_model) a função (window_event)
-from utils.share_model import window_event
+from utils.share_model import window_event, on_key_enter_event
+from models.page_manager import PageManager
 
 
 def main(page: ft.Page):
+    # Definindo a instância de Page no PageManager
+    PageManager.set_page(page)
 
     page.title = 'Ponto SMS'
 
@@ -24,6 +28,8 @@ def main(page: ft.Page):
     # Intercepta o evento disparado quando o botão "X" da janela é clicado
     page.window.prevent_close = True
     page.on_window_event = window_event
+
+    page.on_keyboard_event = on_key_enter_event
 
     # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
     page.window.always_on_top = True
@@ -77,6 +83,9 @@ def main(page: ft.Page):
                             ]),
                             margin=ft.margin.only(top=20)
                         ),
+                        ft.ResponsiveRow([
+                                open_folder_button
+                        ]),
                     ]
                 ),
             )

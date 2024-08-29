@@ -1,6 +1,16 @@
-import flet as ft
-from time import sleep, time
+import os
+import shlex
+import subprocess
 import threading
+from time import sleep, time
+
+import flet as ft
+from dotenv import load_dotenv
+
+from models.page_manager import PageManager
+
+load_dotenv()
+name_folder = os.getenv('NAME_FOLDER')
 
 
 # FUNÇÃO QUE LIMPA OS CONTROLES DO FORMULÁRIO
@@ -31,17 +41,62 @@ def window_event(e):
         e.page.open(confirm_dialog)
 
 
+# FUNÇÃO QUE CAPTURA QUANDO A TECLA (ENTER) É PRESSIONADA
+def on_key_enter_event(e):
+    from controls.components import generate_button
+    if e.key == 'Enter':
+        generate_button.on_click(e)
+
+
 # FUNÇÃO QUE EXIBE A CAIXA DE DIÁLOGO PARA CONFIRMAR A SAÍDA DO APLICATIVO
-def close_app(e):
+def close_app(_):
     from controls.components import confirm_dialog
 
-    e.page.open(confirm_dialog)
+    PageManager.get_page().open(confirm_dialog)
+
+
+# FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
+def open_folder(_):
+    from controls.components import snack_show
+
+    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+
+    if os.path.exists(folder_path):
+        try:
+            subprocess.Popen(f'explorer {folder_path}')
+        except Exception as e_:
+            print(e_)
+            snack_show(
+                message=f'Erro ao abrir a pasta {folder_path}',
+                icon=ft.icons.RULE_FOLDER,
+                icon_color=ft.colors.ERROR
+            )
+
+
+def open_file_excel(path_file_excel):
+    from controls.components import snack_show
+
+    if os.path.exists(path_file_excel):
+        quoted_path = shlex.quote(path_file_excel)
+        command = ['powershell.exe', '-Command', f'Start-Process -FilePath {quoted_path}']
+
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError as e:
+            snack_show(
+                message=f'Erro ao abrir o arquivo {path_file_excel}',
+                icon=ft.icons.RULE_FOLDER,
+                icon_color=ft.colors.ERROR
+            )
+            print(f'Erro ao abrir o arquivo {path_file_excel}: {e} ')
 
 
 # FUNÇÃO QUE FORMATA O NÚMERO DO CPF INSERINDO '.' e '-'
 # RETORNANDO O NÚMERO NO FORMATO ###.###.###-##
 def format_cpf(cpf_field: ft.TextField) -> str:
-    cpf = cpf_field.value
+    # Remove os espaços em branco, caso existam,
+    # no número do CPF e atribui a string à variável CPF
+    cpf = cpf_field.value.strip()
     return f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
 
 
@@ -66,7 +121,7 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
     else:
         return ft.ButtonStyle(
             shape={
-                ft.ControlState.DEFAULT:ft.RoundedRectangleBorder(radius=5)
+                ft.ControlState.DEFAULT: ft.RoundedRectangleBorder(radius=5)
             },
             bgcolor={
                 ft.ControlState.DEFAULT: '#2b2d30',
@@ -81,7 +136,7 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
 
 # FUNÇÃO QUE ATUALIZA O ESTADO DA BARRA DE PROGRESSO
 def update_progress(
-        page: ft.Page,
+        # page: ft.Page,
         progress_bar: ft.ProgressBar,
         total_time: float,
         message: str,
@@ -98,7 +153,7 @@ def update_progress(
     )
 
     # Exibe o controle com a barra de progresso na página
-    page.overlay.append(control)
+    PageManager.get_page().overlay.append(control)
 
     # Atribui à variável (start) o tempo atual do sistema
     start = time()
@@ -109,20 +164,20 @@ def update_progress(
         elapsed = time() - start
         progress = min(elapsed / total_time, 1)
         progress_bar.value = progress
-        page.update()
+        PageManager.get_page().update()
         sleep(0.15)
 
     progress_bar.value = 1
-    page.update()
+    PageManager.get_page().update()
 
     # Remove o controle da barra de progresso e atualiza a página
-    page.overlay.remove(control)
-    page.update()
+    PageManager.get_page().overlay.remove(control)
+    PageManager.get_page().update()
 
 
 # FUNÇÃO QUE CONTROLA A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE LOGIN
 def start_login(
-        page: ft.Page,
+        # page: ft.Page,
         total_time: float = 0,
         message: str = '',
 ):
@@ -134,7 +189,7 @@ def start_login(
 
     # Cria uma (Thread) para chamar a função (update_progress) em paralelo
     threading.Thread(target=update_progress, args=(
-        page,
+        # page,
         progress_bar,
         total_time,
         message,
@@ -149,7 +204,8 @@ def start_login(
 
 # FUNÇÃO QUE EXIBE A BARRA DE PROGRESSO DURANTE A
 # OPERAÇÃO DE SCRAPING (LEITURA DOS DADOS) NO HTML
-def data_progress_bar(page: ft.Page):
+# def data_progress_bar(page: ft.Page):
+def data_progress_bar():
     # Importa a função (progress_control) do módulo controls
     from controls.components import progress_control
 
@@ -164,8 +220,5 @@ def data_progress_bar(page: ft.Page):
     )
 
     # Exibe a barra de progresso e atualiza a página
-    page.overlay.append(control)
-    page.update()
-
-
-
+    PageManager.get_page().overlay.append(control)
+    PageManager.get_page().update()

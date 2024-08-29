@@ -6,7 +6,6 @@ import sys
 from io import StringIO
 
 import flet as ft
-
 import pandas as pd
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -15,8 +14,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
-from utils.format_dataframe import columns_update
 from utils.excel import generate_excel_file
+from utils.format_dataframe import columns_update
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -30,6 +29,7 @@ url_data = os.getenv('URL_DATA')
 
 # def data_fetch(cpf, month_start, year_start, month_end, year_end, driver):
 def data_fetch(*args):
+
     # Importa a função (show_snackbar) do módulo (controls)
     from controls.components import snack_show
 
@@ -233,8 +233,7 @@ def data_fetch(*args):
             # exibe mensagem de erro, espera 2 segundos e fecha a mensagem
             except TimeoutException as e_:
                 snack_show(
-                    e.page,
-                    f'Problemas ao carregar dados para {month}/{year}')
+                    message=f'Problemas ao carregar dados para {month}/{year}')
 
                 print(f'Erro ao carregar dados: {e_}')
 
@@ -253,15 +252,23 @@ def data_fetch(*args):
             #     print(f'Mês/Ano: {month}/{year}\nLinhas por cada ano: {len(df)}')
 
         # Chama a função que cria, formata e salva o arquivo Excel
-        generate_excel_file(e, data_by_year, employee_name, cpf)
+        path_file_name = generate_excel_file(
+            data_dic=data_by_year,
+            employee_name=employee_name,
+            cpf=cpf
+        )
 
         # Retorna verdadeiro se toda operação foi realizada com sucesso
-        return True
+        return path_file_name
 
     # Se ocorrerem erros, exibe mensagem
     except Exception as e_:
-        snack_show(e.page, 'Erro ao gerar arquivo!', ft.icons.ERROR, ft.colors.RED)
+        snack_show(
+            message='Erro ao gerar arquivo!',
+            icon=ft.icons.ERROR,
+            icon_color=ft.colors.RED
+        )
         print(f'Erro ao gerar arquivo: {e_}')
 
         # Retorna falso em caso de erro
-        return False
+        return None

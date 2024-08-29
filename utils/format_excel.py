@@ -1,12 +1,12 @@
 import os
 import xlsxwriter
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
-file_path = os.getenv('PATH_FILE_BASE')
+# load_dotenv()
+
 password_workbook = os.getenv('PASSWORD')
-
-if not file_path or not password_workbook:
+#
+if not password_workbook:
     raise ValueError("O caminho do arquivo base não está definido no .env")
 
 

@@ -3,8 +3,9 @@ import time
 import flet as ft
 from time import sleep
 
-from utils.share_model import clear_form, close_app, button_style
+from utils.share_model import clear_form, close_app, button_style, open_folder
 from services.generate_service import file_generate
+from models.page_manager import PageManager
 
 # CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
@@ -72,10 +73,17 @@ exit_button = ft.ElevatedButton(
     expand=True
 )
 
+open_folder_button = ft.TextButton(
+    on_click=open_folder,
+    # col={'md': 4},
+    text='ABRIR PASTA DE ARQUIVOS',
+    style=button_style(),
+    expand=True
+)
+
 
 # FUNÇÃO QUE EXIBE O CONTROLE QUE SIMULA UMA SNACKBAR DE MENSAGENS
 def snack_show(
-        page: ft.Page,
         message: str,
         icon=ft.icons.INFO_ROUNDED,
         icon_color='#4dd0e1',
@@ -108,8 +116,8 @@ def snack_show(
         alignment=ft.MainAxisAlignment.SPACE_EVENLY,
     )
     # Adiciona o snack bar e atualiza a página
-    page.overlay.append(column_snackbar)
-    page.update()
+    PageManager.get_page().overlay.append(column_snackbar)
+    PageManager.get_page().update()
 
     container_snackbar.opacity = 0.8
     container_snackbar.visible = True
@@ -117,7 +125,7 @@ def snack_show(
 
     # Espera 3 segundos para retirar
     # snackbar da tela com efeito de fade
-    sleep(3)
+    sleep(2)
     container_snackbar.opacity = 0.0
     container_snackbar.update()
     sleep(0.5)
@@ -125,14 +133,14 @@ def snack_show(
     container_snackbar.update()
 
     # Remove da página o snackbar de mensagem e atualiza a página
-    page.overlay.remove(column_snackbar)
-    page.update()
+    PageManager.get_page().overlay.remove(column_snackbar)
+    PageManager.get_page().update()
 
 
 # FUNÇÃO QUE CRIA O CONTROLE PARA SIMULAR UMA SNACBAR DE MENSAGENS
 def message_snackbar(content: list[ft.Control], container_height: int):
     # Customiza o valor da margem superior dependendo da altura do controle
-    margin = ft.margin.only(top=30) if container_height > 50 else ft.margin.only(top=50)
+    margin = ft.margin.only(top=30) if container_height <= 50 else ft.margin.only(top=10)
 
     return ft.Container(
         content=ft.Row(
@@ -155,27 +163,23 @@ def message_snackbar(content: list[ft.Control], container_height: int):
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
 def yes_click(e):
-    # Pega a instância de Page
-    page = e.page
-
     # pega a instância do navegador na sessão do Flet
-    driver = page.session.get('driver')
+    driver = PageManager.get_page().session.get('driver')
 
     # Se existir a instância, encerra a instância
     if driver is not None:
         driver.quit()
 
     # Fecha a janela da aplicação
-    page.window.destroy()
+    PageManager.get_page().window.destroy()
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
 def no_click(e):
-    # Pega a instância de Page
-    page = e.page
-
     # Fecha a caixa de diálogo e atribui o foco para o campo CPF
-    page.close(confirm_dialog)
+    PageManager.get_page().close(confirm_dialog)
+
+    # Passa o foco para o controle CPF
     cpf_field.focus()
 
 
@@ -268,7 +272,7 @@ def progress_control(
     )
 
     return ft.Container(
-        margin=ft.margin.only(top=50),
+        margin=ft.margin.only(top=30),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_EVENLY,
             controls=[content]
