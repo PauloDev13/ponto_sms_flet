@@ -2,8 +2,6 @@ from datetime import datetime
 
 import flet as ft
 
-from utils.share_model import format_cpf, clear_form
-
 
 # FUNÇÃO QUE FORMATA AS DATAS PARA 'MM/yyyy'
 def validate_date_format(date_str: str) -> datetime | None:
@@ -13,8 +11,9 @@ def validate_date_format(date_str: str) -> datetime | None:
     except ValueError:
         return None
 
+
 # FUNÇÃO QUE VALIDA AS DATAS
-def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextField):
+def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):
     from controls.components import snack_show
     try:
         date_start = date_start_field.value
@@ -72,12 +71,13 @@ def validate_dates(e, date_start_field: ft.TextField, date_end_field: ft.TextFie
         )
         print(f'Erro stacktrace: {ex}')
 
+
 # FUNÇÃO QUE VALIDA O NÚMERO DO CPF
-def validate_cpf(e, cpf_field: ft.TextField):
+def validate_cpf(cpf_field: ft.TextField):
     # Importa a função (snack_show) do módulo (controls.components)
     from controls.components import snack_show
 
-    cpf = cpf_field.value
+    cpf = cpf_field.value.strip()
 
     try:
         if not cpf:
@@ -132,4 +132,3 @@ def validate_cpf(e, cpf_field: ft.TextField):
             return False
     except Exception as ex:
         print(f'Erro stacktrace: {ex}')
-

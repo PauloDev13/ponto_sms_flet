@@ -25,18 +25,22 @@ password = os.getenv("PASSWORD")
 
 
 # FUNÇÃO LOGIN
-def login(e):
-    # Importa a função (snack_show) do módulo (controls)
+def login():
+    # Importa a função (snack_show) do módulo (controls.components)
+    # para exibir mensagens de alerta
     from controls.components import snack_show
 
-    # Configuração do WebDriver
+    # Configuração do WebDriver que retorna uma instância do navegador Chrome
     options = webdriver.ChromeOptions()
     # options.add_argument("--headless=new")
+
     driver = webdriver.Chrome(options=options)
+
+    # Maximiza a janela do navegador
     driver.maximize_window()
 
     try:
-        # Acessa a URL que exibe a página de login
+        # Acessa a URL que exibe a página de login do sistema de ponto eletrônico da SMS
         driver.get(url_login)
 
         # Verifica se a página HTML carregou os campos de login e senha
@@ -47,8 +51,10 @@ def login(e):
             ec.presence_of_element_located((By.XPATH, "//*[@id='senha']"))
         )
 
+        # Se os campos foram carregados corretamente no HTLM
         if load_login and load_senha:
-            # Acessa o campo de login, insere o login, espera 1 segundo, acessa o campo senha e insere a senha
+            # Acessa o campo de login, insere o login, espera 1 segundo,
+            # acessa o campo senha e insere a senha
             driver.find_element(By.XPATH, '//*[@id="cpf"]').send_keys(username)
             sleep(1)
             driver.find_element(By.XPATH, "//*[@id='senha']").send_keys(password)
@@ -59,19 +65,18 @@ def login(e):
                 icon_color=ft.colors.RED
             )
 
-        # Localiza o primeiro Iframe da página, entra nele, espera 1 segundo
-        # Localiza dentro Iframe o elemento o box do recaptcha e clica
-        # Sai do Iframe e volta para o html principal
-        # Espera 30 segundos para que o usuário digite o captcha, se aparecer
+        # Localiza o primeiro Iframe da página, entra nele, espera 1 segundo.
+        # Localiza dentro Iframe o elemento box do recaptcha e clica nele.
+        # Sai do Iframe e volta para o html principal.
         driver.switch_to.frame(0)
         driver.find_element(by=By.XPATH, value="//*[@id='recaptcha-anchor']").click()
         driver.switch_to.default_content()
 
-        # Localiza o botão de login
+        # Localiza o botão de login no html
         button_login = driver.find_element(by=By.XPATH, value="//*[@id='form']/input")
 
-        # Chama a função (start_login) do (shared_module) que exibe
-        # uma barra de progresso até que o processo de login seha concluído
+        # Chama a função (start_login) do (shared_module) que exibe uma barra de
+        # progresso esperando (30 s)até que o processo de login seha concluído
         start_login(total_time=30, message='Conectando Sistema de Ponto. AGUARDE...')
 
         # Minimiza a janela do navegador
@@ -80,7 +85,7 @@ def login(e):
         # Clica no botão de login da página HTML
         button_login.click()
 
-        # Checa se a URL da página inicial foi carregada no navegador
+        # Checa se a URL da página inicial do sistema de ponto da SMS foi carregada no navegador
         load_page = WebDriverWait(driver, 10).until(
             ec.url_contains(url_init)
         )

@@ -1,11 +1,11 @@
 import os
 import xlsxwriter
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 password_workbook = os.getenv('PASSWORD')
-#
+
 if not password_workbook:
     raise ValueError("O caminho do arquivo base não está definido no .env")
 
@@ -179,7 +179,7 @@ def apply_formatting(worksheet, df_year, formats):
             elif 1 < col_index < 4:
                 worksheet.write(row_index, col_index, value, formats['single_border'])
 
-            # Se o índice da coluna for == a 4 e o valor da célula for >=
+            # Se o índice da coluna for == a 4 e o valor da célula for maior ou igual
             #  a '12:00:00', aplica formatação background verde e fonte branca.
             elif col_index == 4 and isinstance(value, str) and value >= '12:00:00':
                 worksheet.write(row_index, col_index, value, formats['green_bold'])
@@ -231,9 +231,9 @@ def apply_formatting(worksheet, df_year, formats):
                 merged_cells = 7
                 formula_col = merged_cells
 
-                # Se a variável (last_header_index) definida anteriormente no início da função
-                # for >= 0, seta a variável (start_row) com o valor de (last_header_index) + 1,
-                # se não, seta (start_row) = 1
+                # Se a variável (last_header_index) definida anteriormente no início
+                # da função for maior ou igual a zero, seta a variável (start_row)
+                # com o valor de (last_header_index) + 1, se não, seta (start_row) = 1
 
                 # start_row = last_header_index + 1 if last_header_index >= 0 else 1
                 if last_header_index >= 0:

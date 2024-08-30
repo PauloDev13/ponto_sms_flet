@@ -207,18 +207,27 @@ def start_login(
 # def data_progress_bar(page: ft.Page):
 def data_progress_bar():
     # Importa a função (progress_control) do módulo controls
-    from controls.components import progress_control
+    from controls.components import progress_control, snack_show
 
-    # Atribui a variável (progress_bar) uma instância da barra de progresso
-    progress_bar = ft.ProgressBar(width=600, color='#5a90fc')
+    try:
+        # Atribui a variável (progress_bar) uma instância da barra de progresso
+        progress_bar = ft.ProgressBar(width=600, color='#5a90fc')
 
-    # Atribui à variável (control) a função (progress_control)
-    # que retorna um controle com a barra de progresso
-    control = progress_control(
-        progress_bar=progress_bar,
-        message='Gerando arquivo. AGUARDE...',
-    )
+        # Atribui à variável (control) a função (progress_control)
+        # que retorna um controle com a barra de progresso
+        control = progress_control(
+            progress_bar=progress_bar,
+            message='Gerando arquivo. AGUARDE...',
+        )
 
-    # Exibe a barra de progresso e atualiza a página
-    PageManager.get_page().overlay.append(control)
-    PageManager.get_page().update()
+        # Exibe a barra de progresso e atualiza a página
+        PageManager.get_page().overlay.append(control)
+        PageManager.get_page().update()
+
+    except Exception as e_:
+        snack_show(
+            message='Erro ao exibir a barra de progresso!',
+            icon=ft.icons.ERROR,
+            icon_color=ft.colors.RED
+        )
+        print(f'Erro ao exibir a barra de progresso: {e_}')

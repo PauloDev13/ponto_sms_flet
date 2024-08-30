@@ -1,11 +1,10 @@
-import time
-
-import flet as ft
 from time import sleep
 
-from utils.share_model import clear_form, close_app, button_style, open_folder
-from services.generate_service import file_generate
+import flet as ft
+
 from models.page_manager import PageManager
+from services.generate_service import file_generate
+from utils.share_model import clear_form, close_app, button_style, open_folder
 
 # CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
@@ -43,8 +42,7 @@ dict_controls: dict = {
 
 # CONTROLES DE BOTÕES
 generate_button = ft.ElevatedButton(
-    on_click=lambda e: file_generate(
-        e,
+    on_click=lambda _: file_generate(
         cpf_field,
         start_date_field,
         end_date_field,
@@ -75,7 +73,6 @@ exit_button = ft.ElevatedButton(
 
 open_folder_button = ft.TextButton(
     on_click=open_folder,
-    # col={'md': 4},
     text='ABRIR PASTA DE ARQUIVOS',
     style=button_style(),
     expand=True
@@ -137,7 +134,7 @@ def snack_show(
     PageManager.get_page().update()
 
 
-# FUNÇÃO QUE CRIA O CONTROLE PARA SIMULAR UMA SNACBAR DE MENSAGENS
+# FUNÇÃO QUE CRIA O CONTROLE PARA SIMULAR UMA SNACKBAR DE MENSAGENS
 def message_snackbar(content: list[ft.Control], container_height: int):
     # Customiza o valor da margem superior dependendo da altura do controle
     margin = ft.margin.only(top=30) if container_height <= 50 else ft.margin.only(top=10)
@@ -162,7 +159,7 @@ def message_snackbar(content: list[ft.Control], container_height: int):
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
-def yes_click(e):
+def yes_click(_):
     # pega a instância do navegador na sessão do Flet
     driver = PageManager.get_page().session.get('driver')
 
@@ -175,7 +172,7 @@ def yes_click(e):
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
-def no_click(e):
+def no_click(_):
     # Fecha a caixa de diálogo e atribui o foco para o campo CPF
     PageManager.get_page().close(confirm_dialog)
 
@@ -229,12 +226,12 @@ confirm_dialog = ft.AlertDialog(
     actions=[
         ft.ElevatedButton(
             content=ft.Text(value='SIM', size=12),
-            on_click=yes_click,
+            on_click=lambda _: yes_click(_),
             style=button_style('OK')
         ),
         ft.ElevatedButton(
             content=ft.Text(value='NÃO', size=12),
-            on_click=no_click,
+            on_click=lambda _: no_click(_),
             style=button_style()
         ),
     ],
@@ -250,7 +247,7 @@ def progress_control(
     progress_bar: ft.ProgressBar,
     message: str,
 ):
-
+    # Cria uma linha com os controles de ícone e de texto e atribui à variável (content_row)
     content_row = ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
         controls=[
@@ -259,11 +256,16 @@ def progress_control(
         ]
     )
 
+    # Cria uma coluna que recebe a barra de progresso e
+    # atribui à variável (content_progress_bar)
     content_progress_bar = ft.Column(
         controls=[
             progress_bar,
         ]
     )
+
+    # Cria uma coluna que recebe o (content_row) com o ícone e a mensagem, o
+    # (content_progress_bar) com a barra de progresso e atribui à variável (content)
     content = ft.Column(
         controls=[
             content_row,
@@ -271,6 +273,8 @@ def progress_control(
         ]
     )
 
+    # Retorna um (Container) com o conteúdo (content)
+    #  definitivo que será exibido ma barra de progresso
     return ft.Container(
         margin=ft.margin.only(top=30),
         content=ft.Row(
@@ -278,5 +282,3 @@ def progress_control(
             controls=[content]
         )
     )
-
-

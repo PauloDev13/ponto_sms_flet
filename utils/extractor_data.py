@@ -2,7 +2,6 @@ import calendar
 import datetime
 import locale
 import os
-import sys
 from io import StringIO
 
 import flet as ft
@@ -27,13 +26,14 @@ locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 url_data = os.getenv('URL_DATA')
 
 
-# def data_fetch(cpf, month_start, year_start, month_end, year_end, driver):
-def data_fetch(*args):
+# FUNÇÃO QUE BUSCA OS DADOS NA PÁGINA HTML
+def data_fetch(*args) -> str | None:
 
-    # Importa a função (show_snackbar) do módulo (controls)
+    # Importa a função (show_snackbar) do módulo (ontrols.components)
     from controls.components import snack_show
 
-    e, cpf, month_start, year_start, month_end, year_end, driver = args
+    # Desempacota os argumentos passados em (*args)
+    cpf, month_start, year_start, month_end, year_end, driver = args
 
     try:
         # Atribui variáveis para receber o conjunto de dados (dicionário)
@@ -107,7 +107,7 @@ def data_fetch(*args):
 
                 # Verifica quais colunas têm cabeçalho cujo nome não começam com "Unnamed".
                 # Usa essa informação para selecionar e manter apenas essas colunas no DataFrame.
-                # Colunas "Unnamed" aparecem quando o Pandas encontra
+                # Colunas "Unnamed" aparecem quando o (Pandas) encontra
                 # uma ou mais colunas sem nome de cabeçalho ou quando colunas extras geradas
                 # por acidente durante o processo de leitura ou gravação dos dados
                 df_table = df_table.loc[:, ~df_table.columns.str.contains('^Unnamed')]
@@ -237,8 +237,6 @@ def data_fetch(*args):
 
                 print(f'Erro ao carregar dados: {e_}')
 
-                sys.exit(1)
-
             # Incrementa em um mês a data inicial
             current_date += datetime.timedelta(days=32)
 
@@ -251,14 +249,16 @@ def data_fetch(*args):
             # for year, df in data_by_year.items():
             #     print(f'Mês/Ano: {month}/{year}\nLinhas por cada ano: {len(df)}')
 
-        # Chama a função que cria, formata e salva o arquivo Excel
+        # Chama a função que cria e salva o arquivo Excel
+        # atribuindo seu resultado à variável (path_file_name)
         path_file_name = generate_excel_file(
             data_dic=data_by_year,
             employee_name=employee_name,
             cpf=cpf
         )
 
-        # Retorna verdadeiro se toda operação foi realizada com sucesso
+        # Retorna a variável (path_file_name)
+        # C:/users/<usuário logado no OS>/Documents/PLANILHAS_SMS/<nome do arquivo.xlsx>
         return path_file_name
 
     # Se ocorrerem erros, exibe mensagem
@@ -270,5 +270,5 @@ def data_fetch(*args):
         )
         print(f'Erro ao gerar arquivo: {e_}')
 
-        # Retorna falso em caso de erro
+        # Se houver erros, retorna None
         return None

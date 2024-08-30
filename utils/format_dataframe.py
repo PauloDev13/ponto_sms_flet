@@ -1,11 +1,6 @@
-import os
 from datetime import datetime
 
 import pandas as pd
-from dotenv import load_dotenv
-
-load_dotenv()
-file_path = os.getenv('PATH_FILE_BASE')
 
 
 # Função para verificar se a string está no formato correto ('00:00:00')
@@ -25,7 +20,7 @@ def str_to_time(hour_str):
         return None
 
 
-# Atualiza as colunas 'HT', 'HJ', 'ST' se nas colunas 'TRABALHADA' e
+# Atualiza as colunas ('HT', 'HJ', 'ST') se nas colunas 'TRABALHADA' e
 # 'HORA JUSTIFICADA' os valores forem iguais ou maiores que '12:00:00'.
 # Na coluna 'STATUS' se o valor for igual a 'APROVADO'
 def columns_update(row) -> pd.Series:

@@ -4,32 +4,40 @@ import flet as ft
 
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
-from utils.share_model import data_progress_bar, open_file_excel
+from utils.share_model import data_progress_bar, open_file_excel, format_cpf, clear_form
+from models.page_manager import PageManager
 
 
+# FUNÇÃO QUE CHAMA O SCRAPING DA PÁGINA DO PONTO, BUSCANDO OS DADOS
 def file_generate(*args):
 
+    # Importa as funções (validate_cpf, validate_dates) do módulo (utils.validators)
     from utils.validators import (
-        validate_cpf, validate_dates, format_cpf
+        validate_cpf, validate_dates
     )
 
     # Desempacota os argumentos enviados através do (*args)
-    e, cpf_field, start_date_field, end_date_field = args
+    cpf_field, start_date_field, end_date_field = args
 
-    cpf_is_valid = validate_cpf(e, cpf_field)
+    # Valida o CPF e atribui o resulta (booleano) à variável (cpf_is_valid)
+    cpf_is_valid = validate_cpf(cpf_field)
 
-    # Valida o CPF
+    # Declara a variável local (dates_is_valid)
+    dates_is_valid: bool = False
+
+    # Se o CPF for válido
     if cpf_is_valid:
-        # Valida as datas
+
+        # Valida as datas inicial e final  e atribui o resulta
+        # (booleano) à variável local (dates_is_valid)
         dates_is_valid = validate_dates(
-            e,
             start_date_field,
             end_date_field
         )
 
-    # Se Datas e CPF forem válidas, pega os valores de data inicial e final
+    # Se as Datas e o CPF forem válidas, pega os valores das datas inicial e final
     if cpf_is_valid and dates_is_valid:
-        #  Se o CPF for válido, formata aplicando uma máscara
+        #  Usa a função () para formatar o CPF aplicando uma máscara (###.###.###-##)
         cpf = format_cpf(cpf_field)
 
         start_date = start_date_field.value
@@ -48,12 +56,11 @@ def file_generate(*args):
 
         # Atribui a variável driver o valor do argumento
         # driver guardado na session do Flet.
-        driver = e.page.session.get('driver')
+        driver = PageManager.get_page().session.get('driver')
 
         # Atribui à variável (data_dict), um dicionário com as chaves
         # e valores que serão repassados para a função (get_data)
         data_dict: dict = {
-            'page': e.page,
             'cpf': cpf,
             'month_start': month_start,
             'year_start': year_start,
@@ -70,71 +77,71 @@ def file_generate(*args):
         # que retorna uma instância do driver do navegador e
         # armazena a instância retornada na sessão do Flet
         if driver is None:
-            if driver := login(e):
-                # driver.minimize_window()
-                e.page.session.set('driver', driver)
+            if driver := login():
+                PageManager.get_page().session.set('driver', driver)
 
                 # Seta o valor do driver no dicionário (data_dict)
                 data_dict['driver'] = driver
 
-                # Chama a função local (get_data) passando
-                # o dicionário como argumento
+                # Chama a função local (get_data) passando o dicionário como argumento.
+                # Se não houver erros, a função retorna o caminho completo onde o arquivo
+                # do Excel foi salvo e atribui o resultado à variável (path_file)
                 path_file = get_data(**data_dict)
 
+                # Chama a função (open_file_excel) passando como argumento o
+                # caminho do arquivo que abre o arquivo Excel com o programa
+                # padrão para arquivos .xlsx configurado no Windows
                 open_file_excel(path_file)
 
+        # Se já existir uma instância do navegador (driver) na sessão
+        # do Flet, repete o mesmo processo realizado na instrução IF
         else:
-            # Seta o valor do driver no dicionário (data_dict)
             data_dict['driver'] = driver
-
-            # Chama a função local (get_data) passando
-            # o dicionário como argumento
             path_file = get_data(**data_dict)
-
             open_file_excel(path_file)
 
 
-# FUNÇÃO QUE CHAMA O 'SCRAPING' NO HTML
+# FUNÇÃO QUE CHAMA O 'SCRAPING' NO HTML DO SISTEMA DE PONTO
 def get_data(**kwargs):
-    # Importa as funções dos módulos utils e controls
-    from utils.validators import clear_form
+    # Importa a função (snack_show) do módulo
+    # (controls.components) para exibir mensagens
     from controls.components import snack_show
 
-    # Cria um dicionário com parte dos dados vindos no atributo **kwargs
+    # Desempacota parte dos dados vindos no atributo **kwargs através de
+    # um loop e atribui à variável (dic_data_fetch), um dicionário
     dic_data_fetch: dict = {
         k: v for k, v in kwargs.items() if k in [
-            'page', 'cpf', 'month_start', 'year_start', 'month_end', 'year_end', 'driver'
+            'cpf', 'month_start', 'year_start', 'month_end', 'year_end', 'driver'
         ]
     }
 
-    # Cria outro dicionário com os dados restantes vindos no atributo **kwargs
+    # Desempacota o restante dos dados vindos no atributo **kwargs através de
+    # um loop e atribui à variável (dic_clear_form), um dicionário
     dic_clear_form = {
         k: v for k, v in kwargs.items() if k in [
             'cpf_field', 'start_date_field', 'end_date_field'
         ]
     }
 
-    # Atribui a variável (page) o valor da chave 'page' do dicionário (dic_data_fetch)
-    page = dic_data_fetch.get('page')
-
     # Transforma o dicionário (dic_data_fetch) numa tupla apenas
-    # com os valores e atribui à variável (tuple_data_fetch)
+    # com os valores, sem as chaves, e atribui à variável (tuple_data_fetch)
     tuple_data_fetch = tuple(dic_data_fetch.values())
 
-    # Chama a função que exibe a barra de progresso
+    # Chama a função (data_progress_bar()) que exibe a barra de
+    # progresso até que função (data_fetch) retorne o resultado
     data_progress_bar()
-    # data_progress_bar(page=page)
 
-    # Chama a função que busca os dados passando a tupla como
-    # argumento e atribui o retorno (um booleano) à variável result
+    # Chama a função (data_fetch) que busca os dados passando a tupla (tuple_data_fetch)
+    #  como argumento e atribui o retorno (str ou None) à variável result
     result = data_fetch(*tuple_data_fetch)
 
-    # Se resulto for TRUE, remove da página a barra de progresso e atualiza a página
+    # Se result for diferente de None, remove da página
+    # a barra de progresso e atualiza a página
     if result:
-        page.overlay.pop()
-        page.update()
+        PageManager.get_page().overlay.pop()
+        PageManager.get_page().update()
 
-        # Limpa o formulário
+        # Chama a função (clear_form) passando a tupla (dic_clear_form) que limpa o formulário
         clear_form(**dic_clear_form)
 
         # Se não houver erros no processamento, exibe mensagem de sucesso
@@ -143,5 +150,6 @@ def get_data(**kwargs):
             icon=ft.icons.CHECK_CIRCLE_SHARP,
             icon_color=ft.colors.GREEN
         )
-    return result
 
+    # Retornar a variável (result)
+    return result
