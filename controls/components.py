@@ -5,6 +5,7 @@ import flet as ft
 from models.page_manager import PageManager
 from services.generate_service import file_generate
 from utils.share_model import clear_form, close_app, button_style, open_folder
+from utils.share_model import create_shortcut_to_desktop_folder
 
 # CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
