@@ -14,14 +14,21 @@ def validate_date_format(date_str: str) -> datetime | None:
 
 # FUNÇÃO QUE VALIDA AS DATAS
 def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):
+    # Importa a função (snack_show) do módulo (controls) para exibir mensagens
     from controls.components import snack_show
+
     try:
+        # Atribui às variáveis (date_start e date_end) o valor dos controles
+        # (date_start_field e date_end_field) do formulário
         date_start = date_start_field.value
         date_end = date_end_field.value
 
+        # Atribui às variáveis () o resultado da função ()
+        # que verifica se o formato das datas é (MM/yyyy)
         start_date = validate_date_format(date_start_field.value)
         end_date = validate_date_format(date_end_field.value)
 
+        # APLICA VALIDAÇÕES NOS CAMPOS DATAS
         if not date_start:
             date_start_field.focus()
             snack_show(message='A Data Inicial é obrigatória!')
@@ -31,6 +38,7 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
             snack_show(message=f'A Data Inicial ({date_start}) é inválida!')
             return False
 
+        # Atribui à variável (start_year) o valor do ano extraído da variável (start_date)
         start_year = start_date.year
 
         if start_year < 2000:
@@ -47,6 +55,7 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
             snack_show(message=f'A Data Final ({date_end}) é inválida!')
             return False
 
+        # Atribui à variável (end_year) o valor do ano extraído da variável (end_date)
         end_year = end_date.year
 
         if end_year < 2000:
@@ -77,8 +86,11 @@ def validate_cpf(cpf_field: ft.TextField):
     # Importa a função (snack_show) do módulo (controls.components)
     from controls.components import snack_show
 
+    # usa o método (strip()) para desconsiderar espaços em branco
+    # no início e final digitados no controle CPF do formulário
     cpf = cpf_field.value.strip()
 
+    # FAZ A VALIDAÇÃO DO NÚMERO DO CPF
     try:
         if not cpf:
             cpf_field.focus()

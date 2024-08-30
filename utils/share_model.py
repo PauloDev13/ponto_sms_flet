@@ -7,15 +7,20 @@ from time import sleep, time
 import flet as ft
 from dotenv import load_dotenv
 
+# Importações dos módulos locais
 from models.page_manager import PageManager
 
 load_dotenv()
 name_folder = os.getenv('NAME_FOLDER')
 
+if not name_folder:
+    raise ValueError("A chave (NAME_FOLDER) não está definido no .env")
+
 
 # FUNÇÃO QUE LIMPA OS CONTROLES DO FORMULÁRIO
 def clear_form(**kwargs) -> None:
-    # Desestrutura o argumento (**kwargs) e atribui o resultado a um dicionário
+    # Desestrutura o argumento (**kwargs) e atribui o resultado
+    # à variável (dict_controls) dicionário
     dict_controls: dict = {
         k: v for k, v in kwargs.items() if k in [
             'cpf_field', 'start_date_field', 'end_date_field',
@@ -36,22 +41,27 @@ def window_event(e):
     # Importa do módulo (controls) o controle (confirm_dialog)
     from controls.components import confirm_dialog
 
-    # se o evento disparado for (close), abre a caixa de diálogo
+    # se o evento disparado for (close), abre a caixa de diálogo de confirmação
     if e.data == 'close':
         e.page.open(confirm_dialog)
 
 
 # FUNÇÃO QUE CAPTURA QUANDO A TECLA (ENTER) É PRESSIONADA
 def on_key_enter_event(e):
+    # Importa o controle (generate_button)
     from controls.components import generate_button
+
+    # Se a tecla pressionada for 'Enter', simula o click no botão
     if e.key == 'Enter':
         generate_button.on_click(e)
 
 
 # FUNÇÃO QUE EXIBE A CAIXA DE DIÁLOGO PARA CONFIRMAR A SAÍDA DO APLICATIVO
 def close_app(_):
+    # Importa do módulo (controls) o controle (confirm_dialog)
     from controls.components import confirm_dialog
 
+    # Abre a caixa de diálogo
     PageManager.get_page().open(confirm_dialog)
 
 
@@ -59,10 +69,13 @@ def close_app(_):
 def open_folder(_):
     from controls.components import snack_show
 
+    # Atribui à variável (folder_path) o caminho do diretório onde são salvos os arquivos Excel
     folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
 
+    # Se o diretório existir...
     if os.path.exists(folder_path):
         try:
+            # Usa o subprocesso do windows para abrir o 'explorer' no diretório
             subprocess.Popen(f'explorer {folder_path}')
         except Exception as e_:
             print(e_)
@@ -72,11 +85,15 @@ def open_folder(_):
                 icon_color=ft.colors.ERROR
             )
 
-
+# FUNÇÃO QUE ABRE O ARQUIVO EXCEL NO OS
 def open_file_excel(path_file_excel):
+    # Importa a função (snack_show) do módulo (controls.components) que exibe mensagens
     from controls.components import snack_show
 
+    # Se o caminho para o arquivo existe...
     if os.path.exists(path_file_excel):
+
+        # Abre o arquivo Excel
         quoted_path = shlex.quote(path_file_excel)
         command = ['powershell.exe', '-Command', f'Start-Process -FilePath {quoted_path}']
 
@@ -100,7 +117,7 @@ def format_cpf(cpf_field: ft.TextField) -> str:
     return f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
 
 
-# FUNÇÃO QUE CUSTOMIZA O ESTILHO DE CORES DOS BOTÕES DA APLICAÇÃO
+# FUNÇÃO QUE CUSTOMIZA O ESTILHO E AS CORES DOS BOTÕES DA APLICAÇÃO
 def button_style(btn_name: str = '') -> ft.ButtonStyle:
     # Se o argumento nome for igual a 'OK', aplica uma formatação
     if btn_name == 'OK':
@@ -161,12 +178,15 @@ def update_progress(
     # Até que o argumento (status) no índice (0) seja
     # falso, atualiza a barra de progresso
     while not status[0]:
+        # Calcula o tempo decorrido e atualiza o progresso da barra na página
         elapsed = time() - start
         progress = min(elapsed / total_time, 1)
         progress_bar.value = progress
         PageManager.get_page().update()
         sleep(0.15)
 
+    # Quando o (status) no índice (0) é igual a verdadeiro, atribui
+    # o valor de 100% ao progresso da bara e atualiza a página
     progress_bar.value = 1
     PageManager.get_page().update()
 
@@ -176,29 +196,32 @@ def update_progress(
 
 
 # FUNÇÃO QUE CONTROLA A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE LOGIN
-def start_login(
-        # page: ft.Page,
+
+# Atribui a variável (progress_bar) uma instância da barra de progresso
+progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
+def login_progess_bar(
         total_time: float = 0,
         message: str = '',
 ):
     # Atribui a variável (progress_bar) uma instância da barra de progresso
-    progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
-    # Cria um array booleano, atribui o valor
-    # false e atribui à variável (status)
+    # progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
+
+    # Cria um array booleano co o valor False no seu
+    # índice [0] e atribui à variável (status)
     status = [False]
 
-    # Cria uma (Thread) para chamar a função (update_progress) em paralelo
+    # Cria uma (Thread) para executar em paralelo a função (update_progress)
     threading.Thread(target=update_progress, args=(
-        # page,
         progress_bar,
         total_time,
         message,
         status
     )).start()
 
-    # Espera o tempo setado na variável (total_time)
+    # Espera o tempo setado na variável (total_time). Esse é o tempo
+    # total que a barra de progresso ficará sendo exibida na página
     sleep(total_time)
-    # Atribui ao índice '0' do array (status) o valor TRUE
+    # Depois desse tmepo, Atribui ao índice [0] do array (status) o valor TRUE
     status[0] = True
 
 
@@ -211,7 +234,7 @@ def data_progress_bar():
 
     try:
         # Atribui a variável (progress_bar) uma instância da barra de progresso
-        progress_bar = ft.ProgressBar(width=600, color='#5a90fc')
+        # progress_bar = ft.ProgressBar(width=600, color='#5a90fc')
 
         # Atribui à variável (control) a função (progress_control)
         # que retorna um controle com a barra de progresso

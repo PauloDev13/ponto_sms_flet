@@ -12,6 +12,7 @@ cpf_field = ft.TextField(
     col={'md': 12},
     hint_text='Digite um CPF',
     border_color='#5a90fc',
+    autofocus=True,
     expand=True,
 )
 

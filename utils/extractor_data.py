@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
+# Importações dos módulos locais
 from utils.excel import generate_excel_file
 from utils.format_dataframe import columns_update
 
@@ -25,11 +26,14 @@ locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 # Ler a URL base que vai montar a busca dos dados
 url_data = os.getenv('URL_DATA')
 
+if not url_data:
+    raise ValueError('O parâmetro (URL_DATA) não está definido no .env')
+
 
 # FUNÇÃO QUE BUSCA OS DADOS NA PÁGINA HTML
 def data_fetch(*args) -> str | None:
 
-    # Importa a função (show_snackbar) do módulo (ontrols.components)
+    # Importa a função (snack_show) do módulo (ontrols.components) para exibir mensagens
     from controls.components import snack_show
 
     # Desempacota os argumentos passados em (*args)

@@ -12,7 +12,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
-from utils.share_model import start_login
+# Importações dos módulos locais
+from utils.share_model import login_progess_bar
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -33,7 +34,6 @@ def login():
     # Configuração do WebDriver que retorna uma instância do navegador Chrome
     options = webdriver.ChromeOptions()
     # options.add_argument("--headless=new")
-
     driver = webdriver.Chrome(options=options)
 
     # Maximiza a janela do navegador
@@ -51,7 +51,7 @@ def login():
             ec.presence_of_element_located((By.XPATH, "//*[@id='senha']"))
         )
 
-        # Se os campos foram carregados corretamente no HTLM
+        # Se os campos foram carregados corretamente no html
         if load_login and load_senha:
             # Acessa o campo de login, insere o login, espera 1 segundo,
             # acessa o campo senha e insere a senha
@@ -65,7 +65,7 @@ def login():
                 icon_color=ft.colors.RED
             )
 
-        # Localiza o primeiro Iframe da página, entra nele, espera 1 segundo.
+        # Localiza o primeiro Iframe da página, entra nele.
         # Localiza dentro Iframe o elemento box do recaptcha e clica nele.
         # Sai do Iframe e volta para o html principal.
         driver.switch_to.frame(0)
@@ -76,8 +76,11 @@ def login():
         button_login = driver.find_element(by=By.XPATH, value="//*[@id='form']/input")
 
         # Chama a função (start_login) do (shared_module) que exibe uma barra de
-        # progresso esperando (30 s)até que o processo de login seha concluído
-        start_login(total_time=30, message='Conectando Sistema de Ponto. AGUARDE...')
+        # progresso que espera (30 segundos) para que o captcha, se aparecer, seja resolvido.
+        login_progess_bar(
+            total_time=30,
+            message='Conectando Sistema de Ponto. AGUARDE...'
+        )
 
         # Minimiza a janela do navegador
         driver.minimize_window()

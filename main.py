@@ -1,5 +1,6 @@
 import flet as ft
 
+# Importação dos módulos locais
 from controls.components import (
     # Controles
     cpf_field,
@@ -12,7 +13,6 @@ from controls.components import (
     exit_button,
     open_folder_button,
 )
-# Importa do módulo (share_model) a função (window_event)
 from utils.share_model import window_event, on_key_enter_event
 from models.page_manager import PageManager
 
@@ -21,14 +21,17 @@ def main(page: ft.Page):
     # Definindo a instância de Page no PageManager
     PageManager.set_page(page)
 
+    # Define o nome que será exibido na barra de ferramentas da página
     page.title = 'Ponto SMS'
 
+    # Define que o tema da página ser DARK (escuro)
     page.theme_mode = ft.ThemeMode.DARK
 
-    # Intercepta o evento disparado quando o botão "X" da janela é clicado
+    # Intercepta o evento disparado quando o botão (X) da janela é clicado
     page.window.prevent_close = True
     page.on_window_event = window_event
 
+    # Intercepta o evento disparado quando a tecla (Enter) é pressionada
     page.on_keyboard_event = on_key_enter_event
 
     # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
@@ -47,6 +50,7 @@ def main(page: ft.Page):
     page.window_maximizable = False
     page.window.center()
 
+    # Adiciona à página um controle (Card) com os demais controles do formulário
     page.add(
         ft.Card(
             content=ft.Container(
@@ -91,8 +95,6 @@ def main(page: ft.Page):
             )
         ),
     )
-
-    cpf_field.focus()
 
 
 ft.app(target=main)

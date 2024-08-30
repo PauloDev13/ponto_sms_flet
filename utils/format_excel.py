@@ -7,7 +7,7 @@ load_dotenv()
 password_workbook = os.getenv('PASSWORD')
 
 if not password_workbook:
-    raise ValueError("O caminho do arquivo base não está definido no .env")
+    raise ValueError("A chave (PASSWORD) não está definido no .env")
 
 
 # Função que retorna um dicionário com a formatação
@@ -113,7 +113,7 @@ def apply_formatting(worksheet, df_year, formats):
     worksheet.set_column(7, 10, 5, formats['col_center'])
 
     # Define a variável (last_header_index) com valor -1.
-    # Essa variável vai pegar o número da linha imediatamente
+    # Essa variável vai pegar o índice da linha imediatamente
     # após a linha do cabeçalho
     last_header_index = -1
 
