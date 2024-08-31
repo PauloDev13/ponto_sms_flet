@@ -79,17 +79,16 @@ def main(page: ft.Page):
                             ]),
                             margin=ft.margin.only(top=20)
                         ),
+                        ft.ResponsiveRow([
+                                generate_button,
+                        ]),
                         ft.Container(
                             ft.ResponsiveRow([
-                                generate_button,
+                                open_folder_button,
                                 cancel_button,
                                 exit_button
                             ]),
-                            margin=ft.margin.only(top=20)
                         ),
-                        ft.ResponsiveRow([
-                                open_folder_button
-                        ]),
                     ]
                 ),
             )

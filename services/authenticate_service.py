@@ -14,6 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
 from utils.share_model import login_progess_bar
+from models.page_manager import PageManager
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -23,6 +24,9 @@ url_login = os.getenv("URL_BASE")
 url_init = os.getenv("URL_INIT")
 username = os.getenv("USER")
 password = os.getenv("PASSWORD")
+
+
+countdown_text = ft.Text(value='')
 
 
 # FUNÇÃO LOGIN
@@ -77,10 +81,7 @@ def login():
 
         # Chama a função (start_login) do (shared_module) que exibe uma barra de
         # progresso que espera (30 segundos) para que o captcha, se aparecer, seja resolvido.
-        login_progess_bar(
-            total_time=30,
-            message='Conectando Sistema de Ponto. AGUARDE...'
-        )
+        login_progess_bar(total_time=30)
 
         # Minimiza a janela do navegador
         driver.minimize_window()

@@ -177,10 +177,10 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
 
 # FUNÇÃO QUE ATUALIZA O ESTADO DA BARRA DE PROGRESSO
 def update_progress(
-        # page: ft.Page,
         progress_bar: ft.ProgressBar,
+        control_count_down: ft.Control,
         total_time: float,
-        message: str,
+        message: str | None,
         status: bool,
 ):
     # Importa função (progress_control) do módulo controls
@@ -188,13 +188,14 @@ def update_progress(
 
     # Atribui à variável (control) a função (progress_control)
     # que retorna um controle com a barra de progresso
-    control = progress_control(
+    container = progress_control(
         progress_bar=progress_bar,
-        message=message
+        control_count_down=control_count_down,
+        message=message,
     )
 
     # Exibe o controle com a barra de progresso na página
-    PageManager.get_page().overlay.append(control)
+    PageManager.get_page().overlay.append(container)
 
     # Atribui à variável (start) o tempo atual do sistema
     start = time()
@@ -215,18 +216,20 @@ def update_progress(
     PageManager.get_page().update()
 
     # Remove o controle da barra de progresso e atualiza a página
-    PageManager.get_page().overlay.remove(control)
+    PageManager.get_page().overlay.remove(container)
     PageManager.get_page().update()
+
 
 
 # FUNÇÃO QUE CONTROLA A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE LOGIN
 
 def login_progess_bar(
         total_time: float = 0,
-        message: str = '',
+        message: str | None = None,
 ):
     # Atribui a variável (progress_bar) uma instância da barra de progresso
     progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
+    countdown_text = ft.Text(value='', color='#abb2bf', size=20)
 
     # Cria um array booleano co o valor False no seu
     # índice [0] e atribui à variável (status)
@@ -235,16 +238,24 @@ def login_progess_bar(
     # Cria uma (Thread) para executar em paralelo a função (update_progress)
     threading.Thread(target=update_progress, args=(
         progress_bar,
+        countdown_text,
         total_time,
         message,
         status
     )).start()
 
-    # Espera o tempo setado na variável (total_time). Esse é o tempo
-    # total que a barra de progresso ficará sendo exibida na página
-    sleep(total_time)
-    # Depois desse tmepo, Atribui ao índice [0] do array (status) o valor TRUE
-    status[0] = True
+    if message is None:
+        control_count_down(
+            total_time=total_time,
+            control=countdown_text
+        )
+        status[0] = True
+    # else:
+        # Espera o tempo setado na variável (total_time). Esse é o tempo
+        # total que a barra de progresso ficará sendo exibida na página
+        # sleep(total_time)
+        # Depois desse tmepo, Atribui ao índice [0] do array (status) o valor TRUE
+        # status[0] = True
 
 
 # FUNÇÃO QUE EXIBE A BARRA DE PROGRESSO DURANTE A
@@ -260,19 +271,39 @@ def data_progress_bar():
 
         # Atribui à variável (control) a função (progress_control)
         # que retorna um controle com a barra de progresso
-        control = progress_control(
+        container = progress_control(
             progress_bar=progress_bar,
-            message='Gerando arquivo. AGUARDE...',
+            control_count_down= ft.Text(value=''),
+            message='Gerando planilhas. AGUARDE...',
         )
 
         # Exibe a barra de progresso e atualiza a página
-        PageManager.get_page().overlay.append(control)
+        PageManager.get_page().overlay.append(container)
         PageManager.get_page().update()
 
     except Exception as e_:
+        # Exibe a barra de progresso e atualiza a página
+        PageManager.get_page().overlay.remove(container)
+        PageManager.get_page().update()
+
         snack_show(
             message='Erro ao exibir a barra de progresso!',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED
         )
         print(f'Erro ao exibir a barra de progresso: {e_}')
+
+
+# FUNÇÃO QUE CRIA UM CONTADOR PARA ESPECIFICAR O TEMPO QUE RESTA PARA O LOGIN
+def control_count_down(total_time: float, control: ft.Control):
+    for i in range(1, total_time + 1):
+
+        elapsed_time = (total_time - i)
+
+        if elapsed_time > 1:
+            control.value = f'Faltam {elapsed_time} segundos para o login. AGUARDE...'
+        else:
+            control.value = f'Falta {elapsed_time} segundo para o login. AGUARDE...'
+
+        PageManager.get_page().update()
+        sleep(1)

@@ -1400,6 +1400,21 @@ files = [
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "pyinstaller-hooks-contrib"
+version = "2024.8"
+description = "Community maintained hooks for PyInstaller"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pyinstaller_hooks_contrib-2024.8-py3-none-any.whl", hash = "sha256:0057fe9a5c398d3f580e73e58793a1d4a8315ca91c3df01efea1c14ed557825a"},
+    {file = "pyinstaller_hooks_contrib-2024.8.tar.gz", hash = "sha256:29b68d878ab739e967055b56a93eb9b58e529d5b054fbab7a2f2bacf80cef3e2"},
+]
+
+[package.dependencies]
+packaging = ">=22.0"
+setuptools = ">=42.0.0"
+
+[[package]]
 name = "pypng"
 version = "0.20220715.0"
 description = "Pure Python library for saving and loading PNG images"
@@ -2196,4 +2211,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "ec071b9a379477a76f1f44e4316a3bdcb9f26b9c239c7c9c379ea3c8f6e70fc9"
+content-hash = "8e8396a6e5ec9388b5bd76c0ce9e5014f24adc5793028f0d76e00e098aff1677"

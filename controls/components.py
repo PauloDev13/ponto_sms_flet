@@ -5,7 +5,7 @@ import flet as ft
 from models.page_manager import PageManager
 from services.generate_service import file_generate
 from utils.share_model import clear_form, close_app, button_style, open_folder
-from utils.share_model import create_shortcut_to_desktop_folder
+# from utils.share_model import create_shortcut_to_desktop_folder
 
 # CONTROLES DE ENTRADA DE TEXTO
 cpf_field = ft.TextField(
@@ -49,7 +49,6 @@ generate_button = ft.ElevatedButton(
         start_date_field,
         end_date_field,
     ),
-    col={'md': 4},
     text='GERAR AQUIVO',
     style=button_style('OK'),
     expand=True,
@@ -73,9 +72,10 @@ exit_button = ft.ElevatedButton(
     expand=True
 )
 
-open_folder_button = ft.TextButton(
+open_folder_button = ft.ElevatedButton(
     on_click=open_folder,
-    text='ABRIR PASTA DE ARQUIVOS',
+    col={'md': 4},
+    text='ABRIR PASTA',
     style=button_style(),
     expand=True
 )
@@ -247,14 +247,16 @@ confirm_dialog = ft.AlertDialog(
 # FUNÇÃO QUE CRIA UM CONTROLE PARA EXIBIR A BARRA DE PROGRESSO
 def progress_control(
     progress_bar: ft.ProgressBar,
-    message: str,
+    control_count_down: ft.Control,
+    message: str | None = None,
 ):
     # Cria uma linha com os controles de ícone e de texto e atribui à variável (content_row)
     content_row = ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
         controls=[
             ft.Icon(ft.icons.INFO, color='#4dd0e1', size=30),
-            ft.Text(value=message, color='#abb2bf', size=20),
+            ft.Text(value=message, color='#abb2bf', size=20)
+            if message else control_count_down,
         ]
     )
 
