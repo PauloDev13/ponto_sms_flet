@@ -62,11 +62,14 @@ def on_key_enter_event(e):
 
 # FUNÇÃO QUE EXIBE A CAIXA DE DIÁLOGO PARA CONFIRMAR A SAÍDA DO APLICATIVO
 def close_app(_):
+    # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
+    page = PageManager.get_page()
+
     # Importa do módulo (controls) o controle (confirm_dialog)
     from controls.display.confirm_dialog import confirm_dialog
 
     # Abre a caixa de diálogo
-    PageManager.get_page().open(confirm_dialog)
+    page.open(confirm_dialog)
 
 
 # FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
@@ -109,13 +112,8 @@ def create_shortcut_to_desktop_folder(folder_path):
         pythoncom.CoUninitialize()
 
 
-def minimize_window(e):
-    PageManager.get_page().window.minimized = True
-
 # FUNÇÃO QUE ABRE O ARQUIVO EXCEL NO OS
 def open_file_excel(path_file_excel):
-    minimize_window()
-
     # Se o caminho para o arquivo existe...
     if os.path.exists(path_file_excel):
 
@@ -210,16 +208,19 @@ def login_progess_bar(
 
 # FUNÇÃO QUE CRIA UM CONTADOR PARA ESPECIFICAR O TEMPO QUE RESTA PARA O LOGIN
 def control_count_down(total_time: float, control: ft.Control, status: bool):
+    # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
+    page = PageManager.get_page()
+
     for i in range(1, total_time + 1):
 
         elapsed_time = (total_time - i)
 
         if elapsed_time > 1:
-            control.value = f'Faltam {elapsed_time} segundos para o login. AGUARDE...'
+            control.value = f'O login será concluído em {elapsed_time} segundos. AGUARDE...'
         else:
-            control.value = f'Falta {elapsed_time} segundo para o login. AGUARDE...'
+            control.value = f'O login será concluído em {elapsed_time} segundo. AGUARDE...'
 
-        PageManager.get_page().update()
+        page.update()
         sleep(1)
 
     status[0] = True
@@ -230,6 +231,9 @@ def control_count_down(total_time: float, control: ft.Control, status: bool):
 def data_progress_bar():
     # Importa a função (progress_control) do módulo controls
     from controls.display.progress_bar import progress_control
+
+    # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
+    page = PageManager.get_page()
 
     try:
         # Atribui a variável (progress_bar) uma instância da barra de progresso
@@ -244,13 +248,13 @@ def data_progress_bar():
         )
 
         # Exibe a barra de progresso e atualiza a página
-        PageManager.get_page().overlay.append(container)
-        PageManager.get_page().update()
+        page.overlay.append(container)
+        page.update()
 
     except Exception as e_:
         # Exibe a barra de progresso e atualiza a página
-        PageManager.get_page().overlay.remove(container)
-        PageManager.get_page().update()
+        page.overlay.remove(container)
+        page.update()
 
         AlertSnackbar.show(
             message='Erro ao exibir a barra de progresso!',

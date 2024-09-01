@@ -93,13 +93,13 @@ def login():
         # Se a página inicial carregou, exibe mensagem de sucesso
         # Se não, exibe mensagem de alerta
         if load_page:
-            snack_show(
+            AlertSnackbar.show(
                 message='Login realizado com sucesso!',
                 icon=ft.icons.LOGIN_SHARP,
                 icon_color=ft.colors.GREEN)
 
         else:
-            snack_show(
+            AlertSnackbar.show(
                 message='Falha no login! Tente novamente.',
                 icon=ft.icons.INFO)
 
@@ -108,7 +108,7 @@ def login():
 
     # Se ocorrer erros no processo de login exibe mensagens
     except ElementClickInterceptedException as e_:
-        snack_show(
+        AlertSnackbar.show(
             message='Erro ao clicar num elemento da página! Tente novamente',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED
@@ -116,17 +116,17 @@ def login():
         print(f'Erro stacktrace: {e_}')
         return None
     except TimeoutException as ex:
-        snack_show(
+        AlertSnackbar.show(
             message='A pagina demorou a responder! Tente novamente')
         print(f'Erro stacktrace: {ex}')
         return None
     except NoSuchWindowException as ex_:
-        snack_show(
+        AlertSnackbar.show(
             message='Falha no login! Tente novamente')
         print(f'Erro stacktrace: {ex_}')
         return None
     except Exception as ex_:
-        snack_show(
+        AlertSnackbar.show(
             message='Falha no login! Tente novamente')
         print(f'Erro stacktrace: {ex_}')
         return None

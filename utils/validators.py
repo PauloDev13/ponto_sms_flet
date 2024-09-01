@@ -60,13 +60,15 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 
         if end_year < 2000:
             date_end_field.focus()
-            AlertSnackbar.show(message=f'O Ano da Data Final deve ser igual ou maior que 2000')
+            AlertSnackbar.show(
+                message=f'O Ano da Data Final deve ser igual ou maior que 2000'
+            )
             return False
 
         if start_date > end_date:
             date_start_field.focus()
             AlertSnackbar.show(
-                container_height=70,
+                height_container=70,
                 message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser '
                 f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
             return False

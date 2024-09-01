@@ -18,6 +18,9 @@ def progress_control(
         controls=[
             ft.Icon(ft.icons.INFO, color='#4dd0e1', size=30),
             ft.Text(value=message, color='#abb2bf', size=20)
+            # Se a variável (message) não for None, exibe o controle
+            # Text acima, caso contrário, exibe o controle (control_count_down)
+            # passado como argumento na funçao
             if message else control_count_down,
         ]
     )
@@ -56,6 +59,8 @@ def update_progress(
         message: str | None,
         status: bool,
 ):
+    # Atribui a variável (page) uma instância da página
+    page = PageManager.get_page()
 
     # Atribui à variável (control) a função (progress_control)
     # que retorna um controle com a barra de progresso
@@ -66,7 +71,7 @@ def update_progress(
     )
 
     # Exibe o controle com a barra de progresso na página
-    PageManager.get_page().overlay.append(container)
+    page.overlay.append(container)
 
     # Atribui à variável (start) o tempo atual do sistema
     start = time()
@@ -78,14 +83,14 @@ def update_progress(
         elapsed = time() - start
         progress = min(elapsed / total_time, 1)
         progress_bar.value = progress
-        PageManager.get_page().update()
+        page.update()
         sleep(0.15)
 
     # Quando o (status) no índice (0) é igual a verdadeiro, atribui
     # o valor de 100% ao progresso da bara e atualiza a página
     progress_bar.value = 1
-    PageManager.get_page().update()
+    page.update()
 
     # Remove o controle da barra de progresso e atualiza a página
-    PageManager.get_page().overlay.remove(container)
-    PageManager.get_page().update()
+    page.overlay.remove(container)
+    page.update()
