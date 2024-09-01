@@ -14,7 +14,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
 from utils.share_model import login_progess_bar
-from models.page_manager import PageManager
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -33,7 +32,7 @@ countdown_text = ft.Text(value='')
 def login():
     # Importa a função (snack_show) do módulo (controls.components)
     # para exibir mensagens de alerta
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     # Configuração do WebDriver que retorna uma instância do navegador Chrome
     options = webdriver.ChromeOptions()

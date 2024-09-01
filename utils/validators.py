@@ -15,7 +15,7 @@ def validate_date_format(date_str: str) -> datetime | None:
 # FUNÇÃO QUE VALIDA AS DATAS
 def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):
     # Importa a função (snack_show) do módulo (controls) para exibir mensagens
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     try:
         # Atribui às variáveis (date_start e date_end) o valor dos controles
@@ -84,7 +84,7 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 # FUNÇÃO QUE VALIDA O NÚMERO DO CPF
 def validate_cpf(cpf_field: ft.TextField):
     # Importa a função (snack_show) do módulo (controls.components)
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     # usa o método (strip()) para desconsiderar espaços em branco
     # no início e final digitados no controle CPF do formulário

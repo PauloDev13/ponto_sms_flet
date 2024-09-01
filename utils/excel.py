@@ -22,7 +22,7 @@ if not name_folder:
 # SALVOS OS ARQUIVOS DO EXCEL QUE SERÃO GERADOS
 def create_folder(name_file: str):
     # Importa a função (snack_show) do módulo (controls.components) para exibir mensagens
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
     # from utils.share_model import create_shortcut_to_desktop_folder
 
     try:
@@ -64,7 +64,7 @@ def generate_excel_file(
         cpf: str
 ) -> str:
     # Importa a função (snack_show) do módulo (controls) para exibir mensagens
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     # Chama a função local (create_folder) passando o nome do arquivo
     # do Excel e atribui o retorno à variável (path_file_name)

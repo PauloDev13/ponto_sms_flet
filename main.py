@@ -1,31 +1,49 @@
 import flet as ft
 
-# Importação dos módulos locais
-from controls.components import (
-    # Controles
-    cpf_field,
-    start_date_field,
-    end_date_field,
-
-    # Botões
+from controls.buttons.elevated_button import (
     generate_button,
     cancel_button,
     exit_button,
-    open_folder_button,
+    open_folder_button
+)
+
+# Importação dos módulos locais
+from controls.inputs.input_text import (
+    cpf_field,
+    start_date_field,
+    end_date_field,
 )
 from utils.share_model import window_event, on_key_enter_event
 from models.page_manager import PageManager
 
 
 def main(page: ft.Page):
-    # Definindo a instância de Page no PageManager
-    PageManager.set_page(page)
 
     # Define o nome que será exibido na barra de ferramentas da página
     page.title = 'Ponto SMS'
 
+    # Definindo o tamanho da janela
+    page.window.width = 800
+    page.window.height = 600
+
+    # Centralizando o conteúdo da janela
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+
+    # Definindo a instância de Page no PageManager
+    PageManager.set_page(page)
+
     # Define que o tema da página ser DARK (escuro)
     page.theme_mode = ft.ThemeMode.DARK
+
+    # Definindo que a janela não pode ser redimensionada
+    page.window_resizable = False
+    page.window_maximizable = False
+    page.window.minimized = False
+    page.window.center()
+
+    # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
+    page.window.always_on_top = True
 
     # Intercepta o evento disparado quando o botão (X) da janela é clicado
     page.window.prevent_close = True
@@ -33,22 +51,6 @@ def main(page: ft.Page):
 
     # Intercepta o evento disparado quando a tecla (Enter) é pressionada
     page.on_keyboard_event = on_key_enter_event
-
-    # Mantém a janela do aplicativo sobre as demais janelas abertas no PC
-    page.window.always_on_top = True
-
-    # Centralizando o conteúdo da janela
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-
-    # Definindo o tamanho da janela
-    page.window.width = 800
-    page.window.height = 600
-
-    # Definindo que a janela não pode ser redimensionada
-    page.window_resizable = False
-    page.window_maximizable = False
-    page.window.center()
 
     # Adiciona à página um controle (Card) com os demais controles do formulário
     page.add(

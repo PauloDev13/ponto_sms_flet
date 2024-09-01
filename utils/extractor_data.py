@@ -34,7 +34,7 @@ if not url_data:
 def data_fetch(*args) -> str | None:
 
     # Importa a função (snack_show) do módulo (ontrols.components) para exibir mensagens
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     # Desempacota os argumentos passados em (*args)
     cpf, month_start, year_start, month_end, year_end, driver = args

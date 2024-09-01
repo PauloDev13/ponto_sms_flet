@@ -2,13 +2,13 @@ from datetime import datetime
 
 import flet as ft
 
+from models.page_manager import PageManager
 # Importações dos módulos locais
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
 from utils.share_model import (
     data_progress_bar, open_file_excel, format_cpf, clear_form
 )
-from models.page_manager import PageManager
 
 
 # FUNÇÃO QUE CHAMA O INÍCIO DO SCRAPING NA PÁGINA DO PONTO PARA BUSCAR OS DADOS
@@ -110,7 +110,7 @@ def file_generate(*args):
 def get_data(**kwargs):
     # Importa a função (snack_show) do módulo
     # (controls.components) para exibir mensagens
-    from controls.components import snack_show
+    from controls.display.snack_bar import snack_show
 
     # Desempacota parte dos dados vindos no atributo (**kwargs) através de
     # um loop e atribui os valores à variável (dic_data_fetch), um dicionário
