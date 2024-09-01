@@ -1,7 +1,7 @@
 import flet as ft
 
 
-# CONTROLES DE ENTRADA DE TEXTO
+# Controle que recebe o número do CPF no formulário
 cpf_field = ft.TextField(
     label='CPF',
     col={'md': 12},
@@ -11,6 +11,7 @@ cpf_field = ft.TextField(
     expand=True,
 )
 
+# Controle que recebe a data inicial no formulário
 start_date_field = ft.TextField(
     label='Período Inicial',
     hint_text='Mês/Ano',
@@ -20,6 +21,7 @@ start_date_field = ft.TextField(
     expand=True
 )
 
+# Controle que recebe a data final no formulário
 end_date_field = ft.TextField(
     label='Período final',
     hint_text='Mês/Ano',

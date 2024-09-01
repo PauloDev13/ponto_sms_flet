@@ -2,6 +2,9 @@ from datetime import datetime
 
 import flet as ft
 
+# Importação dos módulos locais
+from models.alert_snackbar import AlertSnackbar
+
 
 # FUNÇÃO QUE FORMATA AS DATAS PARA 'MM/yyyy'
 def validate_date_format(date_str: str) -> datetime | None:
@@ -14,9 +17,6 @@ def validate_date_format(date_str: str) -> datetime | None:
 
 # FUNÇÃO QUE VALIDA AS DATAS
 def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):
-    # Importa a função (snack_show) do módulo (controls) para exibir mensagens
-    from controls.display.snack_bar import snack_show
-
     try:
         # Atribui às variáveis (date_start e date_end) o valor dos controles
         # (date_start_field e date_end_field) do formulário
@@ -31,11 +31,11 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
         # APLICA VALIDAÇÕES NOS CAMPOS DATAS
         if not date_start:
             date_start_field.focus()
-            snack_show(message='A Data Inicial é obrigatória!')
+            AlertSnackbar.show(message='A Data Inicial é obrigatória!')
             return False
         elif start_date is None:
             date_start_field.focus()
-            snack_show(message=f'A Data Inicial ({date_start}) é inválida!')
+            AlertSnackbar.show(message=f'A Data Inicial ({date_start}) é inválida!')
             return False
 
         # Atribui à variável (start_year) o valor do ano extraído da variável (start_date)
@@ -43,16 +43,16 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 
         if start_year < 2000:
             date_start_field.focus()
-            snack_show(message=f'O Ano da Data Inicial deve ser igual ou maior que 2000')
+            AlertSnackbar.show(message=f'O Ano da Data Inicial deve ser igual ou maior que 2000')
             return False
 
         if not date_end:
             date_end_field.focus()
-            snack_show(message='A Data Final é obrigatória!')
+            AlertSnackbar.show(message='A Data Final é obrigatória!')
             return False
         elif end_date is None:
             date_end_field.focus()
-            snack_show(message=f'A Data Final ({date_end}) é inválida!')
+            AlertSnackbar.show(message=f'A Data Final ({date_end}) é inválida!')
             return False
 
         # Atribui à variável (end_year) o valor do ano extraído da variável (end_date)
@@ -60,19 +60,19 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 
         if end_year < 2000:
             date_end_field.focus()
-            snack_show(message=f'O Ano da Data Final deve ser igual ou maior que 2000')
+            AlertSnackbar.show(message=f'O Ano da Data Final deve ser igual ou maior que 2000')
             return False
 
         if start_date > end_date:
             date_start_field.focus()
-            snack_show(
+            AlertSnackbar.show(
                 container_height=70,
                 message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser '
                 f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
             return False
         return True
     except Exception as ex:
-        snack_show(
+        AlertSnackbar.show(
             message='Erro ao validar datas!',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED,
@@ -83,9 +83,6 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 
 # FUNÇÃO QUE VALIDA O NÚMERO DO CPF
 def validate_cpf(cpf_field: ft.TextField):
-    # Importa a função (snack_show) do módulo (controls.components)
-    from controls.display.snack_bar import snack_show
-
     # usa o método (strip()) para desconsiderar espaços em branco
     # no início e final digitados no controle CPF do formulário
     cpf = cpf_field.value.strip()
@@ -94,17 +91,18 @@ def validate_cpf(cpf_field: ft.TextField):
     try:
         if not cpf:
             cpf_field.focus()
-            snack_show(message='O CPF é obrigatório!')
+            # snack_show(message='O CPF é obrigatório!')
+            AlertSnackbar.show(message='O CPF é obrigatório!')
             return False
 
         if not cpf.isdigit():
             cpf_field.focus()
-            snack_show(message='O CPF deve conter somente números!')
+            AlertSnackbar.show(message='O CPF deve conter somente números!')
             return False
 
         if len(cpf) != 11:
             cpf_field.focus()
-            snack_show(
+            AlertSnackbar.show(
                 message='CPF inválido!',
                 icon=ft.icons.ERROR,
                 icon_color=ft.colors.RED,
@@ -114,7 +112,7 @@ def validate_cpf(cpf_field: ft.TextField):
 
         if cpf == cpf[0] * 11:
             cpf_field.focus()
-            snack_show(
+            AlertSnackbar.show(
                 message='CPF inválido!',
                 icon=ft.icons.ERROR,
                 icon_color=ft.colors.RED,
@@ -135,7 +133,7 @@ def validate_cpf(cpf_field: ft.TextField):
             return True
         else:
             cpf_field.focus()
-            snack_show(
+            AlertSnackbar.show(
                 message='CPF inválido!',
                 icon=ft.icons.ERROR,
                 icon_color=ft.colors.RED,

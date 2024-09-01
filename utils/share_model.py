@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 # Importações dos módulos locais
 from controls.display.progress_bar import update_progress
 from models.page_manager import PageManager
+from models.alert_snackbar import AlertSnackbar
 
 load_dotenv()
 name_folder = os.getenv('NAME_FOLDER')
@@ -70,8 +71,6 @@ def close_app(_):
 
 # FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
 def open_folder(_):
-    from controls.display.snack_bar import snack_show
-
     # Atribui à variável (folder_path) o caminho do diretório onde são salvos os arquivos Excel
     folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
 
@@ -82,7 +81,7 @@ def open_folder(_):
             subprocess.Popen(f'explorer {folder_path}')
         except Exception as e_:
             print(e_)
-            snack_show(
+            AlertSnackbar.show(
                 message=f'Erro ao abrir a pasta {folder_path}',
                 icon=ft.icons.RULE_FOLDER,
                 icon_color=ft.colors.ERROR
@@ -110,14 +109,11 @@ def create_shortcut_to_desktop_folder(folder_path):
         pythoncom.CoUninitialize()
 
 
-def minimize_window():
+def minimize_window(e):
     PageManager.get_page().window.minimized = True
 
 # FUNÇÃO QUE ABRE O ARQUIVO EXCEL NO OS
 def open_file_excel(path_file_excel):
-    # Importa a função (snack_show) do módulo (controls.components) que exibe mensagens
-    from controls.display.snack_bar import snack_show
-
     minimize_window()
 
     # Se o caminho para o arquivo existe...
@@ -130,7 +126,7 @@ def open_file_excel(path_file_excel):
         try:
             subprocess.run(command, check=True)
         except subprocess.CalledProcessError as e:
-            snack_show(
+            AlertSnackbar.show(
                 message=f'Erro ao abrir o arquivo {path_file_excel}',
                 icon=ft.icons.RULE_FOLDER,
                 icon_color=ft.colors.ERROR
@@ -234,7 +230,6 @@ def control_count_down(total_time: float, control: ft.Control, status: bool):
 def data_progress_bar():
     # Importa a função (progress_control) do módulo controls
     from controls.display.progress_bar import progress_control
-    from controls.display.snack_bar import snack_show
 
     try:
         # Atribui a variável (progress_bar) uma instância da barra de progresso
@@ -257,7 +252,7 @@ def data_progress_bar():
         PageManager.get_page().overlay.remove(container)
         PageManager.get_page().update()
 
-        snack_show(
+        AlertSnackbar.show(
             message='Erro ao exibir a barra de progresso!',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED

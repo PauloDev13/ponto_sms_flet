@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
+from models.alert_snackbar import AlertSnackbar
 from utils.share_model import login_progess_bar
 
 # Carrega o arquivo .env
@@ -30,10 +31,6 @@ countdown_text = ft.Text(value='')
 
 # FUNÇÃO LOGIN
 def login():
-    # Importa a função (snack_show) do módulo (controls.components)
-    # para exibir mensagens de alerta
-    from controls.display.snack_bar import snack_show
-
     # Configuração do WebDriver que retorna uma instância do navegador Chrome
     options = webdriver.ChromeOptions()
     # options.add_argument("--headless=new")
@@ -62,7 +59,7 @@ def login():
             sleep(1)
             driver.find_element(By.XPATH, "//*[@id='senha']").send_keys(password)
         else:
-            snack_show(
+            AlertSnackbar.show(
                 message='Erro ao identificar TAGs de login',
                 icon=ft.icons.ERROR,
                 icon_color=ft.colors.RED

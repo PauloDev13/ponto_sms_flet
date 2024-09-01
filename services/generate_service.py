@@ -2,8 +2,9 @@ from datetime import datetime
 
 import flet as ft
 
-from models.page_manager import PageManager
 # Importações dos módulos locais
+from models.page_manager import PageManager
+from models.alert_snackbar import AlertSnackbar
 from services.authenticate_service import login
 from utils.extractor_data import data_fetch
 from utils.share_model import (
@@ -108,10 +109,6 @@ def file_generate(*args):
 
 # FUNÇÃO QUE INICIA A BUSCA DOS DADOS NO HTML DO SISTEMA DE PONTO
 def get_data(**kwargs):
-    # Importa a função (snack_show) do módulo
-    # (controls.components) para exibir mensagens
-    from controls.display.snack_bar import snack_show
-
     # Desempacota parte dos dados vindos no atributo (**kwargs) através de
     # um loop e atribui os valores à variável (dic_data_fetch), um dicionário
     dic_data_fetch: dict = {
@@ -151,7 +148,7 @@ def get_data(**kwargs):
         clear_form(**dic_clear_form)
 
         # Se não houver erros no processamento, exibe mensagem de sucesso
-        snack_show(
+        AlertSnackbar.show(
             message='Arquivo criado com sucesso!',
             icon=ft.icons.CHECK_CIRCLE_SHARP,
             icon_color=ft.colors.GREEN

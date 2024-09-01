@@ -14,6 +14,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
+from models.alert_snackbar import AlertSnackbar
 from utils.excel import generate_excel_file
 from utils.format_dataframe import columns_update
 
@@ -32,10 +33,6 @@ if not url_data:
 
 # FUNÇÃO QUE BUSCA OS DADOS NA PÁGINA HTML
 def data_fetch(*args) -> str | None:
-
-    # Importa a função (snack_show) do módulo (ontrols.components) para exibir mensagens
-    from controls.display.snack_bar import snack_show
-
     # Desempacota os argumentos passados em (*args)
     cpf, month_start, year_start, month_end, year_end, driver = args
 
@@ -236,7 +233,7 @@ def data_fetch(*args) -> str | None:
             # Se ocorrer erro durante o processo de coleta e montagem de dados no DataFrame,
             # exibe mensagem de erro, espera 2 segundos e fecha a mensagem
             except TimeoutException as e_:
-                snack_show(
+                AlertSnackbar.show(
                     message=f'Problemas ao carregar dados para {month}/{year}')
 
                 print(f'Erro ao carregar dados: {e_}')
@@ -267,7 +264,7 @@ def data_fetch(*args) -> str | None:
 
     # Se ocorrerem erros, exibe mensagem
     except Exception as e_:
-        snack_show(
+        AlertSnackbar.show(
             message='Erro ao gerar arquivo!',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED

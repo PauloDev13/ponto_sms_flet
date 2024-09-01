@@ -19,6 +19,9 @@ from models.page_manager import PageManager
 
 def main(page: ft.Page):
 
+    # Definindo a instância de Page no PageManager
+    PageManager.set_page(page)
+
     # Define o nome que será exibido na barra de ferramentas da página
     page.title = 'Ponto SMS'
 
@@ -29,9 +32,6 @@ def main(page: ft.Page):
     # Centralizando o conteúdo da janela
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
-
-    # Definindo a instância de Page no PageManager
-    PageManager.set_page(page)
 
     # Define que o tema da página ser DARK (escuro)
     page.theme_mode = ft.ThemeMode.DARK

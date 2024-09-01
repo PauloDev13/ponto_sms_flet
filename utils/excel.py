@@ -6,6 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 # Importações dos módulos locais
+from models.alert_snackbar import AlertSnackbar
 from utils.format_excel import define_formats, apply_formatting
 from utils.share_model import create_shortcut_to_desktop_folder
 
@@ -21,10 +22,6 @@ if not name_folder:
 # FUNÇÃO LOCAL PARA CRIAR O DIRETÓRIO ONDE SERÃO
 # SALVOS OS ARQUIVOS DO EXCEL QUE SERÃO GERADOS
 def create_folder(name_file: str):
-    # Importa a função (snack_show) do módulo (controls.components) para exibir mensagens
-    from controls.display.snack_bar import snack_show
-    # from utils.share_model import create_shortcut_to_desktop_folder
-
     try:
         # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
         # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
@@ -48,7 +45,7 @@ def create_folder(name_file: str):
         return path_file_excel
 
     except Exception as e:
-        snack_show(
+        AlertSnackbar.show(
             message=f'Erro ao criar o arquivo {name_file}',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED
@@ -63,9 +60,6 @@ def generate_excel_file(
         employee_name: str,
         cpf: str
 ) -> str:
-    # Importa a função (snack_show) do módulo (controls) para exibir mensagens
-    from controls.display.snack_bar import snack_show
-
     # Chama a função local (create_folder) passando o nome do arquivo
     # do Excel e atribui o retorno à variável (path_file_name)
     path_file_name = create_folder(name_file=f'{employee_name} - CPF_{cpf}.xlsx')
@@ -106,7 +100,7 @@ def generate_excel_file(
                 # as formatações nas planilhas do arquivo Excel.
                 apply_formatting(worksheet, df_year, formats)
             except Exception as e:
-                snack_show(
+                AlertSnackbar.show(
                     message='Erro ao gerar a planilha {path_file_name}',
                     icon=ft.icons.ERROR,
                     icon_color=ft.colors.RED

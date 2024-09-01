@@ -4,6 +4,8 @@ from time import sleep, time
 from models.page_manager import PageManager
 
 
+# FUNÇÃO QUE MONTA UM CONTAINER COM OS CONTROLES
+# QUE SERÃO EXIBIDOS JUNTOS COM A BARRA DE PROGRESSO
 def progress_control(
     progress_bar: ft.ProgressBar,
     control_count_down: ft.Control,
@@ -54,8 +56,6 @@ def update_progress(
         message: str | None,
         status: bool,
 ):
-    # Importa função (progress_control) do módulo controls
-    # from controls.components import progress_control
 
     # Atribui à variável (control) a função (progress_control)
     # que retorna um controle com a barra de progresso

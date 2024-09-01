@@ -3,6 +3,8 @@ import flet as ft
 from controls.inputs.input_text import cpf_field, start_date_field, end_date_field
 from services.generate_service import file_generate
 from utils.share_model import button_style, close_app, clear_form, open_folder
+from models.alert_snackbar import AlertSnackbar
+from models.page_manager import PageManager
 
 # Dicionário com os controles do formulário
 dict_controls: dict = {
@@ -11,7 +13,7 @@ dict_controls: dict = {
     'end_date_field': end_date_field
 }
 
-# CONTROLES DE BOTÕES
+# Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
     on_click=lambda _: file_generate(
         cpf_field,
@@ -23,6 +25,7 @@ generate_button = ft.ElevatedButton(
     expand=True,
 )
 
+# Botão para limpar os campos do formulário
 cancel_button = ft.ElevatedButton(
     on_click=lambda _: clear_form(
         **dict_controls
@@ -33,6 +36,7 @@ cancel_button = ft.ElevatedButton(
     expand=True,
 )
 
+# Botão para sair da aplicação
 exit_button = ft.ElevatedButton(
     on_click=close_app,
     col={'md': 4},
@@ -41,6 +45,7 @@ exit_button = ft.ElevatedButton(
     expand=True
 )
 
+# Botão para abrir a pasta de arquivos
 open_folder_button = ft.ElevatedButton(
     on_click=open_folder,
     col={'md': 4},

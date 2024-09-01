@@ -18,7 +18,7 @@ def yes_click(_):
     PageManager.get_page().window.destroy()
 
 
-# FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
+# FUNÇÃO PARA O CLICK NO BOTÃO 'NÃO' DA CAIXA DE DIÁLOGO
 def no_click(_):
     # Fecha a caixa de diálogo e atribui o foco para o campo CPF
     PageManager.get_page().close(confirm_dialog)
