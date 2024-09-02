@@ -6,7 +6,7 @@ from utils.share_model import button_style
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
-def yes_click(_):
+def yes_click(e):
     # pega a instância do navegador na sessão do Flet
     driver = PageManager.get_page().session.get('driver')
 
@@ -19,7 +19,7 @@ def yes_click(_):
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'NÃO' DA CAIXA DE DIÁLOGO
-def no_click(_):
+def no_click(e):
     # Fecha a caixa de diálogo e atribui o foco para o campo CPF
     PageManager.get_page().close(confirm_dialog)
 
@@ -73,12 +73,12 @@ confirm_dialog = ft.AlertDialog(
     actions=[
         ft.ElevatedButton(
             content=ft.Text(value='SIM', size=12),
-            on_click=lambda _: yes_click(_),
+            on_click=lambda e: yes_click(e),
             style=button_style('OK')
         ),
         ft.ElevatedButton(
             content=ft.Text(value='NÃO', size=12),
-            on_click=lambda _: no_click(_),
+            on_click=lambda e: no_click(e),
             style=button_style()
         ),
     ],

@@ -24,20 +24,13 @@ def progress_control(
             if message else control_count_down,
         ]
     )
-    # Cria uma coluna que recebe a barra de progresso e
-    # atribui à variável (content_progress_bar)
-    content_progress_bar = ft.Column(
-        controls=[
-            progress_bar,
-        ]
-    )
     # Cria uma coluna que recebe o (content_row) com o ícone
-    # e a mensagem, o (content_progress_bar) com a barra de
+    # e a mensagem, a (progress_bar) com a barra de
     # progresso e atribui à variável (content)
     content = ft.Column(
         controls=[
             content_row,
-            content_progress_bar,
+            progress_bar
         ]
     )
     # Retorna um (Container) com o conteúdo (content)

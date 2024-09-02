@@ -15,7 +15,9 @@ class AlertSnackbar:
             text_color='#abb2bf',
             height_container=50
     ):
+        # Atribui à variável (page) uma instância da página da classe (PageManager)
         page = PageManager.get_page()
+
         # Define o conteúdo que será exibido no container
         content = [
             ft.Icon(name=icon, color=icon_color),
@@ -60,20 +62,43 @@ class AlertSnackbar:
         page.overlay.append(snackbar)
         page.update()
 
-        # Usa um loop para exibir o container com o efeito fade in
-        for opacity in range(0, 101, 10):
-            snackbar.opacity = opacity / 100
-            page.update()
-            sleep(0.05)
+        # Aplica fade in
+        cls.fade_effect(
+            container=snackbar,
+            page=page,
+            start_opacity=0,
+            end_opacity=101,
+            step=10
+        )
 
         # Espera 2 segundos
         sleep(2)
 
-        # Usa um loop para  o container com o efeito fade in
-        for opacity in range(100, 0, -10):
-            snackbar.opacity = opacity / 100
-            page.update()
-            sleep(0.05)
+        # Aplica fade out
+        cls.fade_effect(
+            container=snackbar,
+            page=page,
+            start_opacity=100,
+            end_opacity=0,
+            step=-10
+        )
 
         page.overlay.remove(snackbar)
         page.update()
+
+    # FUNÇÃO QUE APLICA EFEITO FADE
+    @classmethod
+    def fade_effect(
+            cls,
+            container: ft.Row,
+            page: ft.Page,
+            start_opacity: int,
+            end_opacity: int,
+            step: int
+    ):
+        # Usa um loop aplicando o efeito fade. Dependendo dos valores passados
+        #  nos parâmetros, o efeito pode ser (fade in) ou (fade out)
+        for opacity in range(start_opacity, end_opacity, step):
+            container.opacity = opacity / 100
+            page.update()
+            sleep(0.05)
