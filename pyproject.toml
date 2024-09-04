@@ -21,6 +21,7 @@ cx-freeze = "^7.2.0"
 winshell = "^0.6"
 pywin32 = "^306"
 pyinstaller-hooks-contrib = "^2024.8"
+pypdf2 = "^3.0.1"
 
 
 [build-system]

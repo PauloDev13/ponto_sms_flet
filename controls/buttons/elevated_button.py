@@ -1,21 +1,22 @@
 import flet as ft
 
 from controls.inputs.input_text import cpf_field, start_date_field, end_date_field
+from controls.inputs.checkboxs import checkbox_pdf_field, checkbox_excel_field
 from services.generate_service import file_generate
 from utils.share_model import button_style, close_app, clear_form, open_folder
-from models.alert_snackbar import AlertSnackbar
-from models.page_manager import PageManager
 
 # Dicionário com os controles do formulário
 dict_controls: dict = {
     'cpf_field': cpf_field,
     'start_date_field': start_date_field,
-    'end_date_field': end_date_field
+    'end_date_field': end_date_field,
 }
 
 # Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
     on_click=lambda _: file_generate(
+        checkbox_excel_field,
+        checkbox_pdf_field,
         cpf_field,
         start_date_field,
         end_date_field,

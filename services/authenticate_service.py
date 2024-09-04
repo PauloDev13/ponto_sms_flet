@@ -33,6 +33,9 @@ countdown_text = ft.Text(value='')
 def login():
     # Configuração do WebDriver que retorna uma instância do navegador Chrome
     options = webdriver.ChromeOptions()
+    options.add_argument('--print-to-pdf')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--no-sandbox')
     # options.add_argument("--headless=new")
     driver = webdriver.Chrome(options=options)
 

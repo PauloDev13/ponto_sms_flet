@@ -13,6 +13,9 @@ from controls.inputs.input_text import (
     start_date_field,
     end_date_field,
 )
+
+from controls.inputs.checkboxs import checkbox_excel_field, checkbox_pdf_field
+
 from utils.share_model import window_event, on_key_enter_event
 from models.page_manager import PageManager
 
@@ -80,6 +83,13 @@ def main(page: ft.Page):
                                 end_date_field
                             ]),
                             margin=ft.margin.only(top=20)
+                        ),
+                        ft.Container(
+                            ft.Row([
+                                checkbox_excel_field,
+                                checkbox_pdf_field,
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                            ),
                         ),
                         ft.ResponsiveRow([
                                 generate_button,

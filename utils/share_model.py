@@ -228,7 +228,7 @@ def control_count_down(total_time: float, control: ft.Control, status: bool):
 
 # FUNÇÃO QUE EXIBE A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE
 # SCRAPING (LEITURA DOS DADOS) NO HTML
-def data_progress_bar():
+def data_progress_bar(message: str):
     # Importa a função (progress_control) do módulo controls
     from controls.display.progress_bar import progress_control
 
@@ -244,7 +244,7 @@ def data_progress_bar():
         container = progress_control(
             progress_bar=progress_bar,
             control_count_down= ft.Text(value=''),
-            message='Gerando planilhas. AGUARDE...',
+            message=message,
         )
 
         # Exibe a barra de progresso e atualiza a página

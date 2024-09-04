@@ -7,3 +7,5 @@ beautifulsoup4~=4.12.3
 selenium~=4.23.1
 cx_Freeze~=7.2.0
 pyinstaller~=6.10.0
+winshell~=0.6
+PyPDF2~=3.0.1
