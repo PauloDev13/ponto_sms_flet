@@ -80,7 +80,7 @@ def login():
 
         # Chama a função (start_login) do (shared_module) que exibe uma barra de
         # progresso que espera (30 segundos) para que o captcha, se aparecer, seja resolvido.
-        login_progess_bar(total_time=30)
+        login_progress_bar(total_time=30)
 
         # Minimiza a janela do navegador
         driver.minimize_window()

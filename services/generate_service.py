@@ -3,8 +3,8 @@ from datetime import datetime
 import flet as ft
 
 # Importações dos módulos locais
-from models.page_manager import PageManager
 from models.alert_snackbar import AlertSnackbar
+from models.page_manager import PageManager
 from services.authenticate_service import login
 from services.create_pdf_service import generate_pdf
 from utils.extractor_data import data_fetch
@@ -98,16 +98,6 @@ def file_generate(*args):
                 data_dict['driver'] = driver
 
                 create_pdf_and_excel_files(**data_dict)
-
-                # Chama a função local (get_data) passando o dicionário como argumento.
-                # Se não houver erros, a função retorna o caminho completo onde o arquivo
-                # do Excel foi criado e atribui o resultado à variável (path_file)
-                # path_file = get_data(**data_dict)
-
-                # Chama a função (open_file_excel) passando como argumento o
-                # caminho do arquivo Excel. Essa função abre o arquivo com o
-                #  programa padrão para arquivos .xlsx configurado no Windows
-                # open_file_excel(path_file)
 
         # Se já existir uma instância do navegador (driver) na sessão
         # do Flet, repete o mesmo processo realizado na instrução IF anterior

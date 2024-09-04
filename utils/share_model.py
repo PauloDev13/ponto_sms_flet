@@ -90,6 +90,7 @@ def open_folder(_):
                 icon_color=ft.colors.ERROR
             )
 
+
 # FUNÇÃO QUE CRIA UM ATALHO NA ÁREA DE TRABALHO PARA
 # A PASTA ONDE OS ARQUIVOS DO EXCEL SÃO SALVOS
 def create_shortcut_to_desktop_folder(folder_path):
@@ -177,7 +178,7 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
 
 
 # FUNÇÃO QUE CONTROLA A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE LOGIN
-def login_progess_bar(
+def login_progress_bar(
         total_time: float = 0,
         message: str | None = None,
 ):
@@ -202,7 +203,7 @@ def login_progess_bar(
         control_count_down(
             total_time=total_time,
             control=countdown_text,
-            status=status,
+            status=status[0],
         )
 
 

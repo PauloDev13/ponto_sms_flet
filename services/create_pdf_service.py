@@ -1,18 +1,13 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from PyPDF2 import PdfReader, PdfMerger
-from time import sleep
-from dotenv import load_dotenv
+import base64
 import datetime
 import os
-import base64
 from io import BytesIO
-import flet as ft
 
-from models.alert_snackbar import AlertSnackbar
+from PyPDF2 import PdfReader, PdfMerger
+from dotenv import load_dotenv
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -57,7 +52,7 @@ def generate_pdf(*args):
             driver.get(url_search)
 
             # Verifica se o elemento HTML contém a tag 'span/font[1]'
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 5).until(
                 ec.presence_of_element_located(
                     (By.XPATH, "/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/font[1]")
                 )
