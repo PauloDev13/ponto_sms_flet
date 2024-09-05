@@ -14,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
-from utils.share_model import login_progess_bar
+from utils.share_model import login_progress_bar
 
 # Carrega o arquivo .env
 load_dotenv()

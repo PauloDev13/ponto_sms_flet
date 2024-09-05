@@ -70,6 +70,9 @@ def data_fetch(*args) -> str | None:
                 employee_name = driver.find_element(
                     By.XPATH, "/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/font[1]"
                 ).text
+
+                # ENTRA A FUNÇÃO QUE GERA O ARQUIVO PDF, CASO PRECISE
+
                 # Verifica se o elemento HTML contém uma tag table
                 table = WebDriverWait(driver, 10).until(
                     ec.presence_of_element_located((By.XPATH, "//*[@id='mesatual']/table"))

@@ -29,8 +29,8 @@ def main(page: ft.Page):
     page.title = 'Ponto SMS'
 
     # Definindo o tamanho da janela
-    page.window.width = 800
-    page.window.height = 600
+    page.window.width = 850
+    page.window.height = 650
 
     # Centralizando o conteúdo da janela
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER

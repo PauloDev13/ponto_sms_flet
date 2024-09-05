@@ -186,7 +186,7 @@ def login_progress_bar(
     progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
     countdown_text = ft.Text(value='', color='#abb2bf', size=20)
 
-    # Cria um array booleano co o valor False no seu
+    # Cria um array booleano com o valor False no seu
     # índice [0] e atribui à variável (status)
     status = [False]
 
@@ -203,7 +203,7 @@ def login_progress_bar(
         control_count_down(
             total_time=total_time,
             control=countdown_text,
-            status=status[0],
+            status=status,
         )
 
 
