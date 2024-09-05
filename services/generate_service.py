@@ -15,28 +15,30 @@ from utils.share_model import (
 
 
 # FUNÇÃO QUE CHAMA O INÍCIO DO SCRAPING NA PÁGINA DO PONTO PARA BUSCAR OS DADOS
-def file_generate(*args):
+def file_generate(dict_search_data: dict):
+    # Importa as funções (validate_cpf, validate_dates) do módulo (utils.validators)
+    from utils.validators import (
+        validate_cpf, validate_dates, validate_type_file
+    )
+
     # Atribui à variável (page) uma instância da página
     page = PageManager.get_page()
 
-    # Importa as funções (validate_cpf, validate_dates) do módulo (utils.validators)
-    from utils.validators import (
-        validate_cpf, validate_dates
-    )
-
-    # Desempacota os argumentos enviados através do argumento (*args)
-    (checkbox_excel_field,
-     checkbox_pdf_field,
-     cpf_field,
-     start_date_field,
-     end_date_field
-     ) = args
+    # Desempacota os argumentos enviados através do dicionário (dict_search_data)
+    (
+        cpf_field,
+        start_date_field,
+        end_date_field,
+        checkbox_excel_field,
+        checkbox_pdf_field,
+    ) = dict_search_data.values()
 
     # Valida o CPF e atribui o resulta (booleano) à variável (cpf_is_valid)
     cpf_is_valid = validate_cpf(cpf_field)
 
     # Declara a variável local (dates_is_valid) com valor inicial False
     dates_is_valid: bool = False
+    type_file_valid: bool = False
 
     # Se o CPF for válido
     if cpf_is_valid:
@@ -46,9 +48,14 @@ def file_generate(*args):
             start_date_field,
             end_date_field
         )
+        type_file_valid = validate_type_file(
+            page=page,
+            excel_field=checkbox_excel_field,
+            pdf_field=checkbox_pdf_field
+        )
 
     # Se as datas e o CPF forem válidas, pega os valores das datas inicial e final
-    if cpf_is_valid and dates_is_valid:
+    if cpf_is_valid and dates_is_valid and type_file_valid:
         #  Usa a função (format_cpf) para formatar o CPF aplicando a máscara (###.###.###-##)
         cpf = format_cpf(cpf_field)
 
@@ -73,25 +80,19 @@ def file_generate(*args):
         driver = PageManager.get_page().session.get('driver')
 
         # Atribui à variável (data_dict), um dicionário, chaves e valores
-        # data_dict: dict = {
-        #     'cpf': cpf,
-        #     'month_start': month_start,
-        #     'year_start': year_start,
-        #     'month_end': month_end,
-        #     'year_end': year_end,
-        #     'driver': driver,
-        #     'cpf_field': cpf_field,
-        #     'start_date_field': start_date_field,
-        #     'end_date_field': end_date_field,
-        #     'checkbox_excel': checkbox_excel_field,
-        #     'checkbox_pdf': checkbox_pdf_field,
-        # }
-
-        data_tuple: tuple = (
-            cpf, month_start, year_start, month_end,
-            year_end, cpf_field, start_date_field,
-            end_date_field, checkbox_excel_field, checkbox_pdf_field
-        )
+        data_dict: dict = {
+            'cpf': cpf,
+            'month_start': month_start,
+            'year_start': year_start,
+            'month_end': month_end,
+            'year_end': year_end,
+            'cpf_field': cpf_field,
+            'start_date_field': start_date_field,
+            'end_date_field': end_date_field,
+            'checkbox_excel_field': checkbox_excel_field,
+            'checkbox_pdf_field': checkbox_pdf_field,
+            'driver': driver,
+        }
 
         # Verifica se existe o argumento driver na sessão do Flet.
         # Se não existir, chama a função 'login()' do módulo 'authenticate'
@@ -102,22 +103,82 @@ def file_generate(*args):
                 page.session.set('driver', driver)
 
                 # Seta o valor do driver no dicionário (data_dict)
-                # data_dict['driver'] = driver
-                data_tuple = data_tuple + (driver,)
+                data_dict['driver'] = driver
 
-                # Chama a função (create_pdf_and_excel_files) que vai
-                # criar os arquivos com a planilha Excel e o PDF
-                # create_pdf_and_excel_files(**data_dict)
-
-                search_data(*data_tuple)
+                show_progress_bar(
+                    checkbox_excel_field.value,
+                    checkbox_pdf_field.value,
+                    data_dict
+                )
 
         # Se já existir uma instância do navegador (driver) na sessão
         # do Flet, repete o mesmo processo realizado na instrução IF anterior
         else:
-            # data_dict['driver'] = driver
-            # create_pdf_and_excel_files(**data_dict)
-            data_tuple = data_tuple + (driver,)
-            search_data(*data_tuple)
+            data_dict['driver'] = driver
+
+            show_progress_bar(
+                checkbox_excel_field.value,
+                checkbox_pdf_field.value,
+                data_dict
+            )
+
+
+def show_progress_bar(file_excel: bool, file_pdf: bool, data_dict: dict):
+    from services.create_pdf_service import array_pdf_files
+
+    # Cria um dicionário com parte dos dados do dicionário (data_dict)
+    dict_clear_form = {
+        k: v for k, v in data_dict.items() if k in [
+            'cpf_field', 'start_date_field', 'end_date_field'
+        ]
+    }
+
+    # Atribui a variável (page) uma instância da página
+    page = PageManager.get_page()
+
+    if file_excel and not file_pdf:
+        data_progress_bar('Criando planilhas. AGUARDE...')
+
+    if file_pdf and not file_excel:
+        data_progress_bar('Criando arquivo PDF. AGUARDE...')
+
+    if file_excel and file_pdf:
+        data_progress_bar('Criando planilha e arquivo PDF. AGUARDE...')
+
+    result = search_data(dict_search_data=data_dict)
+
+    if result:
+        page.overlay.pop()
+        page.update()
+
+        TODO: 'VER ESSE CÓDIGO'
+        array_pdf_files.clear()
+
+    if file_excel and not file_pdf:
+        # Se não houver erros no processamento, exibe mensagem de sucesso
+        AlertSnackbar.show(
+            message='Planilhas criadas com sucesso!',
+            icon=ft.icons.CHECK_CIRCLE_SHARP,
+            icon_color=ft.colors.GREEN
+        )
+
+    if file_pdf and not file_excel:
+        # Se não houver erros no processamento, exibe mensagem de sucesso
+        AlertSnackbar.show(
+            message='Arquivo PDF criado com sucesso!',
+            icon=ft.icons.CHECK_CIRCLE_SHARP,
+            icon_color=ft.colors.GREEN
+        )
+
+    if file_excel and file_pdf:
+        # Se não houver erros no processamento, exibe mensagem de sucesso
+        AlertSnackbar.show(
+            message='Planilhas e arquivo PDF criados com sucesso!',
+            icon=ft.icons.CHECK_CIRCLE_SHARP,
+            icon_color=ft.colors.GREEN
+        )
+
+    clear_form(dict_controls_fields=dict_clear_form)
 
 
 # FUNÇÃO QUE CRIA OS ARQUIVOS EXCEL E PDF
@@ -228,7 +289,7 @@ def get_data_excel(dict_data: dict, dict_clear: dict):
 
     # Chama a função (data_fetch) que busca os dados passando a tupla (tuple_data_fetch)
     #  como argumento e atribui o retorno (str ou None) à variável result
-    result = data_fetch(*tuple_data_fetch)
+    result = data_fetch(tuple_data_fetch)
 
     # Se result for diferente de None..
     if result:

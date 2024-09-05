@@ -22,22 +22,15 @@ if not name_folder:
 
 
 # FUNÇÃO QUE LIMPA OS CONTROLES DO FORMULÁRIO
-def clear_form(**kwargs) -> None:
-    # Desestrutura o argumento (**kwargs) e atribui o resultado
-    # à variável (dict_controls) dicionário
-    dict_controls: dict = {
-        k: v for k, v in kwargs.items() if k in [
-            'cpf_field', 'start_date_field', 'end_date_field',
-        ]
-    }
+def clear_form(dict_controls_fields: dict) -> None:
     # Loop que limpa e atualiza todos os controles do formulário
-    for key in dict_controls:
-        if isinstance(dict_controls[key], ft.Control):
-            dict_controls[key].value = ''
-            dict_controls[key].update()
+    for key in dict_controls_fields:
+        if isinstance(dict_controls_fields[key], ft.Control):
+            dict_controls_fields[key].value = ''
+            dict_controls_fields[key].update()
 
     # Seta o focus para o controle CPF no formulário
-    dict_controls['cpf_field'].focus()
+    dict_controls_fields.get('cpf_field').focus()
 
 
 # FUNÇÃO QUE CAPTURA O EVENTO DISPARADO QUANDO A JANELA DA APLICAÇÃO É FECHADA
@@ -230,6 +223,8 @@ def control_count_down(total_time: float, control: ft.Control, status: bool):
 # FUNÇÃO QUE EXIBE A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE
 # SCRAPING (LEITURA DOS DADOS) NO HTML
 def data_progress_bar(message: str):
+    # Define a variável container como vazia
+    container = ft.Container()
     # Importa a função (progress_control) do módulo controls
     from controls.display.progress_bar import progress_control
 

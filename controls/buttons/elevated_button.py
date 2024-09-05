@@ -12,14 +12,18 @@ dict_controls: dict = {
     'end_date_field': end_date_field,
 }
 
+dict_search_data: dict = {
+    'cpf_field': cpf_field,
+    'start_date_field': start_date_field,
+    'end_date_field': end_date_field,
+    'checkbox_excel_field': checkbox_excel_field,
+    'checkbox_pdf_field': checkbox_pdf_field,
+}
+
 # Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
     on_click=lambda _: file_generate(
-        checkbox_excel_field,
-        checkbox_pdf_field,
-        cpf_field,
-        start_date_field,
-        end_date_field,
+        dict_search_data=dict_search_data
     ),
     text='GERAR AQUIVO',
     style=button_style('OK'),

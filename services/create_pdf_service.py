@@ -5,6 +5,7 @@ from io import BytesIO
 
 from PyPDF2 import PdfReader, PdfMerger
 from dotenv import load_dotenv
+from selenium.webdriver.chrome import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
@@ -27,82 +28,29 @@ if not url_data and not name_folder:
 # Define a variável que vai receber o array de arquivos PDF
 array_pdf_files = []
 
+TODO: 'MUDAR ESSE CÓDIGO'
+
 
 # FUNÇÃO QUE GERA O ARQUIVO PDF
-def generate_pdf(*args):
-    # Define a variável (name) que vai receber o nome do funcionário
-    name: str = ''
-
+def generate_pdf(cpf: str, name: str, url_search: str, driver: webdriver):
     # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
     # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
     folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+    # Chama a função (save_pdf) passando a url e a instância do navegador
+    save_pdf(url_search=url_search, driver=driver)
 
-    # Desempacota os argumentos passados em (*args)
-    cpf, month_start, year_start, month_end, year_end, driver = args
+    # Atribui a variável (output_pdf_path) o caminho e o nome do arquivo PDF que será criado
+    output_pdf_path = os.path.join(folder_path, f'{name} - CPF_{cpf}.pdf')
 
-    try:
-        # Atribui variáveis para receber o conjunto de dados (dicionário)
-        # e as datas do intervalo a ser pesquisado
-        current_date = datetime.date(year_start, month_start, 1)
-        end_date = datetime.date(year_end, month_end, 1)
-
-        # Enquanto a data inicial for menor que a data final
-        while current_date <= end_date:
-            # Extrai o mês e o ano da data inicial
-            month = current_date.month
-            year = current_date.year
-
-            # Atribui a variável (url_search) a URL com os query params
-            # da pesquisa e abre no navegador com a url
-            url_search = f'{url_data}?cpf={cpf}&mes={month}&ano={year}'
-            driver.get(url_search)
-
-            # Verifica se o elemento HTML contém a tag 'span/font[1]'
-            WebDriverWait(driver, 5).until(
-                ec.presence_of_element_located(
-                    (By.XPATH, "/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/font[1]")
-                )
-            )
-            # Procura e atribui a variável (name) o conteúdo da tag
-            # (span/font[1]) que tem no mome do funcionário
-            name = driver.find_element(
-                By.XPATH, "/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/font[1]"
-            ).text
-
-            # Chama a função (save_pdf) passando a url e a instância do navegador
-            save_pdf(url_=url_search, driver=driver)
-
-            # Incrementa em um mês a data inicial
-            current_date += datetime.timedelta(days=32)
-
-            # Modifica o dia da data inicial para o primeiro dia do mês
-            current_date = current_date.replace(day=1)
-
-        # ------------ FIM DO LAÇO WHILE -------------
-
-        # Atribui a variável (output_pdf_path) o caminho e
-        # o nome do arquivo PDF que será criado
-        output_pdf_path = os.path.join(folder_path, f'{name} - CPF_{cpf}.pdf')
-        # Chama a função () passando como argumento o array com os
-        # bytes dos arquivos gerados a cadas mês e ano e o caminho
-        combine_pdfs(array_pdf_files, output_pdf_path)
-
-        # Retorna verdadeiro se não houver erros
-        return True
-
-    except Exception as e:
-        # Exibe mensagens de erros na janela e no console
-        AlertSnackbar.show('Ocorreu um erro ao gerar o arquivo PDF.')
-        print('Erro ao gerar a pdf.', e)
-
-        # Retorna falso se ocorrer erros
-        return False
+    # Chama a função () passando como argumento o array com os
+    # bytes dos arquivos gerados a cadas mês e ano e o caminho
+    combine_pdfs(array_pdf_files, output_pdf_path)
 
 
 # FUNÇÃO QUE SALVA O ARQUIVO PDF
-def save_pdf(url_, driver):
+def save_pdf(url_search, driver):
     # Navega para a URL
-    driver.get(url_)
+    driver.get(url_search)
 
     # Captura o PDF da página e formata a saída como página paisagem
     result = driver.execute_cdp_cmd('Page.printToPDF', {
@@ -114,7 +62,7 @@ def save_pdf(url_, driver):
         'marginLeft': 0.5,  # Margem esquerda
         'marginRight': 0.5,  # Margem direita
         'printBackground': False,  # Imprimir fundos e imagens
-        'scale': 0.9,  # Ajusta a escala do conteúdo para caber na página
+        'scale': 0.8,  # Ajusta a escala do conteúdo para caber na página
         'displayHeaderFooter': True,  # Exibir cabeçalho e rodapé
         'headerTemplate': '<span style="font-size: 10px;">Título da Página: <span class="title"></span></span>',
         # Exibe o título da página no cabeçalho
@@ -147,3 +95,4 @@ def combine_pdfs(pdf_bytes_list, output_path):
     # Salva o arquivo PDF único
     with open(output_path, 'wb') as output_pdf:
         pdf_merge.write(output_pdf)
+

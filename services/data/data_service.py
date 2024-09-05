@@ -17,6 +17,7 @@ from selenium.common.exceptions import TimeoutException
 from models.alert_snackbar import AlertSnackbar
 from utils.excel import generate_excel_file
 from services.data.dataframe_service import create_dataframe
+from services.create_pdf_service import generate_pdf
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -31,16 +32,34 @@ if not url_data:
     raise ValueError('O parâmetro (URL_DATA) não está definido no .env')
 
 
-def search_data(*args):
+def search_data(dict_search_data: dict):
     # Define a variável que vai receber o nome do funcionário pesquisado
     employee_name: str = ''
 
-    # Desempacota os argumentos passados em (*args)
-    checkbox_excel_field, cpf, month_start, year_start, month_end, year_end, driver = args
-    # (cpf, month_start, year_start, month_end,
-    #  year_end, cpf_field, start_date_field, driver,
-    #  end_date_field, checkbox_excel_field, checkbox_pdf_field) = args
+    dict_fields: dict = {
+        k: v for k, v in dict_search_data.items() if k in [
+            'checkbox_excel_field',
+            'checkbox_pdf_field',
+        ]
+    }
 
+    checkbox_excel_field, checkbox_pdf_field = dict_fields.values()
+
+    dict_values: dict = {
+        k: v for k, v in dict_search_data.items() if k in [
+            'cpf',
+            'month_start',
+            'year_start',
+            'month_end',
+            'year_end',
+            'driver'
+        ]
+    }
+
+    cpf, month_start, year_start, month_end, year_end, driver = dict_values.values()
+
+    print('EXCEL', checkbox_excel_field.value)
+    print('PDF', checkbox_pdf_field.value)
 
     try:
         # Atribui variáveis para receber o conjunto de dados (dicionário)
@@ -77,8 +96,6 @@ def search_data(*args):
                     By.XPATH, "/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/font[1]"
                 ).text
 
-                TODO: 'ENTRA O CÓDIGO PARA MONTAR O ARRAY QUE VAI GERAR O ARQUIVO PDF'
-
                 # Verifica se o elemento HTML contém uma tag table
                 table = WebDriverWait(driver, 10).until(
                     ec.presence_of_element_located((By.XPATH, "//*[@id='mesatual']/table"))
@@ -92,16 +109,43 @@ def search_data(*args):
                 # da primeira table encontrada no HTML
                 df_table = pd.read_html(StringIO(str(soup_table)))[0]
 
-                # TODO: 'ENTRA O CÓDIGO PARA MONTAR O DATA FRAME QUE VAI GERAR O ARQUIVO EXCEL'
-                # if checkbox_excel_field:
-                #     create_dataframe(
-                #         df_table=df_table,
-                #         data_by_year=data_by_year,
-                #         employee_name=employee_name,
-                #         month_name=month_name,
-                #         year=year,
-                #         cpf=cpf,
-                #     )
+                if checkbox_excel_field.value and checkbox_pdf_field.value:
+                    print('ENTROU EM GERAR EXCEL')
+                    create_dataframe(
+                        df_table=df_table,
+                        data_by_year=data_by_year,
+                        employee_name=employee_name,
+                        month_name=month_name,
+                        year=year,
+                        cpf=cpf,
+                    )
+                    print('ENTROU EM GERAR PDF')
+                    generate_pdf(
+                        cpf=cpf,
+                        name=employee_name,
+                        url_search=url_search,
+                        driver=driver,
+                    )
+
+                if checkbox_excel_field.value and not checkbox_pdf_field.value:
+                    print('ENTROU EM GERAR EXCEL')
+                    create_dataframe(
+                        df_table=df_table,
+                        data_by_year=data_by_year,
+                        employee_name=employee_name,
+                        month_name=month_name,
+                        year=year,
+                        cpf=cpf,
+                    )
+
+                if checkbox_pdf_field.value and not checkbox_excel_field.value:
+                    print('ENTROU EM GERAR PDF')
+                    generate_pdf(
+                        cpf=cpf,
+                        name=employee_name,
+                        url_search=url_search,
+                        driver=driver,
+                    )
 
             # Se ocorrer erro durante o processo de coleta e montagem de dados no DataFrame,
             # exibe mensagem de erro, espera 2 segundos e fecha a mensagem
@@ -119,15 +163,20 @@ def search_data(*args):
 
         # ------------ FIM DO LAÇO WHILE -------------
 
-        # Chama a função que cria e salva o arquivo Excel
-        # atribuindo seu resultado à variável (path_file_name)
-        path_file_name = generate_excel_file(
-            data_dic=data_by_year,
-            employee_name=employee_name,
-            cpf=cpf
-        )
+        # Define a variável (path_file_name) com o valor vazio
+        path_file_name: str = ''
 
-        return path_file_name
+        if checkbox_excel_field.value:
+            # Chama a função que cria e salva o arquivo Excel
+            # atribuindo seu resultado à variável (path_file_name)
+            path_file_name = generate_excel_file(
+                data_dic=data_by_year,
+                employee_name=employee_name,
+                cpf=cpf
+            )
+
+        return path_file_name, True
+        # return ''
 
     # Se ocorrerem erros, exibe mensagem
     except Exception as e_:
