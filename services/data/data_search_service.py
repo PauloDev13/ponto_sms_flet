@@ -15,9 +15,9 @@ from selenium.common.exceptions import TimeoutException
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
-from utils.excel import generate_excel_file
-from services.data.dataframe_service import create_dataframe
-from services.create_pdf_service import generate_pdf
+from utils.generate_excel_file import generate_excel_file
+from services.data.generate_df_service import generate_dataframe
+from services.data.generate_pdf_service import save_pdf, combine_pdfs
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -28,14 +28,22 @@ locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 # Ler a URL base que vai montar a busca dos dados
 url_data = os.getenv('URL_DATA')
 
-if not url_data:
-    raise ValueError('O parâmetro (URL_DATA) não está definido no .env')
+# Busca no arquivo (.env) o valor ('NAME_FOLDER') e atribui à variável (name_folder)
+name_folder = os.getenv('NAME_FOLDER')
+
+if not url_data and not name_folder:
+    raise ValueError('O parâmetro (URL_DATA e/ou NAME_FOLDER) não está definido no .env')
 
 
+# FUNÇÃO QUE INICIA O SCRAPING DA PÁGINA HTML E CHAMA
+# AS FUNÇÕES QUE CRIAM OS ARQUIVOS PDF E EXCEL
 def search_data(dict_search_data: dict):
     # Define a variável que vai receber o nome do funcionário pesquisado
     employee_name: str = ''
+    pdf_byte_list: []
 
+    # Cria o dicionário (dict_fields) com parte dos dados
+    # enviados como argumento no dicionário (dict_search_data)
     dict_fields: dict = {
         k: v for k, v in dict_search_data.items() if k in [
             'checkbox_excel_field',
@@ -43,8 +51,11 @@ def search_data(dict_search_data: dict):
         ]
     }
 
+    # Desempacota os controles (checkbox) armazenados no dicionário (dict_fields)
     checkbox_excel_field, checkbox_pdf_field = dict_fields.values()
 
+    # Cria o dicionário (dict_values) com parte dos dados
+    # enviados como argumento no dicionário (dict_search_data)
     dict_values: dict = {
         k: v for k, v in dict_search_data.items() if k in [
             'cpf',
@@ -56,10 +67,8 @@ def search_data(dict_search_data: dict):
         ]
     }
 
+    # Desempacota os valores armazenados no dicionário (dict_values)
     cpf, month_start, year_start, month_end, year_end, driver = dict_values.values()
-
-    print('EXCEL', checkbox_excel_field.value)
-    print('PDF', checkbox_pdf_field.value)
 
     try:
         # Atribui variáveis para receber o conjunto de dados (dicionário)
@@ -76,11 +85,11 @@ def search_data(dict_search_data: dict):
             year = current_date.year
 
             # Usa a biblioteca 'calendar' para extrair o nome do mês e
-            # a biblioteca 'locale' para tradução em português
+            # a biblioteca 'locale' para tradução do nome para português
             month_name = calendar.month_name[month].upper()
 
-            # Monta e atribui a variável 'table' a URL com os query params
-            # da pesquisa e abre no navegador
+            # Monta e atribui a variável (url_search) a URL com
+            # os query params da pesquisa e abre no navegador
             url_search = f'{url_data}?cpf={cpf}&mes={month}&ano={year}'
             driver.get(url_search)
 
@@ -109,9 +118,10 @@ def search_data(dict_search_data: dict):
                 # da primeira table encontrada no HTML
                 df_table = pd.read_html(StringIO(str(soup_table)))[0]
 
+                # Se as opções (gerar planilha) e (gerar arquivo PDF) estão MARCADAS
                 if checkbox_excel_field.value and checkbox_pdf_field.value:
-                    print('ENTROU EM GERAR EXCEL')
-                    create_dataframe(
+                    # Chama a função que monta o Dataframe que vai gerar o arquivo Excel
+                    generate_dataframe(
                         df_table=df_table,
                         data_by_year=data_by_year,
                         employee_name=employee_name,
@@ -119,17 +129,18 @@ def search_data(dict_search_data: dict):
                         year=year,
                         cpf=cpf,
                     )
-                    print('ENTROU EM GERAR PDF')
-                    generate_pdf(
-                        cpf=cpf,
-                        name=employee_name,
+
+                    # Chama a função que monta a estrutura do arquivo PDF
+                    pdf_byte_list = save_pdf(
                         url_search=url_search,
                         driver=driver,
                     )
 
+                # Se a opção (gerar planilha) está MARCADA
+                # e (gerar arquivo PDF) está DESMARCADA
                 if checkbox_excel_field.value and not checkbox_pdf_field.value:
-                    print('ENTROU EM GERAR EXCEL')
-                    create_dataframe(
+                    # Chama a função que monta o Dataframe que vai gerar o arquivo Excel
+                    generate_dataframe(
                         df_table=df_table,
                         data_by_year=data_by_year,
                         employee_name=employee_name,
@@ -138,11 +149,11 @@ def search_data(dict_search_data: dict):
                         cpf=cpf,
                     )
 
+                # Se a opção (gerar arquivo PDF) está MARCADA
+                #  e (gerar planilha) está DEMARCADA
                 if checkbox_pdf_field.value and not checkbox_excel_field.value:
-                    print('ENTROU EM GERAR PDF')
-                    generate_pdf(
-                        cpf=cpf,
-                        name=employee_name,
+                    # Chama a função que monta a estrutura do arquivo PDF
+                    pdf_byte_list = save_pdf(
                         url_search=url_search,
                         driver=driver,
                     )
@@ -166,17 +177,28 @@ def search_data(dict_search_data: dict):
         # Define a variável (path_file_name) com o valor vazio
         path_file_name: str = ''
 
+        # Se a (checkbox) gerar planilhas está MARCADA
         if checkbox_excel_field.value:
-            # Chama a função que cria e salva o arquivo Excel
-            # atribuindo seu resultado à variável (path_file_name)
-            path_file_name = generate_excel_file(
+            # Chama a função que cria o arquivo Excel (planilhas)
+            # atribuindo ao seu retorno à variável (path_file_name)
+            generate_excel_file(
                 data_dic=data_by_year,
                 employee_name=employee_name,
                 cpf=cpf
             )
 
-        return path_file_name, True
-        # return ''
+        if checkbox_pdf_field.value:
+            # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
+            # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
+            folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+
+            # Atribui a variável (output_pdf_path) o caminho e o nome do arquivo PDF que será criado
+            output_pdf_path = os.path.join(folder_path, f'{employee_name} - CPF_{cpf}.pdf')
+
+            combine_pdfs(pdf_bytes_list=pdf_byte_list, output_path=output_pdf_path)
+
+        # Retorna uma tupla com valores (string, bool)
+        return True
 
     # Se ocorrerem erros, exibe mensagem
     except Exception as e_:
@@ -187,4 +209,5 @@ def search_data(dict_search_data: dict):
         )
         print(f'Erro ao gerar arquivo: {e_}')
 
+        # e retorna None
         return None

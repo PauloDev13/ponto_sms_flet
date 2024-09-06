@@ -1,8 +1,9 @@
 import flet as ft
 
-from controls.inputs.input_text import cpf_field, start_date_field, end_date_field
+# Importação dos módulos locais
 from controls.inputs.checkboxs import checkbox_pdf_field, checkbox_excel_field
-from services.generate_service import file_generate
+from controls.inputs.input_text import cpf_field, start_date_field, end_date_field
+from services.data.init_generate_service import init_generate_files
 from utils.share_model import button_style, close_app, clear_form, open_folder
 
 # Dicionário com os controles do formulário
@@ -22,10 +23,10 @@ dict_search_data: dict = {
 
 # Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
-    on_click=lambda _: file_generate(
+    on_click=lambda _: init_generate_files(
         dict_search_data=dict_search_data
     ),
-    text='GERAR AQUIVO',
+    text='GERAR PLANILHAS',
     style=button_style('OK'),
     expand=True,
 )

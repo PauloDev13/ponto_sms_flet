@@ -1,17 +1,12 @@
 import base64
-import datetime
 import os
 from io import BytesIO
 
 from PyPDF2 import PdfReader, PdfMerger
 from dotenv import load_dotenv
 from selenium.webdriver.chrome import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
 
 # Importações dos módulos locais
-from models.alert_snackbar import AlertSnackbar
 
 # Carrega o arquivo .env
 load_dotenv()
@@ -28,27 +23,9 @@ if not url_data and not name_folder:
 # Define a variável que vai receber o array de arquivos PDF
 array_pdf_files = []
 
-TODO: 'MUDAR ESSE CÓDIGO'
-
-
-# FUNÇÃO QUE GERA O ARQUIVO PDF
-def generate_pdf(cpf: str, name: str, url_search: str, driver: webdriver):
-    # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
-    # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
-    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
-    # Chama a função (save_pdf) passando a url e a instância do navegador
-    save_pdf(url_search=url_search, driver=driver)
-
-    # Atribui a variável (output_pdf_path) o caminho e o nome do arquivo PDF que será criado
-    output_pdf_path = os.path.join(folder_path, f'{name} - CPF_{cpf}.pdf')
-
-    # Chama a função () passando como argumento o array com os
-    # bytes dos arquivos gerados a cadas mês e ano e o caminho
-    combine_pdfs(array_pdf_files, output_pdf_path)
-
 
 # FUNÇÃO QUE SALVA O ARQUIVO PDF
-def save_pdf(url_search, driver):
+def save_pdf(url_search: str, driver: webdriver):
     # Navega para a URL
     driver.get(url_search)
 
@@ -68,7 +45,8 @@ def save_pdf(url_search, driver):
         # Exibe o título da página no cabeçalho
         'footerTemplate': '''
                 <div style="font-size:10px; width: 100%; text-align: center;">
-                    <span class="date"></span> | URL: <span class="url"></span> | Página <span class="pageNumber"></span> de <span class="totalPages"></span>
+                    <span class="date"></span> | URL: <span class="url"></span> | 
+                    Página <span class="pageNumber"></span> de <span class="totalPages"></span>
                 </div>''',  # Exibe data, URL e numeração no rodapé
     })
     # Atribui a variável (pdf_data) o valor da chave (data)
@@ -78,6 +56,8 @@ def save_pdf(url_search, driver):
 
     # Armazena os bytes do PDF no array
     array_pdf_files.append(pdf_bytes)
+
+    return array_pdf_files
 
 
 # FUNÇÃO QUE COMBINA OS ARQUIVOS PDF NUM SÓ ARQUIVO
@@ -95,4 +75,3 @@ def combine_pdfs(pdf_bytes_list, output_path):
     # Salva o arquivo PDF único
     with open(output_path, 'wb') as output_pdf:
         pdf_merge.write(output_pdf)
-

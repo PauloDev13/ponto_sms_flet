@@ -1,10 +1,12 @@
 import pandas as pd
 
 # Importações dos módulos locais
-from utils.format_dataframe import columns_update
+from utils.format_col_dataframe import columns_update
+from models.alert_snackbar import AlertSnackbar
 
 
-def create_dataframe(
+# FUNÇÃO QUE CRIA TODA A ESTRUTURA DO DATAFRAME QUE VAI GERAR O ARQUIVO EXCEL
+def generate_dataframe(
         df_table: pd.DataFrame,
         data_by_year: dict[int, pd.DataFrame],
         cpf: str,
@@ -163,10 +165,11 @@ def create_dataframe(
             )
 
     except Exception as e:
-        print(e)
+        AlertSnackbar.show('Ocorreu um erro inesperado. Tente novamente.')
+        print('Erro inesperado', e)
 
 
-# FUNÇÃO LOCAL QUE RETORNA UM DATAFRAME COM A LINHA TOTAIS
+# FUNÇÃO LOCAL QUE RETORNA UM DATAFRAME COM A LINHA DE TOTAIS
 def df_total_row(columns: any) -> pd.DataFrame:
     # Linha com a string 'TOTAIS' na primeira célula e
     # vazia nas demais (array ['TOTAIS'], [''], [''], ['']...

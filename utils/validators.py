@@ -14,6 +14,8 @@ def validate_date_format(date_str: str) -> datetime | None:
     except ValueError:
         return None
 
+
+# FUNÇÃO QUE VALIDA OS CHECKBOX
 def validate_type_file(page: ft.Page, excel_field: ft.Checkbox, pdf_field: ft.Checkbox) -> bool:
     if not excel_field.value and not pdf_field.value:
         excel_field.fill_color = ft.colors.AMBER
@@ -25,6 +27,7 @@ def validate_type_file(page: ft.Page, excel_field: ft.Checkbox, pdf_field: ft.Ch
         return False
     else:
         return True
+
 
 # FUNÇÃO QUE VALIDA AS DATAS
 def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):

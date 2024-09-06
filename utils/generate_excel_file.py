@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
-from utils.format_excel import define_formats, apply_formatting
-from utils.share_model import create_shortcut_to_desktop_folder
+from utils.format_excel_file import define_formats, apply_formatting
+from utils.share_model import create_shortcut_to_desktop_folder, open_file_excel
 
 load_dotenv()
 
@@ -59,7 +59,7 @@ def generate_excel_file(
         data_dic: Dict[int, pd.DataFrame],
         employee_name: str,
         cpf: str
-) -> str:
+) -> None:
     # Chama a função local (create_folder) passando o nome do arquivo
     # do Excel e atribui o retorno à variável (path_file_name)
     path_file_name = create_folder(name_file=f'{employee_name} - CPF_{cpf}.xlsx')
@@ -107,5 +107,7 @@ def generate_excel_file(
                 )
                 print(f'Erro ao gerar a planilha {e}')
 
+        open_file_excel(path_file_excel=path_file_name)
+
     # Retorna o caminho completo onde o arquivo será salvo
-    return path_file_name
+    # return path_file_name

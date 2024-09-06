@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 
 # Importações dos módulos locais
 from controls.display.progress_bar import update_progress
-from models.page_manager import PageManager
 from models.alert_snackbar import AlertSnackbar
+from models.page_manager import PageManager
 
 load_dotenv()
 name_folder = os.getenv('NAME_FOLDER')
@@ -248,9 +248,9 @@ def data_progress_bar(message: str):
         page.update()
 
     except Exception as e_:
-        # Exibe a barra de progresso e atualiza a página
-        page.overlay.remove(container)
-        page.update()
+        # # Exibe a barra de progresso e atualiza a página
+        # page.overlay.remove(container)
+        # page.update()
 
         AlertSnackbar.show(
             message='Erro ao exibir a barra de progresso!',

@@ -1,27 +1,34 @@
 import flet as ft
 
-from models.page_manager import PageManager
+# Importação dos módulos locais
 from controls.inputs.input_text import cpf_field
+from models.page_manager import PageManager
 from utils.share_model import button_style
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'SIM' DA CAIXA DE DIÁLOGO
-def yes_click(e):
+def yes_click(_):
+    # Atribui a variável (page) uma instância da página
+    page = PageManager.get_page()
+
     # pega a instância do navegador na sessão do Flet
-    driver = PageManager.get_page().session.get('driver')
+    driver = page.session.get('driver')
 
     # Se existir a instância, encerra a instância
     if driver is not None:
         driver.quit()
 
     # Fecha a janela da aplicação
-    PageManager.get_page().window.destroy()
+    page.window.destroy()
 
 
 # FUNÇÃO PARA O CLICK NO BOTÃO 'NÃO' DA CAIXA DE DIÁLOGO
-def no_click(e):
+def no_click(_):
+    # Atribui a variável (page) uma instância da página
+    page = PageManager.get_page()
+
     # Fecha a caixa de diálogo e atribui o foco para o campo CPF
-    PageManager.get_page().close(confirm_dialog)
+    page.close(confirm_dialog)
 
     # Passa o foco para o controle CPF
     cpf_field.focus()
