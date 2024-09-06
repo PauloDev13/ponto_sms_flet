@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
 from utils.format_excel_file import define_formats, apply_formatting
-from utils.share_model import create_shortcut_to_desktop_folder, open_file_excel
+from utils.share_model import open_file_excel, create_folder
 
 load_dotenv()
 
@@ -17,41 +17,6 @@ name_folder = os.getenv('NAME_FOLDER')
 
 if not name_folder:
     raise ValueError('O caminho para o arquivo do Excel não está definido no .env')
-
-
-# FUNÇÃO LOCAL PARA CRIAR O DIRETÓRIO ONDE SERÃO
-# SALVOS OS ARQUIVOS DO EXCEL QUE SERÃO GERADOS
-def create_folder(name_file: str):
-    try:
-        # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
-        # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
-        folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
-
-        # Se o diretório não existir...
-        if not os.path.exists(folder_path):
-            # Cria o diretório
-            os.makedirs(folder_path)
-
-        # Monta o caminho completo para salvar o arquivo Excel.
-        # C:/users/<user_do_windows>/Documents/PLANILHAS_SMS/<nome_arquivo.xlsx>
-        # e atribui à variável (path_file_excel)
-        path_file_excel = os.path.join(folder_path, name_file)
-
-        # Chama a função que cria um atalho do diretório
-        # na área de trabalho do usuário logado no OS
-        create_shortcut_to_desktop_folder(folder_path)
-
-        # Retorna o caminho completo do diretório com o nome do arquivo
-        return path_file_excel
-
-    except Exception as e:
-        AlertSnackbar.show(
-            message=f'Erro ao criar o arquivo {name_file}',
-            icon=ft.icons.ERROR,
-            icon_color=ft.colors.RED
-        )
-
-        print(f'Erro ao criar o arquivo {name_file} - {e}')
 
 
 # FUNÇÃO QUE CRIA O ARQUIVO EXCEL
@@ -108,6 +73,3 @@ def generate_excel_file(
                 print(f'Erro ao gerar a planilha {e}')
 
         open_file_excel(path_file_excel=path_file_name)
-
-    # Retorna o caminho completo onde o arquivo será salvo
-    # return path_file_name

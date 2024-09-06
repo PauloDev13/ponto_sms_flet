@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 # Importações dos módulos locais
 from controls.display.progress_bar import update_progress
+from controls.display.progress_bar import progress_control
 from models.alert_snackbar import AlertSnackbar
 from models.page_manager import PageManager
 
@@ -63,6 +64,41 @@ def close_app(_):
 
     # Abre a caixa de diálogo
     page.open(confirm_dialog)
+
+
+# FUNÇÃO LOCAL PARA CRIAR O DIRETÓRIO ONDE SERÃO
+# SALVOS OS ARQUIVOS DO EXCEL QUE SERÃO GERADOS
+def create_folder(name_file: str):
+    try:
+        # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
+        # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
+        folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+
+        # Se o diretório não existir...
+        if not os.path.exists(folder_path):
+            # Cria o diretório
+            os.makedirs(folder_path)
+
+        # Monta o caminho completo para salvar o arquivo Excel.
+        # C:/users/<user_do_windows>/Documents/PLANILHAS_SMS/<nome_arquivo.xlsx>
+        # e atribui à variável (path_file_excel)
+        path_file_excel = os.path.join(folder_path, name_file)
+
+        # Chama a função que cria um atalho do diretório
+        # na área de trabalho do usuário logado no OS
+        create_shortcut_to_desktop_folder(folder_path)
+
+        # Retorna o caminho completo do diretório com o nome do arquivo
+        return path_file_excel
+
+    except Exception as e:
+        AlertSnackbar.show(
+            message=f'Erro ao criar o arquivo {name_file}',
+            icon=ft.icons.ERROR,
+            icon_color=ft.colors.RED
+        )
+
+        print(f'Erro ao criar o arquivo {name_file} - {e}')
 
 
 # FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
@@ -149,7 +185,7 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
                 ft.ControlState.HOVERED: ft.colors.BLUE_ACCENT_400,
             },
             color={
-                ft.ControlState.DEFAULT: '#abb2bf',
+                ft.ControlState.DEFAULT: 'black',
                 ft.ControlState.HOVERED: ft.colors.WHITE
             },
         )
@@ -226,7 +262,7 @@ def data_progress_bar(message: str):
     # Define a variável container como vazia
     container = ft.Container()
     # Importa a função (progress_control) do módulo controls
-    from controls.display.progress_bar import progress_control
+    # from controls.display.progress_bar import progress_control
 
     # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
     page = PageManager.get_page()
@@ -249,8 +285,8 @@ def data_progress_bar(message: str):
 
     except Exception as e_:
         # # Exibe a barra de progresso e atualiza a página
-        # page.overlay.remove(container)
-        # page.update()
+        page.overlay.remove(container)
+        page.update()
 
         AlertSnackbar.show(
             message='Erro ao exibir a barra de progresso!',

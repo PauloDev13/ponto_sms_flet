@@ -1,21 +1,19 @@
 import flet as ft
 
+
+# Importações dos módulos locais
 from controls.buttons.elevated_button import (
     generate_button,
     cancel_button,
     exit_button,
     open_folder_button
 )
-
-# Importação dos módulos locais
 from controls.inputs.input_text import (
     cpf_field,
     start_date_field,
     end_date_field,
 )
-
 from controls.inputs.checkboxs import checkbox_excel_field, checkbox_pdf_field
-
 from utils.share_model import window_event, on_key_enter_event
 from models.page_manager import PageManager
 

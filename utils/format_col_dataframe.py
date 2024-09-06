@@ -80,4 +80,4 @@ def columns_update(row) -> pd.Series:
             'ADN': tn_night_work
         })
     except Exception as e:
-        print(f"Erro: {e}")
+        print(f"Erro ao formatar colunas do dataframe: {e}")

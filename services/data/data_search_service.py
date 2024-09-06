@@ -15,7 +15,7 @@ from selenium.common.exceptions import TimeoutException
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
-from utils.generate_excel_file import generate_excel_file
+from services.data.generate_excel_file import generate_excel_file
 from services.data.generate_df_service import generate_dataframe
 from services.data.generate_pdf_service import save_pdf, combine_pdfs
 
