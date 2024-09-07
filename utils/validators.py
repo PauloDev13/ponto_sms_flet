@@ -18,8 +18,8 @@ def validate_date_format(date_str: str) -> datetime | None:
 # FUNÇÃO QUE VALIDA OS CHECKBOX
 def validate_type_file(page: ft.Page, excel_field: ft.Checkbox, pdf_field: ft.Checkbox) -> bool:
     if not excel_field.value and not pdf_field.value:
-        excel_field.fill_color = ft.colors.AMBER
-        pdf_field.fill_color = ft.colors.AMBER
+        excel_field.fill_color = ft.colors.RED_ACCENT
+        pdf_field.fill_color = ft.colors.RED_ACCENT
 
         AlertSnackbar.show(message='Escolha pelo menos um tipo de arquivo a ser gerado')
         page.update()

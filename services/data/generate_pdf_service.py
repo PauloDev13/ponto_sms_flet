@@ -2,7 +2,7 @@ import base64
 import os
 from io import BytesIO
 
-from PyPDF2 import PdfReader, PdfMerger
+from pypdf import PdfReader, PdfWriter
 from dotenv import load_dotenv
 from selenium.webdriver.chrome import webdriver
 
@@ -63,15 +63,17 @@ def save_pdf(url_search: str, driver: webdriver):
 # FUNÇÃO QUE COMBINA OS ARQUIVOS PDF NUM SÓ ARQUIVO
 def combine_pdfs(pdf_bytes_list, output_path):
     # Cria uma instância de (PdfMerger) e atribui a variável (pdf_merge)
-    pdf_merge = PdfMerger()
+    # pdf_merge = PdfMerger()
+    pdf_writer = PdfWriter()
 
     # Executa loop no array onde estão os arquivos PDF
     for pdf_bytes in pdf_bytes_list:
         # Lê os bytes de cada arquivo PDF e atribui à variável (pdf_reader)
         pdf_reader = PdfReader(BytesIO(pdf_bytes))
         # Combina os arquivos PDF num só arquivo
-        pdf_merge.append(pdf_reader)
+        pdf_writer.append(pdf_reader)
 
     # Salva o arquivo PDF único
     with open(output_path, 'wb') as output_pdf:
-        pdf_merge.write(output_pdf)
+        pdf_writer.write(output_pdf)
+
