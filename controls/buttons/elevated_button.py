@@ -34,7 +34,7 @@ generate_button = ft.ElevatedButton(
 # Botão para limpar os campos do formulário
 cancel_button = ft.ElevatedButton(
     on_click=lambda _: clear_form(
-        **dict_controls
+        dict_controls
     ),
     col={'md': 4},
     text='CANCELAR',
