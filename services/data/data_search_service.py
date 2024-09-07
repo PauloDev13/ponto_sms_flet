@@ -40,6 +40,9 @@ if not url_data and not name_folder:
 def search_data(dict_search_data: dict):
     # Define a variável que vai receber o nome do funcionário pesquisado
     employee_name: str = ''
+
+    # Define o array (pdf_byte_list) que vai receber a lista
+    # com as páginas dos arquivos PDF que serão gerados
     pdf_byte_list: []
 
     # Cria o dicionário (dict_fields) com parte dos dados
