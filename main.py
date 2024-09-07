@@ -38,8 +38,8 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
 
     # Definindo que a janela não pode ser redimensionada
-    page.window_resizable = False
-    page.window_maximizable = False
+    page.window.resizable = False
+    page.window.maximizable = False
     page.window.minimized = False
     page.window.center()
 
@@ -48,7 +48,7 @@ def main(page: ft.Page):
 
     # Intercepta o evento disparado quando o botão (X) da janela é clicado
     page.window.prevent_close = True
-    page.on_window_event = window_event
+    page.window.on_event = window_event
 
     # Intercepta o evento disparado quando a tecla (Enter) é pressionada
     page.on_keyboard_event = on_key_enter_event
