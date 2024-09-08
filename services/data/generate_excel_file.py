@@ -1,22 +1,14 @@
-import os
+# import os
 from typing import Dict
 
 import flet as ft
 import pandas as pd
-from dotenv import load_dotenv
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
+from models.page_manager import PageManager
 from utils.format_excel_file import define_formats, apply_formatting
 from utils.share_model import open_file_excel, create_folder
-
-load_dotenv()
-
-# Busca no arquivo (.env) o valor ('NAME_FOLDER') e atribui à variável (name_folder)
-name_folder = os.getenv('NAME_FOLDER')
-
-if not name_folder:
-    raise ValueError('O caminho para o arquivo do Excel não está definido no .env')
 
 
 # FUNÇÃO QUE CRIA O ARQUIVO EXCEL
@@ -25,6 +17,10 @@ def generate_excel_file(
         employee_name: str,
         cpf: str
 ) -> None:
+
+    # Atribui à variável (page) uma instância da página
+    page = PageManager.get_page()
+
     # Chama a função local (create_folder) passando o nome do arquivo
     # do Excel e atribui o retorno à variável (path_file_name)
     path_file_name = create_folder(name_file=f'{employee_name} - CPF_{cpf}.xlsx')

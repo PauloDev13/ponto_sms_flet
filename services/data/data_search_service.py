@@ -7,7 +7,7 @@ from io import StringIO
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
@@ -19,20 +19,12 @@ from services.data.generate_excel_file import generate_excel_file
 from services.data.generate_df_service import generate_dataframe
 from services.data.generate_pdf_service import save_pdf, combine_pdfs
 
-# Carrega o arquivo .env
-load_dotenv()
+# Busca no arquivo (.env) o valor da URL base e o nome do diretório (NAME_FOLDER)
+from config.config_env import URL_DATA
+from config.config_env import NAME_FOLDER
 
 # Define a localização como português do Brasil (pt_BR)
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
-# Ler a URL base que vai montar a busca dos dados
-url_data = os.getenv('URL_DATA')
-
-# Busca no arquivo (.env) o valor ('NAME_FOLDER') e atribui à variável (name_folder)
-name_folder = os.getenv('NAME_FOLDER')
-
-if not url_data and not name_folder:
-    raise ValueError('O parâmetro (URL_DATA e/ou NAME_FOLDER) não está definido no .env')
 
 
 # FUNÇÃO QUE INICIA O SCRAPING DA PÁGINA HTML E CHAMA
@@ -93,7 +85,7 @@ def search_data(dict_search_data: dict):
 
             # Monta e atribui a variável (url_search) a URL com
             # os query params da pesquisa e abre no navegador
-            url_search = f'{url_data}?cpf={cpf}&mes={month}&ano={year}'
+            url_search = f'{URL_DATA}?cpf={cpf}&mes={month}&ano={year}'
             driver.get(url_search)
 
             try:
@@ -193,7 +185,7 @@ def search_data(dict_search_data: dict):
         if checkbox_pdf_field.value:
             # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
             # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
-            folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+            folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
 
             # Atribui a variável (output_pdf_path) o caminho e o nome do arquivo PDF que será criado
             output_pdf_path = os.path.join(folder_path, f'{employee_name} - CPF_{cpf}.pdf')

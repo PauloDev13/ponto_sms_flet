@@ -39,7 +39,7 @@ def main(page: ft.Page):
 
     # Chama a função (SplashScreen). Ela exibe uma tela inicial por 3
     # segundos e após esse tempo, exibe a janela principal da aplicação
-    SplashScreen(page=page, duration=2).show()
+    SplashScreen(page=page, duration=3).show()
 
 
 ft.app(target=main)

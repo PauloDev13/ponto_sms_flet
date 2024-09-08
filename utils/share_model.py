@@ -7,19 +7,14 @@ from time import sleep
 import flet as ft
 import pythoncom
 import winshell
-from dotenv import load_dotenv
 
 # Importações dos módulos locais
+from config.config_env import NAME_FOLDER
+
 from controls.display.progress_bar import update_progress
 from controls.display.progress_bar import progress_control
 from models.alert_snackbar import AlertSnackbar
 from models.page_manager import PageManager
-
-load_dotenv()
-name_folder = os.getenv('NAME_FOLDER')
-
-if not name_folder:
-    raise ValueError("A chave (NAME_FOLDER) não está definido no .env")
 
 
 # FUNÇÃO QUE LIMPA OS CONTROLES DO FORMULÁRIO
@@ -72,7 +67,7 @@ def create_folder(name_file: str):
     try:
         # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
         # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
-        folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+        folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
 
         # Se o diretório não existir...
         if not os.path.exists(folder_path):
@@ -104,7 +99,7 @@ def create_folder(name_file: str):
 # FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
 def open_folder(_):
     # Atribui à variável (folder_path) o caminho do diretório onde são salvos os arquivos Excel
-    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', name_folder)
+    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
 
     # Se o diretório existir...
     if os.path.exists(folder_path):

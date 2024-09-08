@@ -1,3 +1,5 @@
+import os
+import sys
 import threading
 from time import sleep
 
@@ -16,6 +18,9 @@ from controls.inputs.input_text import (
     start_date_field,
     end_date_field,
 )
+
+# # Atribuições das variáveis declaradas no .env
+from config.config_env import PATH_LOGO
 
 
 # Simula o efeito de fade in ou fade out
@@ -52,7 +57,7 @@ class SplashScreen:
 
         # Conteúdo fixo do splash screen
         title = 'Consulta Ponto Eletrônico'
-        image_src = 'assets/logo_pgm.png'
+        image_src = PATH_LOGO
         text = 'Departamento de Tecnologia da Informação'
 
         # Criando os controles da tela inicial (splash screen)
@@ -164,4 +169,3 @@ class SplashScreen:
         # Adiciona os controles à pagina principal e atualiza a página
         self.page.controls.append(main_screen)
         self.page.update()
-

@@ -1,14 +1,9 @@
 import os
 
 import xlsxwriter
-from dotenv import load_dotenv
 
-load_dotenv()
-
-password_workbook = os.getenv('PASSWORD')
-
-if not password_workbook:
-    raise ValueError("A chave (PASSWORD) não está definido no .env")
+# Importações dos módulos locais
+from config.config_env import PASSWORD
 
 
 # Função que retorna um dicionário com a formatação
@@ -274,4 +269,5 @@ def apply_formatting(worksheet, df_year, formats):
 
     # Bloqueia toda a planilha para edição. Somente as
     # células liberadas poderão ser editas
-    worksheet.protect(password_workbook)
+    worksheet.protect(PASSWORD)
+    # worksheet.protect(password_workbook)

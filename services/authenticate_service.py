@@ -2,7 +2,6 @@ import os
 from time import sleep
 
 import flet as ft
-from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.common.exceptions import (
     TimeoutException,
@@ -16,16 +15,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from models.alert_snackbar import AlertSnackbar
 from utils.share_model import login_progress_bar
 
-# Carrega o arquivo .env
-load_dotenv()
-
 # Atribuições das variáveis declaradas no .env
-url_login = os.getenv("URL_BASE")
-url_init = os.getenv("URL_INIT")
-username = os.getenv("USER")
-password = os.getenv("PASSWORD")
+from config.config_env import URL_INIT
+from config.config_env import URL_BASE
+from config.config_env import USER
+from config.config_env import PASSWORD
 
-
+# Define a variável (countdown_text) como um controle de texto vazio
 countdown_text = ft.Text(value='')
 
 
@@ -44,7 +40,7 @@ def login():
 
     try:
         # Acessa a URL que exibe a página de login do sistema de ponto eletrônico da SMS
-        driver.get(url_login)
+        driver.get(URL_BASE)
 
         # Verifica se a página HTML carregou os campos de login e senha
         load_login = WebDriverWait(driver, 10).until(
@@ -58,9 +54,9 @@ def login():
         if load_login and load_senha:
             # Acessa o campo de login, insere o login, espera 1 segundo,
             # acessa o campo senha e insere a senha
-            driver.find_element(By.XPATH, '//*[@id="cpf"]').send_keys(username)
+            driver.find_element(By.XPATH, '//*[@id="cpf"]').send_keys(USER)
             sleep(1)
-            driver.find_element(By.XPATH, "//*[@id='senha']").send_keys(password)
+            driver.find_element(By.XPATH, "//*[@id='senha']").send_keys(PASSWORD)
         else:
             AlertSnackbar.show(
                 message='Erro ao identificar TAGs de login',
@@ -90,7 +86,7 @@ def login():
 
         # Checa se a URL da página inicial do sistema de ponto da SMS foi carregada no navegador
         load_page = WebDriverWait(driver, 10).until(
-            ec.url_contains(url_init)
+            ec.url_contains(URL_INIT)
         )
 
         # Se a página inicial carregou, exibe mensagem de sucesso

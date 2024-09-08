@@ -188,6 +188,12 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
                 icon_color=ft.colors.GREEN
             )
 
+            # Minimiza a janela da aplicação e atualiza a página
+            page.window.minimized = True
+            page.update()
+
+            print('PASSOU PELO MINIMIZED')
+
         # Se a opção (gerar arquivo PDF) está MARCADA
         #  e (gerar planilha) está DEMARCADA
         if file_pdf and not file_excel:
@@ -206,6 +212,10 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
                 icon=ft.icons.CHECK_CIRCLE_SHARP,
                 icon_color=ft.colors.GREEN
             )
+
+            # Minimiza a janela da aplicação e atualiza a página
+            page.window.minimized = True
+            page.update()
 
         # Limpa os controles do formulário após concluído o processo de gerar arquivos
         clear_form(dict_controls_fields=dict_clear_form)

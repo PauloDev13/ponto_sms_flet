@@ -3,22 +3,8 @@ import os
 from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
-from dotenv import load_dotenv
 from selenium.webdriver.chrome import webdriver
 
-# Importações dos módulos locais
-
-# Carrega o arquivo .env
-load_dotenv()
-
-# Ler a URL base que vai montar a busca dos dados
-url_data = os.getenv('URL_DATA')
-
-# Busca no arquivo (.env) o valor ('NAME_FOLDER') e atribui à variável (name_folder)
-name_folder = os.getenv('NAME_FOLDER')
-
-if not url_data and not name_folder:
-    raise ValueError('O parâmetro (URL_DATA) não está definido no .env')
 
 # Define a variável que vai receber o array de arquivos PDF
 array_pdf_files = []
