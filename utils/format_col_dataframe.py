@@ -63,7 +63,7 @@ def columns_update(row) -> pd.Series:
 
         tn_night_work = 1 if (
                 (tn_night_work_start and tn_night_work_end)
-                and (tn_night_work_start >= str_to_time('18:00:00')
+                and (tn_night_work_start >= str_to_time('12:00:00')
                      and tn_night_work_end >= str_to_time('05:00:00'))
 
         ) else ''

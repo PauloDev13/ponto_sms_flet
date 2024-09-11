@@ -45,7 +45,9 @@ URL_DATA = os.getenv('URL_DATA')
 URL_INIT = os.getenv('URL_INIT')
 NAME_FOLDER = os.getenv('NAME_FOLDER')
 
-required_variable = [USER, PASSWORD, URL_BASE, URL_DATA, URL_INIT, NAME_FOLDER]
+required_variable: list[str] | None = [
+    USER, PASSWORD, URL_BASE, URL_DATA, URL_INIT, NAME_FOLDER
+]
 
 if None in required_variable:
     raise ValueError('Uma ou mais variáveis necessárias não estão declaradas no arquivo .env')
