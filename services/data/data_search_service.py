@@ -71,6 +71,8 @@ def search_data(dict_search_data: dict):
         data_by_year: dict[int, pd.DataFrame] = {}
         current_date = datetime.date(year_start, month_start, 1)
         end_date = datetime.date(year_end, month_end, 1)
+        workplace = 150
+
 
         # Enquanto a data inicial for menor que a data final,
         # são atribuídos as variáveis 'month' e 'year' os valores
@@ -87,8 +89,10 @@ def search_data(dict_search_data: dict):
             # os query params da pesquisa e abre no navegador
             if month < 10:
                 url_search = f'{URL_DATA}?cpf={cpf}&mes=0{month}&ano={year}'
+                # url_search = f'{URL_DATA}?cpf={cpf}&mes=0{month}&ano={year}&unidade={workplace}'
             else:
                 url_search = f'{URL_DATA}?cpf={cpf}&mes={month}&ano={year}'
+                # url_search = f'{URL_DATA}?cpf={cpf}&mes={month}&ano={year}&unidade={workplace}'
 
             driver.get(url_search)
 
