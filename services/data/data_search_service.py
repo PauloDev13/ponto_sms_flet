@@ -85,7 +85,11 @@ def search_data(dict_search_data: dict):
 
             # Monta e atribui a variável (url_search) a URL com
             # os query params da pesquisa e abre no navegador
-            url_search = f'{URL_DATA}?cpf={cpf}&mes={month}&ano={year}'
+            if month < 10:
+                url_search = f'{URL_DATA}?cpf={cpf}&mes=0{month}&ano={year}'
+            else:
+                url_search = f'{URL_DATA}?cpf={cpf}&mes={month}&ano={year}'
+
             driver.get(url_search)
 
             try:
