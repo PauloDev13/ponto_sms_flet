@@ -4,10 +4,19 @@ import flet as ft
 # Controle que recebe o número do CPF no formulário
 cpf_field = ft.TextField(
     label='CPF',
-    col={'md': 12},
+    col={'md': 8},
     hint_text='Digite um CPF',
     border_color='#5a90fc',
     autofocus=True,
+    expand=True,
+)
+
+# Controle que recebe o número da unidade de lotação
+unit_field = ft.TextField(
+    label='Unidade',
+    col={'md': 4},
+    hint_text='Código da unidade',
+    border_color='#5a90fc',
     expand=True,
 )
 

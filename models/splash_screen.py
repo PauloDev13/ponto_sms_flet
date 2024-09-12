@@ -15,6 +15,7 @@ from controls.buttons.elevated_button import (
 from controls.inputs.checkboxs import checkbox_excel_field, checkbox_pdf_field
 from controls.inputs.input_text import (
     cpf_field,
+    unit_field,
     start_date_field,
     end_date_field,
 )
@@ -123,9 +124,12 @@ class SplashScreen:
                                     weight=ft.FontWeight.W_500
                                 )
                             ),
-                            ft.ResponsiveRow([
-                                cpf_field
-                            ]),
+                            ft.Container(
+                                ft.ResponsiveRow([
+                                    cpf_field,
+                                    unit_field
+                                ]),
+                            ),
                             ft.Container(
                                 ft.ResponsiveRow([
                                     start_date_field,
