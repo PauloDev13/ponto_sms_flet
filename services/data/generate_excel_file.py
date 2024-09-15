@@ -17,10 +17,6 @@ def generate_excel_file(
         employee_name: str,
         cpf: str
 ) -> None:
-
-    # Atribui à variável (page) uma instância da página
-    page = PageManager.get_page()
-
     # Chama a função local (create_folder) passando o nome do arquivo
     # do Excel e atribui o retorno à variável (path_file_name)
     path_file_name = create_folder(name_file=f'{employee_name} - CPF_{cpf}.xlsx')

@@ -10,9 +10,8 @@ import winshell
 
 # Importações dos módulos locais
 from config.config_env import NAME_FOLDER
-
-from controls.display.progress_bar import update_progress
 from controls.display.progress_bar import progress_control
+from controls.display.progress_bar import update_progress
 from models.alert_snackbar import AlertSnackbar
 from models.page_manager import PageManager
 

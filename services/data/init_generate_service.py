@@ -9,11 +9,10 @@ from models.page_manager import PageManager
 from services.authenticate_service import login
 from services.data.data_search_service import search_data
 from utils.share_model import (
-    data_progress_bar, format_cpf, clear_form
+    data_progress_bar, clear_form
 )
-
 from utils.validators import (
-    validate_cpf, validate_dates, validate_type_file
+    validate_form
 )
 
 
@@ -26,41 +25,15 @@ def init_generate_files(dict_search_data: dict):
     # Desempacota os argumentos enviados através do dicionário (dict_search_data)
     (
         cpf_field,
+        unit_field,
         start_date_field,
         end_date_field,
         checkbox_excel_field,
         checkbox_pdf_field,
     ) = dict_search_data.values()
 
-    # Valida o CPF e atribui o resulta (booleano) à variável (cpf_is_valid)
-    cpf_is_valid = validate_cpf(cpf_field)
-
-    # Declara a variável local (dates_is_valid) com valor inicial False
-    dates_is_valid: bool = False
-    type_file_valid: bool = False
-
-    # Se o CPF for válido
-    if cpf_is_valid:
-        # Valida as datas inicial e final e atribui o resultado
-        # (booleano) à variável local (dates_is_valid)
-        dates_is_valid = validate_dates(
-            start_date_field,
-            end_date_field
-        )
-
-        # Valida as (checkbox) e atribui o resultado
-        # (booleano) à variável local (type_file_valid)
-        type_file_valid = validate_type_file(
-            page=page,
-            excel_field=checkbox_excel_field,
-            pdf_field=checkbox_pdf_field
-        )
-
-    # Se as datas e o CPF forem válidas, pega os valores das datas inicial e final
-    if cpf_is_valid and dates_is_valid and type_file_valid:
-        #  Usa a função (format_cpf) para formatar o CPF aplicando a máscara (###.###.###-##)
-        cpf = format_cpf(cpf_field)
-
+    # Se todos controles do formulário estão válidos
+    if validate_form(page=page, form_fields=dict_search_data):
         # Atribui às variáveis (start_date e end_date) os valores dos
         # controles (start_date_field e end_date_field) do formulário
         start_date = start_date_field.value
@@ -84,12 +57,13 @@ def init_generate_files(dict_search_data: dict):
         # Atribui à variável (data_dict), um dicionário, valores
         # atribuídos às variáveis após as validações
         data_dict: dict = {
-            'cpf': cpf,
+            # 'cpf': cpf,
+            'cpf_field': cpf_field,
+            'unit_field': unit_field,
             'month_start': month_start,
             'year_start': year_start,
             'month_end': month_end,
             'year_end': year_end,
-            'cpf_field': cpf_field,
             'start_date_field': start_date_field,
             'end_date_field': end_date_field,
             'checkbox_excel_field': checkbox_excel_field,
@@ -132,7 +106,7 @@ def init_generate_files(dict_search_data: dict):
             page.update()
 
             AlertSnackbar.show('Ocorreu um erro inesperado. Tente novamente')
-            print('Erro inesperado',e)
+            print('Erro inesperado', e)
 
 
 # FUNÇÃO QUE CONTROLA A EXIBIÇÃO DA BARRA DE PROGRESSO
@@ -144,7 +118,7 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
     # Cria um dicionário com parte dos dados do dicionário (data_dict)
     dict_clear_form = {
         k: v for k, v in data_dict.items() if k in [
-            'cpf_field', 'start_date_field', 'end_date_field'
+            'cpf_field', 'unit_field', 'start_date_field', 'end_date_field'
         ]
     }
 
@@ -192,7 +166,7 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
             page.window.minimized = True
             page.update()
 
-            print('PASSOU PELO MINIMIZED')
+            # print('PASSOU PELO MINIMIZED')
 
         # Se a opção (gerar arquivo PDF) está MARCADA
         #  e (gerar planilha) está DEMARCADA
@@ -227,4 +201,3 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
         # Exclui a barra de progresso e atualiza a página
         page.overlay.pop()
         page.update()
-

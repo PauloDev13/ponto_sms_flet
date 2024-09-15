@@ -15,7 +15,8 @@ cpf_field = ft.TextField(
 unit_field = ft.TextField(
     label='Unidade',
     col={'md': 4},
-    hint_text='Código da unidade',
+    text_align=ft.TextAlign.RIGHT,
+    hint_text='Código unidade',
     border_color='#5a90fc',
     expand=True,
 )

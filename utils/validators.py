@@ -6,6 +6,41 @@ import flet as ft
 from models.alert_snackbar import AlertSnackbar
 
 
+# FUNÇÃO QUE VALIDA TODOS OS CONTROLES DO FORMULÁRIO
+def validate_form(page: ft.Page, form_fields: dict) -> bool:
+    # page = PageManager.get_page()
+    # Desempacota os argumentos enviados através do dicionário (form_fields)
+    (
+        cpf_field,
+        unit_fiel,
+        start_date_field,
+        end_date_field,
+        checkbox_excel_field,
+        checkbox_pdf_field,
+    ) = form_fields.values()
+
+    if not validate_cpf(cpf_field=cpf_field):
+        return False
+
+    if not validate_dates(
+            date_start_field=start_date_field,
+            date_end_field=end_date_field
+    ):
+        return False
+
+    if not validate_type_file(
+            page=page,
+            excel_field=checkbox_excel_field,
+            pdf_field=checkbox_pdf_field
+    ):
+        return False
+
+    if not validate_unit_field(unit_field=unit_fiel):
+        return False
+
+    return True
+
+
 # FUNÇÃO QUE FORMATA AS DATAS PARA 'MM/yyyy'
 def validate_date_format(date_str: str) -> datetime | None:
     try:
@@ -29,15 +64,27 @@ def validate_type_file(page: ft.Page, excel_field: ft.Checkbox, pdf_field: ft.Ch
         return True
 
 
+# FUNÇÃO QUE VALIDA SE O CONTROLE QUE RECEBE O CÓDIGO DA UNIDADE É SOMENTE NÚMEROS
+def validate_unit_field(unit_field: ft.TextField) -> bool:
+    value = unit_field.value
+
+    if value and not value.isdigit():
+        AlertSnackbar.show(message='O código da unidade tem que ser numérico')
+        unit_field.focus()
+        return False
+
+    return True
+
+
 # FUNÇÃO QUE VALIDA AS DATAS
-def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField):
+def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField) -> bool:
     try:
         # Atribui às variáveis (date_start e date_end) o valor dos controles
         # (date_start_field e date_end_field) do formulário
         date_start = date_start_field.value
         date_end = date_end_field.value
 
-        # Atribui às variáveis () o resultado da função ()
+        # Atribui às variáveis (start_date, end_date) o resultado da função (validate_date_format)
         # que verifica se o formato das datas é (MM/yyyy)
         start_date = validate_date_format(date_start_field.value)
         end_date = validate_date_format(date_end_field.value)
@@ -84,8 +131,9 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
             AlertSnackbar.show(
                 height_container=70,
                 message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser '
-                f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
+                        f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
             return False
+
         return True
     except Exception as ex:
         AlertSnackbar.show(
@@ -103,11 +151,9 @@ def validate_cpf(cpf_field: ft.TextField):
     # no início e final digitados no controle CPF do formulário
     cpf = cpf_field.value.strip()
 
-    # FAZ A VALIDAÇÃO DO NÚMERO DO CPF
     try:
         if not cpf:
             cpf_field.focus()
-            # snack_show(message='O CPF é obrigatório!')
             AlertSnackbar.show(message='O CPF é obrigatório!')
             return False
 

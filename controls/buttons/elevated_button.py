@@ -2,19 +2,21 @@ import flet as ft
 
 # Importação dos módulos locais
 from controls.inputs.checkboxs import checkbox_pdf_field, checkbox_excel_field
-from controls.inputs.input_text import cpf_field, start_date_field, end_date_field
+from controls.inputs.input_text import cpf_field, start_date_field, end_date_field, unit_field
 from services.data.init_generate_service import init_generate_files
 from utils.share_model import button_style, close_app, clear_form, open_folder
 
 # Dicionário com os controles do formulário
 dict_controls: dict = {
     'cpf_field': cpf_field,
+    'unit_field': unit_field,
     'start_date_field': start_date_field,
     'end_date_field': end_date_field,
 }
 
 dict_search_data: dict = {
     'cpf_field': cpf_field,
+    'unit_field': unit_field,
     'start_date_field': start_date_field,
     'end_date_field': end_date_field,
     'checkbox_excel_field': checkbox_excel_field,
