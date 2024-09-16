@@ -1,9 +1,10 @@
-import os
-import sys
 import threading
 from time import sleep
 
 import flet as ft
+
+# # Atribuições das variáveis declaradas no .env
+from config.config_env import PATH_LOGO
 
 # Importações dos módulos locais
 from controls.buttons.elevated_button import (
@@ -12,16 +13,16 @@ from controls.buttons.elevated_button import (
     exit_button,
     open_folder_button
 )
-from controls.inputs.checkboxs import checkbox_excel_field, checkbox_pdf_field
+from controls.inputs.checkboxs import (
+    checkbox_excel_field,
+    checkbox_pdf_field
+)
 from controls.inputs.input_text import (
     cpf_field,
     unit_field,
     start_date_field,
     end_date_field,
 )
-
-# # Atribuições das variáveis declaradas no .env
-from config.config_env import PATH_LOGO
 
 
 # Simula o efeito de fade in ou fade out

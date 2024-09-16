@@ -5,7 +5,7 @@ from models.splash_screen import SplashScreen
 from utils.share_model import window_event, on_key_enter_event
 
 
-def main(page: ft.Page):
+def main(page: ft.Page) -> None:
 
     # Definindo a instância de Page no PageManager
     PageManager.set_page(page)

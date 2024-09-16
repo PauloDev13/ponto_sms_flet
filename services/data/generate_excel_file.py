@@ -1,4 +1,3 @@
-# import os
 from typing import Dict
 
 import flet as ft
@@ -6,7 +5,6 @@ import pandas as pd
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
-from models.page_manager import PageManager
 from utils.format_excel_file import define_formats, apply_formatting
 from utils.share_model import open_file_excel, create_folder
 

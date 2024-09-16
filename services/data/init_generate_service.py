@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Union, Dict
 
 import flet as ft
 from selenium.webdriver.chrome import webdriver
@@ -18,7 +19,7 @@ from utils.validators import (
 
 # FUNÇÃO QUE APLICA VALIDAÇÃO DOS CONTROLES DO FORMULÁRIO, CHAMA O PROCESSO DE LOGIN
 # E CHAMA A FUNÇÃO QUE INICIA A BUSCA DE DADOS E CRIAÇÃO DOS ARQUIVOS EXCEL E PDF
-def init_generate_files(dict_search_data: dict):
+def init_generate_files(dict_form_controls: Dict[str, ft.Control]) -> None:
     # Atribui à variável (page) uma instância da página
     page = PageManager.get_page()
 
@@ -30,10 +31,13 @@ def init_generate_files(dict_search_data: dict):
         end_date_field,
         checkbox_excel_field,
         checkbox_pdf_field,
-    ) = dict_search_data.values()
+    ) = dict_form_controls.values()
 
     # Se todos controles do formulário estão válidos
-    if validate_form(page=page, form_fields=dict_search_data):
+    if validate_form(
+            page=page,
+            form_fields=dict_form_controls
+    ):
         # Atribui às variáveis (start_date e end_date) os valores dos
         # controles (start_date_field e end_date_field) do formulário
         start_date = start_date_field.value
@@ -56,7 +60,7 @@ def init_generate_files(dict_search_data: dict):
 
         # Atribui à variável (data_dict), um dicionário, valores
         # atribuídos às variáveis após as validações
-        data_dict: dict = {
+        data_dict: Dict = {
             # 'cpf': cpf,
             'cpf_field': cpf_field,
             'unit_field': unit_field,
@@ -111,14 +115,23 @@ def init_generate_files(dict_search_data: dict):
 
 # FUNÇÃO QUE CONTROLA A EXIBIÇÃO DA BARRA DE PROGRESSO
 # DURANTE O PROCESSO DE CRIAÇÃO DOS ARQUIVOS EXCEL E PDF
-def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
+def init_search_data(
+        file_excel: bool,
+        file_pdf: bool,
+        data_dict: Dict[str, Union[ft.Control, int, webdriver]]
+) -> None:
     # Importa a variável (array_pdf_files) dp módulo (create_pdf_service)
-    from services.data.generate_pdf_service import array_pdf_files
+    # from services.data.generate_pdf_service import array_pdf_files
 
     # Cria um dicionário com parte dos dados do dicionário (data_dict)
     dict_clear_form = {
         k: v for k, v in data_dict.items() if k in [
-            'cpf_field', 'unit_field', 'start_date_field', 'end_date_field'
+            'cpf_field',
+            'unit_field',
+            'start_date_field',
+            'end_date_field',
+            'checkbox_excel_field',
+            'checkbox_pdf_field'
         ]
     }
 
@@ -143,7 +156,7 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
         data_progress_bar('Criando planilha e arquivo PDF. AGUARDE...')
 
     # Atribui a variável (result) o retorno da função (search_data). Esta
-    # função é responsável por retorna uma tupla (string, bool) | None e
+    # função é responsável por retorna uma tupla (bool | None) e
     result = search_data(dict_search_data=data_dict)
 
     # Se result for diferente de None
@@ -192,11 +205,11 @@ def init_search_data(file_excel: bool, file_pdf: bool, data_dict: dict):
             page.update()
 
         # Limpa os controles do formulário após concluído o processo de gerar arquivos
-        clear_form(dict_controls_fields=dict_clear_form)
+        clear_form(dict_form_controls=dict_clear_form)
 
         # Limpa o array que contém os arquivos PDF em formato binário.
         # O array está no módulo (create_pdf_service)
-        array_pdf_files.clear()
+        # array_pdf_files.clear()
     else:
         # Exclui a barra de progresso e atualiza a página
         page.overlay.pop()

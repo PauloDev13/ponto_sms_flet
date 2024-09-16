@@ -9,4 +9,5 @@ class PageManager:
     def get_page(cls):
         if cls._page_instance is None:
             raise ValueError('Instãncia de Page indefinida')
+
         return cls._page_instance

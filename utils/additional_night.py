@@ -7,7 +7,7 @@ def additional_night_calculation(
         end_dt: datetime,
         start_hs: time,
         end_hs: time
-):
+) -> bool | None:
     # Se todos os argumentos passados são diferentes de None...
     if (start_dt and start_hs) or (end_dt and end_hs):
 

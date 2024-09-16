@@ -1,6 +1,5 @@
-import os
-
 import xlsxwriter
+from typing import Dict
 
 # Importações dos módulos locais
 from config.config_env import PASSWORD
@@ -8,7 +7,7 @@ from config.config_env import PASSWORD
 
 # Função que retorna um dicionário com a formatação
 # para células individuais do arquivo Excel
-def define_formats(workbook):
+def define_formats(workbook) -> Dict[str, any]:
     formats = {
         'header': workbook.add_format({
             'bold': True,
@@ -44,7 +43,7 @@ def define_formats(workbook):
             'bold': True,
             'bg_color': '#F0E68C',
             'align': 'center',
-            'valign': 'top',
+            'valign': 'vcenter',
         }),
         'custom_2': workbook.add_format({
             'top': 1,
@@ -54,7 +53,7 @@ def define_formats(workbook):
             'bold': True,
             'bg_color': '#F0E68C',
             'align': 'justify',
-            'valign': 'top',
+            'valign': 'vcenter',
         }),
         'all_borders': workbook.add_format({
             'border': 1,
@@ -88,6 +87,7 @@ def define_formats(workbook):
         'single_border': workbook.add_format({
             'border': 1,
             'align': 'center',
+            'valign': 'vcenter',
         }),
         'test': workbook.add_format({
             'align': 'right',
@@ -99,7 +99,7 @@ def define_formats(workbook):
 
 # Função que implementa condicionais e formatação
 # (usando a função define_formats), em células individuais do arquivo Excel
-def apply_formatting(worksheet, df_year, formats):
+def apply_formatting(worksheet, df_year, formats) -> None:
     # Formata as larguras das colunas e aplica em algumas
     # delas a formatação que centraliza o conteúdo
     worksheet.set_column(0, 0, 25)
@@ -165,7 +165,7 @@ def apply_formatting(worksheet, df_year, formats):
 
             # Se o índice da coluna for == a 0 e o valor da célula começar com a
             # string 'NÃO HÁ REGISTRO', mescla as células da coluna em toda a linha
-            elif col_index == 0 and value.startswith('NÃO HÁ REGISTRO'):
+            elif col_index == 0 and value.startswith('SERVIDOR EM'):
                 worksheet.set_row(row_index, 30)
                 worksheet.merge_range(
                     row_index, 0, row_index, 10, value, formats['warning'])
@@ -207,7 +207,7 @@ def apply_formatting(worksheet, df_year, formats):
             elif col_index == 6:
                 worksheet.write(row_index, col_index, value, formats['single_border'])
 
-            # Se o índice da coluna for > 6 e < 11, aplica a formação que
+            # Se o índice da coluna for > 6, aplica a formação que
             # insere bordas em todas as células do intervalo em cada coluna
             elif col_index > 6:
                 worksheet.conditional_format(f'H{row_index}:K{row_index}', {

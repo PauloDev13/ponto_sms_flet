@@ -1,4 +1,3 @@
-import os
 from time import sleep
 
 import flet as ft
@@ -11,15 +10,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
+from config.config_env import PASSWORD
+from config.config_env import URL_BASE
+# Atribuições das variáveis declaradas no .env
+from config.config_env import URL_INIT
+from config.config_env import USER
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
 from utils.share_model import login_progress_bar
-
-# Atribuições das variáveis declaradas no .env
-from config.config_env import URL_INIT
-from config.config_env import URL_BASE
-from config.config_env import USER
-from config.config_env import PASSWORD
 
 # Define a variável (countdown_text) como um controle de texto vazio
 countdown_text = ft.Text(value='')

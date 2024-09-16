@@ -53,11 +53,6 @@ class AlertSnackbar:
             ],
             alignment=ft.MainAxisAlignment.SPACE_EVENLY,
         )
-        #
-        # snackbar_row = ft.Row(
-        #     controls=[snackbar],
-        #     alignment=ft.MainAxisAlignment.SPACE_EVENLY,
-        # )
 
         page.overlay.append(snackbar)
         page.update()

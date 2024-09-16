@@ -1,5 +1,6 @@
-import flet as ft
 from time import sleep, time
+
+import flet as ft
 
 from models.page_manager import PageManager
 

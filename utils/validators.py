@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Dict
 
 import flet as ft
 
@@ -7,8 +8,7 @@ from models.alert_snackbar import AlertSnackbar
 
 
 # FUNÇÃO QUE VALIDA TODOS OS CONTROLES DO FORMULÁRIO
-def validate_form(page: ft.Page, form_fields: dict) -> bool:
-    # page = PageManager.get_page()
+def validate_form(page: ft.Page, form_fields: Dict[str, ft.Control]) -> bool:
     # Desempacota os argumentos enviados através do dicionário (form_fields)
     (
         cpf_field,
@@ -51,7 +51,11 @@ def validate_date_format(date_str: str) -> datetime | None:
 
 
 # FUNÇÃO QUE VALIDA OS CHECKBOX
-def validate_type_file(page: ft.Page, excel_field: ft.Checkbox, pdf_field: ft.Checkbox) -> bool:
+def validate_type_file(
+        page: ft.Page,
+        excel_field: ft.Checkbox,
+        pdf_field: ft.Checkbox
+) -> bool:
     if not excel_field.value and not pdf_field.value:
         excel_field.fill_color = ft.colors.RED_ACCENT
         pdf_field.fill_color = ft.colors.RED_ACCENT
@@ -77,7 +81,10 @@ def validate_unit_field(unit_field: ft.TextField) -> bool:
 
 
 # FUNÇÃO QUE VALIDA AS DATAS
-def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField) -> bool:
+def validate_dates(
+        date_start_field: ft.TextField,
+        date_end_field: ft.TextField
+) -> bool:
     try:
         # Atribui às variáveis (date_start e date_end) o valor dos controles
         # (date_start_field e date_end_field) do formulário
@@ -146,7 +153,7 @@ def validate_dates(date_start_field: ft.TextField, date_end_field: ft.TextField)
 
 
 # FUNÇÃO QUE VALIDA O NÚMERO DO CPF
-def validate_cpf(cpf_field: ft.TextField):
+def validate_cpf(cpf_field: ft.TextField) -> bool:
     # usa o método (strip()) para desconsiderar espaços em branco
     # no início e final digitados no controle CPF do formulário
     cpf = cpf_field.value.strip()

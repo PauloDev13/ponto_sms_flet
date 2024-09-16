@@ -1,19 +1,21 @@
+from typing import Dict
+
 import pandas as pd
 
 # Importações dos módulos locais
-from utils.format_col_dataframe import columns_update
 from models.alert_snackbar import AlertSnackbar
+from utils.format_col_dataframe import columns_update
 
 
 # FUNÇÃO QUE CRIA TODA A ESTRUTURA DO DATAFRAME QUE VAI GERAR O ARQUIVO EXCEL
 def generate_dataframe(
         df_table: pd.DataFrame,
-        data_by_year: dict[int, pd.DataFrame],
+        data_by_year: Dict[int, pd.DataFrame],
         cpf: str,
         month_name: str,
         year: int,
         employee_name: str,
-):
+) -> None:
 
     try:
         # Atualiza o dataframe (df_table) substituindo o conteúdo das colunas
@@ -25,16 +27,16 @@ def generate_dataframe(
         ] = '---'
 
         # Filtrar as linhas onde 'DATA ENTRADA' é igual 'AFASTAMENTO'
-        df_filtered_removal = df_table[df_table['DATA ENTRADA'] == 'AFASTAMENTO']
+        # df_filtered_removal = df_table[df_table['DATA ENTRADA'] == 'AFASTAMENTO']
 
         #  Remover duplicatas na coluna 'ENTRADA' dentro do subconjunto
-        df_filtered_removal = df_filtered_removal.drop_duplicates(subset='ENTRADA')
+        # df_filtered_removal = df_filtered_removal.drop_duplicates(subset='ENTRADA')
 
         # Filtrar as linhas onde 'DATA ENTRADA' não é 'AFASTAMENTO'
-        df_filtered_without_removal = df_table[df_table['DATA ENTRADA'] != 'AFASTAMENTO']
+        # df_filtered_without_removal = df_table[df_table['DATA ENTRADA'] != 'AFASTAMENTO']
 
         # Combina o DataFrame sem duplicatas com o restante dos dados originais
-        df_table = pd.concat([df_filtered_without_removal, df_filtered_removal])
+        # df_table = pd.concat([df_filtered_without_removal, df_filtered_removal])
 
         # Reset o índice se necessário (opcional)
         # df_table = df_table.reset_index(drop=True)
@@ -95,10 +97,9 @@ def generate_dataframe(
 
         # Cria uma nova linha com mensagem de alerta,
         # escrita na primeira célula da coluna para os
-        # meses que não retornam dados.
+        # meses em que o servidor gozou férias.
         message_row = (
-                [f'NÃO HÁ REGISTROS PARA O MÊS {month_name}/{year} - '
-                 f'CONFIRMAR FÉRIAS OU LICENÇA'] +
+                [f'SERVIDOR EM GOZO DE FÉRIAS NO MÊS {month_name}/{year}'] +
                 [''] * (len(df_result.columns) - 1))
 
         # cria linha vazia

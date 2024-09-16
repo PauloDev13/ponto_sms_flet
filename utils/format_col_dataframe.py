@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time, date
 
 import pandas as pd
 
@@ -17,7 +17,7 @@ def format_validation_date(date: str) -> bool:
 
 
 # Função para converter string para datetime.date NO FORMATO ('dd/MM/yyyy')
-def str_to_date(date: str):
+def str_to_date(date: str) -> date | None:
     try:
         return datetime.strptime(date, '%d/%m/%Y').date()
     except ValueError:
@@ -35,7 +35,7 @@ def format_validation(hour_str: str) -> bool:
 
 
 # Função para converter string para datetime.time NO FORMATO ('HH:mm:ss')
-def str_to_time(hour_str):
+def str_to_time(hour_str: str) -> time | None:
     try:
         return datetime.strptime(hour_str, '%H:%M:%S').time()
     except ValueError:

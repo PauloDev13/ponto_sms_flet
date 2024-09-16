@@ -1,3 +1,5 @@
+from typing import Dict
+
 import flet as ft
 
 # Importação dos módulos locais
@@ -7,14 +9,7 @@ from services.data.init_generate_service import init_generate_files
 from utils.share_model import button_style, close_app, clear_form, open_folder
 
 # Dicionário com os controles do formulário
-dict_controls: dict = {
-    'cpf_field': cpf_field,
-    'unit_field': unit_field,
-    'start_date_field': start_date_field,
-    'end_date_field': end_date_field,
-}
-
-dict_search_data: dict = {
+dict_form_controls: Dict = {
     'cpf_field': cpf_field,
     'unit_field': unit_field,
     'start_date_field': start_date_field,
@@ -26,7 +21,7 @@ dict_search_data: dict = {
 # Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
     on_click=lambda _: init_generate_files(
-        dict_search_data=dict_search_data
+        dict_form_controls=dict_form_controls
     ),
     text='GERAR PLANILHAS',
     style=button_style('OK'),
@@ -36,7 +31,7 @@ generate_button = ft.ElevatedButton(
 # Botão para limpar os campos do formulário
 cancel_button = ft.ElevatedButton(
     on_click=lambda _: clear_form(
-        dict_controls
+        dict_form_controls=dict_form_controls
     ),
     col={'md': 4},
     text='CANCELAR',

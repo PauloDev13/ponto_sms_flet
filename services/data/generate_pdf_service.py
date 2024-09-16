@@ -1,16 +1,17 @@
 import base64
 from io import BytesIO
+from typing import List
 
 from pypdf import PdfReader, PdfWriter
 from selenium.webdriver.chrome import webdriver
 
 
 # Define a variável que vai receber o array de arquivos PDF
-array_pdf_files = []
+array_pdf_files: List[bytes] = []
 
 
 # FUNÇÃO QUE SALVA O ARQUIVO PDF
-def save_pdf(url_search: str, driver: webdriver):
+def save_pdf(url_search: str, driver: webdriver) -> List[bytes]:
     # Navega para a URL
     driver.get(url_search)
 
@@ -34,8 +35,10 @@ def save_pdf(url_search: str, driver: webdriver):
                     Página <span class="pageNumber"></span> de <span class="totalPages"></span>
                 </div>''',  # Exibe data, URL e numeração no rodapé
     })
+
     # Atribui a variável (pdf_data) o valor da chave (data)
     pdf_data = result['data']
+
     # Transforma em bytes base64 o conteúdo da chave (data)
     pdf_bytes = base64.b64decode(pdf_data)
 
@@ -46,7 +49,7 @@ def save_pdf(url_search: str, driver: webdriver):
 
 
 # FUNÇÃO QUE COMBINA OS ARQUIVOS PDF NUM SÓ ARQUIVO
-def combine_pdfs(pdf_bytes_list, output_path):
+def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str) -> None:
     # Cria uma instância de (PdfMerger) e atribui a variável (pdf_merge)
     # pdf_merge = PdfMerger()
     pdf_writer = PdfWriter()
@@ -55,6 +58,7 @@ def combine_pdfs(pdf_bytes_list, output_path):
     for pdf_bytes in pdf_bytes_list:
         # Lê os bytes de cada arquivo PDF e atribui à variável (pdf_reader)
         pdf_reader = PdfReader(BytesIO(pdf_bytes))
+
         # Combina os arquivos PDF num só arquivo
         pdf_writer.append(pdf_reader)
 
@@ -62,3 +66,5 @@ def combine_pdfs(pdf_bytes_list, output_path):
     with open(output_path, 'wb') as output_pdf:
         pdf_writer.write(output_pdf)
 
+    # Limpa o array que contém os arquivos PDF em formato binário.
+    pdf_bytes_list.clear()

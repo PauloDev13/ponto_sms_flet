@@ -3,18 +3,20 @@ import datetime
 import locale
 import os
 from io import StringIO
+from typing import Dict, Union, List
 
 import flet as ft
 import pandas as pd
 from bs4 import BeautifulSoup
+from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Busca no arquivo (.env) o valor da URL base e o nome do diretório (NAME_FOLDER)
-from config.config_env import URL_DATA
 from config.config_env import NAME_FOLDER
+from config.config_env import URL_DATA
 
 # Importações dos módulos locais
 from models.alert_snackbar import AlertSnackbar
@@ -29,17 +31,17 @@ locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 # FUNÇÃO QUE INICIA O SCRAPING DA PÁGINA HTML E CHAMA
 # AS FUNÇÕES QUE CRIAM OS ARQUIVOS PDF E EXCEL
-def search_data(dict_search_data: dict):
+def search_data(dict_search_data: Dict[str, Union[ft.Control, int, webdriver]]) -> bool | None:
     # Define a variável que vai receber o nome do funcionário pesquisado
     employee_name: str = ''
 
     # Define o array (pdf_byte_list) que vai receber a lista
     # com as páginas dos arquivos PDF que serão gerados
-    pdf_byte_list: []
+    pdf_byte_list: List[bytes] = []
 
     # Cria o dicionário (dict_fields) com parte dos dados
     # enviados como argumento no dicionário (dict_search_data)
-    dict_fields: dict = {
+    dict_fields: Dict = {
         k: v for k, v in dict_search_data.items() if k in [
             'checkbox_excel_field',
             'checkbox_pdf_field',
@@ -51,7 +53,7 @@ def search_data(dict_search_data: dict):
 
     # Cria o dicionário (dict_values) com parte dos dados
     # enviados como argumento no dicionário (dict_search_data)
-    dict_values: dict = {
+    dict_values: Dict = {
         k: v for k, v in dict_search_data.items() if k in [
             'cpf_field',
             'unit_field',
@@ -70,7 +72,7 @@ def search_data(dict_search_data: dict):
         # Atribui variáveis para receber o conjunto de dados (dicionário)
         # e as datas do intervalo a ser pesquisado
         cpf = format_cpf(cpf_field)
-        data_by_year: dict[int, pd.DataFrame] = {}
+        data_by_year: Dict[int, pd.DataFrame] = {}
         current_date = datetime.date(year_start, month_start, 1)
         end_date = datetime.date(year_end, month_end, 1)
         unit = unit_field.value
@@ -136,7 +138,7 @@ def search_data(dict_search_data: dict):
                     )
 
                     # Chama a função que monta a estrutura do arquivo PDF
-                    pdf_byte_list = save_pdf(
+                    pdf_byte_list: List[bytes] = save_pdf(
                         url_search=url_search,
                         driver=driver,
                     )
@@ -158,7 +160,7 @@ def search_data(dict_search_data: dict):
                 #  e (gerar planilha) está DEMARCADA
                 if checkbox_pdf_field.value and not checkbox_excel_field.value:
                     # Chama a função que monta a estrutura do arquivo PDF
-                    pdf_byte_list = save_pdf(
+                    pdf_byte_list: List[bytes] = save_pdf(
                         url_search=url_search,
                         driver=driver,
                     )

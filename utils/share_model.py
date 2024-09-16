@@ -3,6 +3,7 @@ import shlex
 import subprocess
 import threading
 from time import sleep
+from typing import Dict
 
 import flet as ft
 import pythoncom
@@ -17,19 +18,23 @@ from models.page_manager import PageManager
 
 
 # FUNÇÃO QUE LIMPA OS CONTROLES DO FORMULÁRIO
-def clear_form(dict_controls_fields: dict) -> None:
+def clear_form(dict_form_controls: Dict[str, ft.Control]) -> None:
     # Loop que limpa e atualiza todos os controles do formulário
-    for key in dict_controls_fields:
-        if isinstance(dict_controls_fields[key], ft.Control):
-            dict_controls_fields[key].value = ''
-            dict_controls_fields[key].update()
+    for key in dict_form_controls:
+        if isinstance(dict_form_controls[key], ft.TextField):
+            dict_form_controls[key].value = ''
+            dict_form_controls[key].update()
+
+        if isinstance(dict_form_controls[key], ft.Checkbox):
+            dict_form_controls[key].value = False
+            dict_form_controls[key].update()
 
     # Seta o focus para o controle CPF no formulário
-    dict_controls_fields.get('cpf_field').focus()
+    dict_form_controls.get('cpf_field').focus()
 
 
 # FUNÇÃO QUE CAPTURA O EVENTO DISPARADO QUANDO A JANELA DA APLICAÇÃO É FECHADA
-def window_event(e):
+def window_event(e) -> None:
     # Importa do módulo (controls) o controle (confirm_dialog)
     from controls.display.confirm_dialog import confirm_dialog
 
@@ -39,7 +44,7 @@ def window_event(e):
 
 
 # FUNÇÃO QUE CAPTURA QUANDO A TECLA (ENTER) É PRESSIONADA
-def on_key_enter_event(e):
+def on_key_enter_event(e) -> None:
     # Importa o controle (generate_button)
     from controls.buttons.elevated_button import generate_button
 
@@ -49,7 +54,7 @@ def on_key_enter_event(e):
 
 
 # FUNÇÃO QUE EXIBE A CAIXA DE DIÁLOGO PARA CONFIRMAR A SAÍDA DO APLICATIVO
-def close_app(_):
+def close_app(_) -> None:
     # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
     page = PageManager.get_page()
 
@@ -62,7 +67,7 @@ def close_app(_):
 
 # FUNÇÃO LOCAL PARA CRIAR O DIRETÓRIO ONDE SERÃO
 # SALVOS OS ARQUIVOS DO EXCEL QUE SERÃO GERADOS
-def create_folder(name_file: str):
+def create_folder(name_file: str) -> str:
     try:
         # Monta a caminho do diretório que será criado e atribui à variável (folder_path).
         # O caminho é: C:/users/<user do windows>/Documents/PLANILHAS_SMS
@@ -96,7 +101,7 @@ def create_folder(name_file: str):
 
 
 # FUNÇÃO PARA ABRIR A PASTA ONDE ESTÃO OS ARQUIVOS EXCEL GERADOS
-def open_folder(_):
+def open_folder(_) -> None:
     # Atribui à variável (folder_path) o caminho do diretório onde são salvos os arquivos Excel
     folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
 
@@ -116,7 +121,7 @@ def open_folder(_):
 
 # FUNÇÃO QUE CRIA UM ATALHO NA ÁREA DE TRABALHO PARA
 # A PASTA ONDE OS ARQUIVOS DO EXCEL SÃO SALVOS
-def create_shortcut_to_desktop_folder(folder_path):
+def create_shortcut_to_desktop_folder(folder_path) -> None:
     # Inicializa o COM
     pythoncom.CoInitialize()
 
@@ -137,7 +142,7 @@ def create_shortcut_to_desktop_folder(folder_path):
 
 
 # FUNÇÃO QUE ABRE O ARQUIVO EXCEL NO OS
-def open_file_excel(path_file_excel):
+def open_file_excel(path_file_excel) -> None:
     # Se o caminho para o arquivo existe...
     if os.path.exists(path_file_excel):
 
@@ -204,7 +209,7 @@ def button_style(btn_name: str = '') -> ft.ButtonStyle:
 def login_progress_bar(
         total_time: float = 0,
         message: str | None = None,
-):
+) -> None:
     # Atribui a variável (progress_bar) uma instância da barra de progresso
     progress_bar = ft.ProgressBar(width=600, color='#5a90fc', value=0.0)
     countdown_text = ft.Text(value='', color='#abb2bf', size=20)
@@ -231,7 +236,7 @@ def login_progress_bar(
 
 
 # FUNÇÃO QUE CRIA UM CONTADOR PARA ESPECIFICAR O TEMPO QUE RESTA PARA O LOGIN
-def control_count_down(total_time: float, control: ft.Control, status: bool):
+def control_count_down(total_time: float, control: ft.Control, status: bool) -> None:
     # Atribui à variável (page) uma instância da página retornada pela classe (PageManager)
     page = PageManager.get_page()
 
@@ -252,7 +257,7 @@ def control_count_down(total_time: float, control: ft.Control, status: bool):
 
 # FUNÇÃO QUE EXIBE A BARRA DE PROGRESSO DURANTE A OPERAÇÃO DE
 # SCRAPING (LEITURA DOS DADOS) NO HTML
-def data_progress_bar(message: str):
+def data_progress_bar(message: str) -> None:
     # Define a variável container como vazia
     container = ft.Container()
     # Importa a função (progress_control) do módulo controls

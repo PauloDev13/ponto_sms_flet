@@ -1,6 +1,8 @@
 import os
 import sys
+
 from dotenv import load_dotenv
+
 
 # Função para carregar o .env e definir o caminho base corretamente
 def initalize_enviroment():
