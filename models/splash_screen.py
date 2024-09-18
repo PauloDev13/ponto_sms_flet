@@ -24,7 +24,7 @@ from controls.inputs.input_text import (
     end_date_field,
 )
 
-from controls.inputs.autocomplete import unit_field
+from controls.inputs.autocomplete import unit_field, unit_dropdown_field
 
 
 # Simula o efeito de fade in ou fade out
@@ -130,7 +130,8 @@ class SplashScreen:
                             ft.Container(
                                 ft.ResponsiveRow([
                                     cpf_field,
-                                    unit_field
+                                    # unit_field
+                                    unit_dropdown_field
                                 ]),
                             ),
                             ft.Container(
