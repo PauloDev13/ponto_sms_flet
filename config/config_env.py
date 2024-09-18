@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 
 # Função para carregar o .env e definir o caminho base corretamente
-def initalize_enviroment():
+def initialize_environment():
     # Verifica se a aplicação está empacotada com PyInstaller
     if getattr(sys, 'frozen', False):
         # Caminho para o diretório onde o PyInstaller coloca os arquivos
@@ -22,8 +22,10 @@ def initalize_enviroment():
 
     return base_path
 
+
 # Inicializa o ambiente e obtém o caminho base
-BASE_PATH = initalize_enviroment()
+BASE_PATH = initialize_environment()
+
 
 # Função para construir o caminho absoluto para variáveis
 # que são caminhos de arquivos ou diretórios
@@ -36,8 +38,10 @@ def get_absolute_path(env_variable_name):
     # Retorna o caminho absoluto com base no caminho relativo definido no .env
     return os.path.join(BASE_PATH, relative_path)
 
+
 # Variáveis que são caminhos de arquivos ou diretórios
 PATH_LOGO = get_absolute_path('PATH_LOGO')
+PATH_CSV = get_absolute_path('PATH_CSV')
 
 # Outras variáveis do .env que não são caminhos de arquivos
 USER = os.getenv('USER')

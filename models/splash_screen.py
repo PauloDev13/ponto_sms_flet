@@ -24,6 +24,8 @@ from controls.inputs.input_text import (
     end_date_field,
 )
 
+from controls.inputs.autocomplete import unit_field
+
 
 # Simula o efeito de fade in ou fade out
 def fade_effect(

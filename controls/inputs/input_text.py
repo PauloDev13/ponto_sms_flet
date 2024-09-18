@@ -4,7 +4,7 @@ import flet as ft
 # Controle que recebe o número do CPF no formulário
 cpf_field = ft.TextField(
     label='CPF',
-    col={'md': 8},
+    col={'md': 12},
     hint_text='Digite um CPF',
     border_color='#5a90fc',
     autofocus=True,
