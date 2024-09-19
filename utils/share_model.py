@@ -29,6 +29,11 @@ def clear_form(dict_form_controls: Dict[str, ft.Control]) -> None:
             dict_form_controls[key].value = False
             dict_form_controls[key].update()
 
+        # if isinstance(dict_form_controls[key], ft.AutoComplete):
+        #     index = dict_form_controls[key].selected_index
+        #     dict_form_controls[key].suggestions[index].value = ''
+        #     dict_form_controls[key].update()
+
     # Seta o focus para o controle CPF no formulário
     dict_form_controls.get('cpf_field').focus()
 

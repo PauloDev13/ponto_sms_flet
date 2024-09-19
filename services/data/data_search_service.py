@@ -19,6 +19,7 @@ from config.config_env import NAME_FOLDER
 from config.config_env import URL_DATA
 
 # Importações dos módulos locais
+from controls.inputs.autocomplete import autocomplete_value
 from models.alert_snackbar import AlertSnackbar
 from services.data.generate_df_service import generate_dataframe
 from services.data.generate_excel_file import generate_excel_file
@@ -75,8 +76,10 @@ def search_data(dict_search_data: Dict[str, Union[ft.Control, int, webdriver]]) 
         data_by_year: Dict[int, pd.DataFrame] = {}
         current_date = datetime.date(year_start, month_start, 1)
         end_date = datetime.date(year_end, month_end, 1)
-        unit = unit_field.value
 
+        # Chama a função () que retorna o código da
+        # unidade selecionada no controle autocomplete
+        unit = autocomplete_value(unit_field)
 
         # Enquanto a data inicial for menor que a data final,
         # são atribuídos as variáveis 'month' e 'year' os valores

@@ -1,32 +1,33 @@
 import flet as ft
 
-from services.data.autocomplete import read_csv, read_csv_dropdown
+from services.data.autocomplete import read_csv
 
 # Busca no arquivo (.env) o valor da URL base e o nome do diretório (NAME_FOLDER)
 from config.config_env import PATH_CSV
 
 suggestions = read_csv(PATH_CSV)
 
-options = read_csv_dropdown(PATH_CSV)
 
+def autocomplete_value(control: ft.AutoComplete) -> str:
+    selected_index = control.selected_index
+    value = control.suggestions[selected_index].value
 
-def on_selected(e):
-    code = e.control.suggestions[e.control.selected_index].value
-    print(f'O VALOR DO CÓDIGO É: {code}')
-
-
-def on_selected_dropdown(e):
-    code = e.control.value
-    print(f'O VALOR DO CÓDIGO É: {code}')
+    return value.split('-')[0]
 
 
 unit_field = ft.AutoComplete(
+    suggestions_max_height=200,
     suggestions=suggestions,
-    on_select=lambda e: on_selected(e),
 )
 
-unit_dropdown_field = ft.Dropdown(
-    label='Unidade',
-    options=options,
-    on_change=lambda e: on_selected_dropdown(e),
+label = ft.Text(value='Unidade', color='#5a90fc')
+
+unit_autocomplete_field = ft.Container(
+    content=ft.Column(
+        controls=[
+            label,
+            unit_field
+        ]),
+
+    margin=ft.margin.only(top=10)
 )

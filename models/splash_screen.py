@@ -24,7 +24,7 @@ from controls.inputs.input_text import (
     end_date_field,
 )
 
-from controls.inputs.autocomplete import unit_field, unit_dropdown_field
+from controls.inputs.autocomplete import unit_autocomplete_field
 
 
 # Simula o efeito de fade in ou fade out
@@ -99,8 +99,8 @@ class SplashScreen:
         self.page.window.title_bar_hidden = False
 
         # Definindo o tamanho da janela
-        self.page.window.width = 850
-        self.page.window.height = 650
+        self.page.window.width = 800
+        self.page.window.height = 750
 
         # Centralizando o conteúdo da janela
         self.page.window.center()
@@ -130,8 +130,7 @@ class SplashScreen:
                             ft.Container(
                                 ft.ResponsiveRow([
                                     cpf_field,
-                                    # unit_field
-                                    unit_dropdown_field
+                                    unit_autocomplete_field
                                 ]),
                             ),
                             ft.Container(
@@ -139,7 +138,7 @@ class SplashScreen:
                                     start_date_field,
                                     end_date_field
                                 ]),
-                                margin=ft.margin.only(top=20)
+                                margin=ft.margin.only(top=10)
                             ),
                             ft.Container(
                                 ft.Row([

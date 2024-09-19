@@ -22,6 +22,9 @@ def validate_form(page: ft.Page, form_fields: Dict[str, ft.Control]) -> bool:
     if not validate_cpf(cpf_field=cpf_field):
         return False
 
+    if not validate_unit_field(unit_field=unit_fiel):
+        return False
+
     if not validate_dates(
             date_start_field=start_date_field,
             date_end_field=end_date_field
@@ -33,9 +36,6 @@ def validate_form(page: ft.Page, form_fields: Dict[str, ft.Control]) -> bool:
             excel_field=checkbox_excel_field,
             pdf_field=checkbox_pdf_field
     ):
-        return False
-
-    if not validate_unit_field(unit_field=unit_fiel):
         return False
 
     return True
@@ -68,13 +68,12 @@ def validate_type_file(
         return True
 
 
-# FUNÇÃO QUE VALIDA SE O CONTROLE QUE RECEBE O CÓDIGO DA UNIDADE É SOMENTE NÚMEROS
-def validate_unit_field(unit_field: ft.TextField) -> bool:
-    value = unit_field.value
+# FUNÇÃO QUE VALIDA SE O CONTROLE QUE RECEBE O CÓDIGO DA UNIDADE FOI INFORMADO
+def validate_unit_field(unit_field: ft.AutoComplete):
+    selected_key = unit_field.selected_index
 
-    if value and not value.isdigit():
-        AlertSnackbar.show(message='O código da unidade tem que ser numérico')
-        unit_field.focus()
+    if selected_key is None:
+        AlertSnackbar.show(message='Informe a unidade lotação')
         return False
 
     return True
