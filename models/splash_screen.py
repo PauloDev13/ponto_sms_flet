@@ -20,11 +20,10 @@ from controls.inputs.checkboxs import (
 from controls.inputs.input_text import (
     cpf_field,
     unit_field,
+    list_results,
     start_date_field,
     end_date_field,
 )
-
-from controls.inputs.autocomplete import unit_autocomplete_field
 
 
 # Simula o efeito de fade in ou fade out
@@ -95,12 +94,21 @@ class SplashScreen:
     # Retira a tela inicial (splash show) da janela,
     # cria e exibe a tela principal do sistema
     def hide(self):
+
+        # Agrupa os checkbox numa coluna para que fique um embaixo do outro
+        checkboxs = ft.Column(
+            controls=[
+                checkbox_excel_field,
+                checkbox_pdf_field,
+            ],
+            col={'md': 6}
+        )
         # Exibe a barra de título da janela
         self.page.window.title_bar_hidden = False
 
         # Definindo o tamanho da janela
         self.page.window.width = 800
-        self.page.window.height = 750
+        self.page.window.height = 620
 
         # Centralizando o conteúdo da janela
         self.page.window.center()
@@ -130,22 +138,16 @@ class SplashScreen:
                             ft.Container(
                                 ft.ResponsiveRow([
                                     cpf_field,
-                                    unit_autocomplete_field
+                                    unit_field,
                                 ]),
-                            ),
-                            ft.Container(
-                                ft.ResponsiveRow([
-                                    start_date_field,
-                                    end_date_field
-                                ]),
-                                margin=ft.margin.only(top=10)
                             ),
                             ft.Container(
                                 ft.Row([
-                                    checkbox_excel_field,
-                                    checkbox_pdf_field,
-                                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                                ),
+                                    start_date_field,
+                                    end_date_field,
+                                    checkboxs,
+                                ]),
+                                margin=ft.margin.only(top=10),
                             ),
                             ft.ResponsiveRow([
                                 generate_button,
@@ -175,4 +177,5 @@ class SplashScreen:
 
         # Adiciona os controles à pagina principal e atualiza a página
         self.page.controls.append(main_screen)
+        self.page.overlay.append(list_results)
         self.page.update()

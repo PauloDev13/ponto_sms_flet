@@ -12,7 +12,7 @@ def validate_form(page: ft.Page, form_fields: Dict[str, ft.Control]) -> bool:
     # Desempacota os argumentos enviados através do dicionário (form_fields)
     (
         cpf_field,
-        unit_fiel,
+        unit_field,
         start_date_field,
         end_date_field,
         checkbox_excel_field,
@@ -22,7 +22,7 @@ def validate_form(page: ft.Page, form_fields: Dict[str, ft.Control]) -> bool:
     if not validate_cpf(cpf_field=cpf_field):
         return False
 
-    if not validate_unit_field(unit_field=unit_fiel):
+    if not validate_unit_field(unit_field=unit_field):
         return False
 
     if not validate_dates(
@@ -60,7 +60,7 @@ def validate_type_file(
         excel_field.fill_color = ft.colors.RED_ACCENT
         pdf_field.fill_color = ft.colors.RED_ACCENT
 
-        AlertSnackbar.show(message='Escolha pelo menos um tipo de arquivo a ser gerado')
+        AlertSnackbar.show(message='Escolha pelo menos um tipo de arquivo a ser gerado!')
         page.update()
 
         return False
@@ -68,14 +68,14 @@ def validate_type_file(
         return True
 
 
-# FUNÇÃO QUE VALIDA SE O CONTROLE QUE RECEBE O CÓDIGO DA UNIDADE FOI INFORMADO
-def validate_unit_field(unit_field: ft.AutoComplete):
-    selected_key = unit_field.selected_index
+# FUNÇÃO QUE VALIDA SE O CONTROLE QUE RECEBE O
+# CÓDIGO DA UNIDADE FOI INFORMADO E SE É NUMÉRICO
+def validate_unit_field(unit_field: ft.TextField) -> bool:
 
-    if selected_key is None:
-        AlertSnackbar.show(message='Informe a unidade lotação')
+    if not unit_field.value:
+        unit_field.focus()
+        AlertSnackbar.show(message='Informe o Código da Unidade!')
         return False
-
     return True
 
 
@@ -98,11 +98,12 @@ def validate_dates(
         # APLICA VALIDAÇÕES NOS CAMPOS DATAS
         if not date_start:
             date_start_field.focus()
-            AlertSnackbar.show(message='A Data Inicial é obrigatória!')
+            AlertSnackbar.show(message='O Período Inicial é obrigatório!')
             return False
+
         elif start_date is None:
             date_start_field.focus()
-            AlertSnackbar.show(message=f'A Data Inicial ({date_start}) é inválida!')
+            AlertSnackbar.show(message=f'O Período Inicial ({date_start}) é inválido!')
             return False
 
         # Atribui à variável (start_year) o valor do ano extraído da variável (start_date)
@@ -110,16 +111,16 @@ def validate_dates(
 
         if start_year < 2000:
             date_start_field.focus()
-            AlertSnackbar.show(message=f'O Ano da Data Inicial deve ser igual ou maior que 2000')
+            AlertSnackbar.show(message=f'O Ano do Período Inicial deve ser igual ou maior que 2000!')
             return False
 
         if not date_end:
             date_end_field.focus()
-            AlertSnackbar.show(message='A Data Final é obrigatória!')
+            AlertSnackbar.show(message='O Período Final é obrigatório!')
             return False
         elif end_date is None:
             date_end_field.focus()
-            AlertSnackbar.show(message=f'A Data Final ({date_end}) é inválida!')
+            AlertSnackbar.show(message=f'O Período Final ({date_end}) é inválido!')
             return False
 
         # Atribui à variável (end_year) o valor do ano extraído da variável (end_date)
@@ -128,16 +129,16 @@ def validate_dates(
         if end_year < 2000:
             date_end_field.focus()
             AlertSnackbar.show(
-                message=f'O Ano da Data Final deve ser igual ou maior que 2000'
+                message=f'O Ano do Período Final deve ser igual ou maior que 2000!'
             )
             return False
 
         if start_date > end_date:
-            date_start_field.focus()
+            date_end_field.focus()
             AlertSnackbar.show(
                 height_container=70,
-                message=f'A Data Inicial {start_date.date().strftime('%d/%m/%Y')} deve ser '
-                        f'anterior a Data Final {end_date.date().strftime('%d/%m/%Y')}')
+                message=f'O Período Final {end_date.date().strftime('%d/%m/%Y')} deve ser '
+                        f'posterior ao \nPeríodo Inicial {start_date.date().strftime('%d/%m/%Y')}!')
             return False
 
         return True

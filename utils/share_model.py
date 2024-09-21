@@ -23,16 +23,19 @@ def clear_form(dict_form_controls: Dict[str, ft.Control]) -> None:
     for key in dict_form_controls:
         if isinstance(dict_form_controls[key], ft.TextField):
             dict_form_controls[key].value = ''
+
+            # Se o controle for o (unit_field), desabilita
+            # o somente leitura e coloca o ícone da lupa
+            if key == 'unit_field':
+                dict_form_controls[key].read_only = False
+                dict_form_controls[key].prefix_icon = ft.icons.SEARCH
+                dict_form_controls[key].text_align = 'left'
+
             dict_form_controls[key].update()
 
         if isinstance(dict_form_controls[key], ft.Checkbox):
             dict_form_controls[key].value = False
             dict_form_controls[key].update()
-
-        # if isinstance(dict_form_controls[key], ft.AutoComplete):
-        #     index = dict_form_controls[key].selected_index
-        #     dict_form_controls[key].suggestions[index].value = ''
-        #     dict_form_controls[key].update()
 
     # Seta o focus para o controle CPF no formulário
     dict_form_controls.get('cpf_field').focus()

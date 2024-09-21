@@ -56,12 +56,12 @@ def checkbox_excel_checked(e):
     e.page.update()
 
 checkbox_excel_field = ft.Checkbox(
-    label='Gerar arquivo com planilhas',
+    label='Gerar planilhas',
     value=True,
     on_change=lambda e: checkbox_excel_checked(e)
 )
 
 checkbox_pdf_field = ft.Checkbox(
-    label='Gerar arquivo PDF',
+    label='Gerar PDF',
     on_change=lambda e: checkbox_pdf_changed(e)
 )
