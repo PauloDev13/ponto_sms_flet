@@ -1,9 +1,18 @@
 import base64
+import os
 from io import BytesIO
 from typing import List
 
 from pypdf import PdfReader, PdfWriter
 from selenium.webdriver.chrome import webdriver
+
+# Importação dos módulos locais
+from services.compress_pdf_file import compress_pdf_with_ghostscript
+from utils.share_model import data_progress_bar
+from models.page_manager import PageManager
+
+# Busca no arquivo (.env) o nome do diretório (NAME_FOLDER)
+from config.config_env import NAME_FOLDER
 
 
 # Define a variável que vai receber o array de arquivos PDF
@@ -50,6 +59,8 @@ def save_pdf(url_search: str, driver: webdriver) -> List[bytes]:
 
 # FUNÇÃO QUE COMBINA OS ARQUIVOS PDF NUM SÓ ARQUIVO
 def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str) -> None:
+    page = PageManager.get_page()
+
     # Cria uma instância de (PdfMerger) e atribui a variável (pdf_merge)
     # pdf_merge = PdfMerger()
     pdf_writer = PdfWriter()
@@ -65,6 +76,27 @@ def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str) -> None:
     # Salva o arquivo PDF único
     with open(output_path, 'wb') as output_pdf:
         pdf_writer.write(output_pdf)
+
+    # Pega o caminho do diretório onde está o arquivo PDF
+    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
+
+    # pega o caminho completo onde o arquivo PDF original foi salvo,
+    # coloca no final do nome do arquivo o complemento ('_pb')
+    output_pdf_path = os.path.join(folder_path, output_path.replace('.pdf', '_pb.pdf'))
+
+    # Remove a barra de progresso que está sendo exibida
+    page.overlay.pop()
+    page.update()
+
+    # Chama a função que exibe a barra de progresso com outra mensagem
+    data_progress_bar('Compactando arquivo PDF. AGUARDE')
+
+    # Chama a função que compacta o arquivo PDF passando o caminho completo
+    # do arquivo original e o caminho completo onde o novo arquivo compactado será salvo
+    compress_pdf_with_ghostscript(input_pdf=output_path, output_pdf=output_pdf_path)
+
+    # Após a compactação, exclui do diretório o arquivo PDF original
+    os.remove(output_path)
 
     # Limpa o array que contém os arquivos PDF em formato binário.
     pdf_bytes_list.clear()

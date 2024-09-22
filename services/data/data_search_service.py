@@ -204,6 +204,7 @@ def search_data(dict_search_data: Dict[str, Union[ft.Control, int, webdriver]]) 
             # Atribui a variável (output_pdf_path) o caminho e o nome do arquivo PDF que será criado
             output_pdf_path = os.path.join(folder_path, f'{employee_name} - CPF_{cpf}.pdf')
 
+            # Chama a função que combina todos os PDFs gerados num só arquivo
             combine_pdfs(pdf_bytes_list=pdf_byte_list, output_path=output_pdf_path)
 
         # Retorna uma tupla com valores (string, bool)

@@ -179,8 +179,6 @@ def init_search_data(
             page.window.minimized = True
             page.update()
 
-            # print('PASSOU PELO MINIMIZED')
-
         # Se a opção (gerar arquivo PDF) está MARCADA
         #  e (gerar planilha) está DEMARCADA
         if file_pdf and not file_excel:
@@ -207,9 +205,6 @@ def init_search_data(
         # Limpa os controles do formulário após concluído o processo de gerar arquivos
         clear_form(dict_form_controls=dict_clear_form)
 
-        # Limpa o array que contém os arquivos PDF em formato binário.
-        # O array está no módulo (create_pdf_service)
-        # array_pdf_files.clear()
     else:
         # Exclui a barra de progresso e atualiza a página
         page.overlay.pop()

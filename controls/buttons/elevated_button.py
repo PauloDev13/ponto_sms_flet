@@ -19,6 +19,7 @@ dict_form_controls: Dict = {
     'checkbox_pdf_field': checkbox_pdf_field,
 }
 
+
 # Botão para gerar as planilhas
 generate_button = ft.ElevatedButton(
     on_click=lambda _: init_generate_files(

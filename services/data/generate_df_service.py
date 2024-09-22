@@ -17,6 +17,8 @@ def generate_dataframe(
         employee_name: str,
 ) -> None:
 
+    page = PageManager.get_page()
+
     try:
         # Atualiza o dataframe (df_table) substituindo o conteúdo das colunas
         # DATA SAÍDA, SAÍDA, TRABALHADA, HORA JUSTIFICADA e STATUS para uma string '---'
