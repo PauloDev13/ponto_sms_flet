@@ -23,7 +23,7 @@ def search_description(e) -> None:
 
     # Atribui à variável (filtered_items) o dicionário com o resultado
     # da pesquisa no arquivo CSV quando o texto pesquisado tiver mais
-    # de 2 caracteres e estuver contido na chave (description) do dicionário
+    # de 2 caracteres e estiver contido na chave (description) do dicionário
     filtered_items = [
         item for item in data_csv if len(input_text) > 1 and input_text in item['description'].lower()
     ]
@@ -41,6 +41,7 @@ def search_description(e) -> None:
                 on_click=lambda _, item=item: selected_item(item)
             ))
 
+
         # Exibe o Container (list_results) com a lista de unidades filtrada
         list_results.visible = True
     else:
@@ -50,13 +51,12 @@ def search_description(e) -> None:
     list_results.update()
 
 
-# FUNÇÃO QUE PASSA O FOCU AUTOMÁTICO
+# FUNÇÃO QUE PASSA O FOCO AUTOMÁTICO
 def set_focus_end_date(_) -> None:
     # Se o número de caracteres digitados for igual a 7
     if len(start_date_field.value) == 7:
-        # Passa o focu para o controle (end_date_field)
+        # Passa o foco para o controle (end_date_field)
         end_date_field.focus()
-
 
 
 # FUNÇÃO CHAMADA NO CLICK DO LISTVIEW
@@ -111,7 +111,7 @@ cpf_field = ft.TextField(
     hint_text='Digite um CPF',
     border_color='#5a90fc',
     autofocus=True,
-    text_align='right',
+    text_align=ft.TextAlign.RIGHT,
     expand=True,
 )
 
@@ -124,7 +124,7 @@ unit_field = ft.TextField(
     hint_text='Busca pelo nome da unidade',
     border_color='#5a90fc',
     prefix_icon=ft.icons.SEARCH,
-    text_align='left',
+    text_align=ft.TextAlign.LEFT,
     expand=True,
 )
 

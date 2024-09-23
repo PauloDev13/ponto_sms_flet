@@ -6,14 +6,15 @@ from typing import List
 from pypdf import PdfReader, PdfWriter
 from selenium.webdriver.chrome import webdriver
 
-# Importação dos módulos locais
-from services.compress_pdf_file import compress_pdf_with_ghostscript
-from utils.share_model import data_progress_bar
-from models.page_manager import PageManager
-
 # Busca no arquivo (.env) o nome do diretório (NAME_FOLDER)
 from config.config_env import NAME_FOLDER
 
+# Importação dos módulos locais
+from models.page_manager import PageManager
+from models.alert_snackbar import AlertSnackbar
+from services.compress_pdf_file import compress_pdf_with_ghostscript
+from services.divide_pdf_file import divide_pdf_by_size
+from utils.share_model import data_progress_bar
 
 # Define a variável que vai receber o array de arquivos PDF
 array_pdf_files: List[bytes] = []
@@ -65,38 +66,61 @@ def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str) -> None:
     # pdf_merge = PdfMerger()
     pdf_writer = PdfWriter()
 
-    # Executa loop no array onde estão os arquivos PDF
-    for pdf_bytes in pdf_bytes_list:
-        # Lê os bytes de cada arquivo PDF e atribui à variável (pdf_reader)
-        pdf_reader = PdfReader(BytesIO(pdf_bytes))
+    try:
+        # Executa loop no array onde estão os arquivos PDF
+        for pdf_bytes in pdf_bytes_list:
+            # Lê os bytes de cada arquivo PDF e atribui à variável (pdf_reader)
+            pdf_reader = PdfReader(BytesIO(pdf_bytes))
 
-        # Combina os arquivos PDF num só arquivo
-        pdf_writer.append(pdf_reader)
+            # Combina os arquivos PDF num só arquivo
+            pdf_writer.append(pdf_reader)
 
-    # Salva o arquivo PDF único
-    with open(output_path, 'wb') as output_pdf:
-        pdf_writer.write(output_pdf)
+        # Salva o arquivo PDF único
+        with open(output_path, 'wb') as output_pdf:
+            pdf_writer.write(output_pdf)
 
-    # Pega o caminho do diretório onde está o arquivo PDF
-    folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
+        # Pega o caminho do diretório onde está o arquivo PDF
+        folder_path = os.path.join(os.path.expanduser('~'), 'Documents', NAME_FOLDER)
 
-    # pega o caminho completo onde o arquivo PDF original foi salvo,
-    # coloca no final do nome do arquivo o complemento ('_pb')
-    output_pdf_path = os.path.join(folder_path, output_path.replace('.pdf', '_pb.pdf'))
+        # pega o caminho completo onde o arquivo PDF original foi salvo,
+        # coloca no final do nome do arquivo o complemento ('_pb')
+        output_pdf_path = os.path.join(folder_path, output_path.replace('.pdf', '_pb.pdf'))
 
-    # Remove a barra de progresso que está sendo exibida
-    page.overlay.pop()
-    page.update()
+        # Remove a barra de progresso que está sendo exibida
+        page.overlay.pop()
+        page.update()
 
-    # Chama a função que exibe a barra de progresso com outra mensagem
-    data_progress_bar('Compactando arquivo PDF. AGUARDE')
+        # Chama a função que exibe a barra de progresso com outra mensagem
+        data_progress_bar('Compactando arquivo PDF. AGUARDE')
 
-    # Chama a função que compacta o arquivo PDF passando o caminho completo
-    # do arquivo original e o caminho completo onde o novo arquivo compactado será salvo
-    compress_pdf_with_ghostscript(input_pdf=output_path, output_pdf=output_pdf_path)
+        # Chama a função que compacta o arquivo PDF passando o caminho completo
+        # do arquivo original e o caminho completo onde o novo arquivo compactado será salvo
+        compress_pdf_with_ghostscript(input_pdf=output_path, output_pdf=output_pdf_path)
 
-    # Após a compactação, exclui do diretório o arquivo PDF original
-    os.remove(output_path)
+        # Após a compactação, exclui do diretório o arquivo PDF original
+        os.remove(output_path)
 
-    # Limpa o array que contém os arquivos PDF em formato binário.
-    pdf_bytes_list.clear()
+        # Remove a barra de progresso que está sendo exibida
+        page.overlay.pop()
+        page.update()
+
+        # Chama a função que exibe a barra de progresso com outra mensagem
+        data_progress_bar('Dividindo arquivo PDF. AGUARDE')
+
+        # Retira a extensão .PDF do arquivo original e atribui
+        # somente o nome à variável (output_file_name)
+        output_file_name = os.path.splitext(output_path)[0]
+
+        # Chama a função que divide o arquivo PDF se
+        # o seu tamanho for maior ou igual a 6.5Mb
+        divide_pdf_by_size(output_pdf_path, 6.5, output_file_name)
+
+        # Após a divisão, exclui do diretório o arquivo PDF compactado
+        os.remove(output_pdf_path)
+
+        # Limpa o array que contém os arquivos PDF em formato binário.
+        pdf_bytes_list.clear()
+
+    except Exception as e:
+        AlertSnackbar.show(message='Erro ao combinar PDFs!')
+        print('Erro ao combinar PDFs!', e)

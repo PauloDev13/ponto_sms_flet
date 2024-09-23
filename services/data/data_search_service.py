@@ -213,11 +213,11 @@ def search_data(dict_search_data: Dict[str, Union[ft.Control, int, webdriver]]) 
     # Se ocorrerem erros, exibe mensagem
     except Exception as e_:
         AlertSnackbar.show(
-            message='Erro ao gerar arquivo!',
+            message='Erro ao gerar arquivos!',
             icon=ft.icons.ERROR,
             icon_color=ft.colors.RED
         )
-        print(f'Erro ao gerar arquivo: {e_}')
+        print(f'Erro ao gerar arquivos!: {e_}')
 
         # e retorna None
         return None
