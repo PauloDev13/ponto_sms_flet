@@ -1,8 +1,11 @@
+import flet as ft
+
+
 class PageManager:
-    _page_instance = None
+    _page_instance: ft.Page | None = None
 
     @classmethod
-    def set_page(cls, page):
+    def set_page(cls, page: ft.Page):
         cls._page_instance = page
 
     @classmethod
