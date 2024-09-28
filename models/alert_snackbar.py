@@ -1,8 +1,14 @@
 from time import sleep
 
 import flet as ft
+from enum import Enum
 
 from models.page_manager import PageManager
+
+
+class EffectType(Enum):
+    OPACITY = 'opacity'
+    OFFSET = 'offset'
 
 
 class AlertSnackbar:
@@ -48,52 +54,65 @@ class AlertSnackbar:
                     bgcolor='#21252b',
                     border=ft.border.all(width=2, color='#5a90fc'),
                     border_radius=10,
-                    opacity=1.0,
                 )
             ],
             alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+            animate_offset=ft.Animation(600, ft.AnimationCurve.ELASTIC_OUT)
         )
 
+        # Adiciona a snackbar usando overlay e atualiza a página
         page.overlay.append(snackbar)
         page.update()
 
-        # Aplica fade in
-        cls.fade_effect(
+        # Chama função (control_effect) que aplica o efeito de
+        # entrada no (snackbar) de acordo com os parâmetros passados
+        cls.control_effect(
             container=snackbar,
-            page=page,
-            start_opacity=0,
-            end_opacity=101,
-            step=10
+            effect_type=EffectType.OFFSET,
+            start=-100,
+            end=1,
+            step=25
         )
 
         # Espera 2 segundos
         sleep(2)
 
-        # Aplica fade out
-        cls.fade_effect(
+        # Chama função (control_effect) que aplica o efeito de
+        # saída no (snackbar) considerando os parâmetros passados
+        cls.control_effect(
             container=snackbar,
-            page=page,
-            start_opacity=100,
-            end_opacity=0,
-            step=-10
+            effect_type=EffectType.OFFSET,
+            start=1,
+            end=-100,
+            step=-25
         )
 
+        # remove a snackbar usando overlay e atualiza a página
         page.overlay.remove(snackbar)
         page.update()
 
-    # FUNÇÃO QUE APLICA EFEITO FADE
+    # FUNÇÃO QUE APLICA EFEITO DE ENTRADA E SAÍDA NO SNACKBAR DE MENSAGENS
     @classmethod
-    def fade_effect(
+    def control_effect(
             cls,
             container: ft.Row,
-            page: ft.Page,
-            start_opacity: int,
-            end_opacity: int,
-            step: int
+            effect_type: EffectType,
+            start: int,
+            end: int,
+            step: int,
     ):
-        # Usa um loop aplicando o efeito fade. Dependendo dos valores passados
-        #  nos parâmetros, o efeito pode ser (fade in) ou (fade out)
-        for opacity in range(start_opacity, end_opacity, step):
-            container.opacity = opacity / 100
-            page.update()
+        # Usa um loop aplicando o efeito. Dependendo dos valores passados
+        #  nos parâmetros, o efeito pode ser de opacidade ou offset
+        for effect in range(start, end, step):
+            if effect_type == EffectType.OPACITY:
+                container.opacity = effect / 100
+
+            if effect_type == EffectType.OFFSET:
+                container.offset = ft.transform.Offset(0, effect / 100)
+
+            # Atualiza somente o snackbar passado por parâmetro
+            container.update()
+
+            # Espera 0,05 segundos para reiniciar o loop
             sleep(0.05)
+
