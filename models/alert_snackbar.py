@@ -1,14 +1,10 @@
 from time import sleep
 
 import flet as ft
-from enum import Enum
 
+# Importa os módulos locais
 from models.page_manager import PageManager
-
-
-class EffectType(Enum):
-    OPACITY = 'opacity'
-    OFFSET = 'offset'
+from models.enums.enums import EffectType
 
 
 class AlertSnackbar:
@@ -67,6 +63,7 @@ class AlertSnackbar:
         # Chama função (control_effect) que aplica o efeito de
         # entrada no (snackbar) de acordo com os parâmetros passados
         cls.control_effect(
+            page=page,
             container=snackbar,
             effect_type=EffectType.OFFSET,
             start=-100,
@@ -80,6 +77,7 @@ class AlertSnackbar:
         # Chama função (control_effect) que aplica o efeito de
         # saída no (snackbar) considerando os parâmetros passados
         cls.control_effect(
+            page=page,
             container=snackbar,
             effect_type=EffectType.OFFSET,
             start=1,
@@ -95,7 +93,8 @@ class AlertSnackbar:
     @classmethod
     def control_effect(
             cls,
-            container: ft.Row,
+            page: ft.Page,
+            container: ft.Control,
             effect_type: EffectType,
             start: int,
             end: int,
@@ -111,7 +110,8 @@ class AlertSnackbar:
                 container.offset = ft.transform.Offset(0, effect / 100)
 
             # Atualiza somente o snackbar passado por parâmetro
-            container.update()
+            # container.update()
+            page.update()
 
             # Espera 0,05 segundos para reiniciar o loop
             sleep(0.05)

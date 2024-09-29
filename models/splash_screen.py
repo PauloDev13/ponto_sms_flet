@@ -5,6 +5,8 @@ import flet as ft
 
 # # Atribuições das variáveis declaradas no .env
 from config.config_env import PATH_LOGO
+from models.enums.enums import EffectType
+from models.alert_snackbar import AlertSnackbar
 
 # Importações dos módulos locais
 from controls.buttons.elevated_button import (
@@ -26,22 +28,6 @@ from controls.inputs.input_text import (
 )
 
 
-# Simula o efeito de fade in ou fade out
-def fade_effect(
-        container: ft.Column,
-        page: ft.Page,
-        start_opacity: int,
-        end_opacity: int,
-        step: int
-):
-    # Usa um loop aplicando o efeito fade. Dependendo dos valores passados
-    #  nos parâmetros, o efeito pode ser (fade in) ou (fade out)
-    for opacity in range(start_opacity, end_opacity, step):
-        container.opacity = opacity / 100
-        page.update()
-        sleep(0.05)
-
-
 class SplashScreen:
     def __init__(self, page: ft.Page, duration: int = 3):
         self.splash_controls = None
@@ -53,6 +39,9 @@ class SplashScreen:
     def show(self):
         # Esconde a barra de títulos da janela
         self.page.window.title_bar_hidden = True
+
+        # Esconde a moldura da janela
+        self.page.window.frameless = True
 
         # Definindo o tamanho da janela
         self.page.window.width = 600
@@ -103,6 +92,10 @@ class SplashScreen:
             ],
             col={'md': 6}
         )
+
+        # Exibe a moldura da janela
+        self.page.window.frameless = False
+
         # Exibe a barra de título da janela
         self.page.window.title_bar_hidden = False
 
@@ -115,6 +108,7 @@ class SplashScreen:
 
         # Limpar a tela e trocar para a tela principal
         self.page.controls.clear()
+        # self.page.update()
 
         # Atribui a variável (main_screen) os controles da página principal
         main_screen = ft.Column([
@@ -165,14 +159,15 @@ class SplashScreen:
             ),
         ])
 
+        # Chama a função (control_effect) do módulo (AlertSnackbar) que
         # Aplica um efeito de fade in nos controles da página principal
-        fade_effect(
-            container=main_screen,
+        AlertSnackbar.control_effect(
             page=self.page,
-            start_opacity=0,
-            end_opacity=101,
+            container=main_screen,
+            effect_type=EffectType.OPACITY,
+            start=0,
+            end=101,
             step=20
-
         )
 
         # Adiciona os controles à pagina principal e atualiza a página
