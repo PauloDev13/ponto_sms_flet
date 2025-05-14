@@ -66,15 +66,17 @@ def login():
         # Localiza dentro Iframe o elemento box do recaptcha e clica nele.
         # Sai do Iframe e volta para o html principal.
         driver.switch_to.frame(0)
-        driver.find_element(by=By.XPATH, value="//*[@id='recaptcha-anchor']").click()
+        driver.find_element(by=By.XPATH, value="//*[@id='recaptcha-anchor']/div[1]").click()
+        # driver.find_element(by=By.XPATH, value="//*[@id='recaptcha-anchor']").click()
         driver.switch_to.default_content()
 
         # Localiza o botão de login no html
-        button_login = driver.find_element(by=By.XPATH, value="//*[@id='form']/input")
+        button_login = driver.find_element(by=By.XPATH, value="//*[@id='formPonto']/div/div[2]/button")
+        # button_login = driver.find_element(by=By.XPATH, value="//*[@id='form']/input")
 
         # Chama a função (start_login) do (shared_module) que exibe uma barra de
         # progresso que espera (30 segundos) para que o captcha, se aparecer, seja resolvido.
-        login_progress_bar(total_time=30)
+        login_progress_bar(total_time=10)
 
         # Minimiza a janela do navegador
         driver.minimize_window()
