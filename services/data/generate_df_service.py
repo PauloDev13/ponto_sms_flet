@@ -21,7 +21,7 @@ def generate_dataframe(
         # DATA SAÍDA, SAÍDA, TRABALHADA, HORA JUSTIFICADA e STATUS para uma string '---'
         # nas linhas onde a coluna DATA ENTRADA tem as palavra 'Férias'
         df_table.loc[
-            df_table['ENTRADA'].str.contains('Férias'),
+            df_table['ENTRADA'].str.contains('Férias', na=False),
             ['DATA SAÍDA', 'SAÍDA', 'TRABALHADA', 'HORA JUSTIFICADA', 'STATUS']
         ] = '---'
 
@@ -46,6 +46,8 @@ def generate_dataframe(
         # uma ou mais colunas sem nome de cabeçalho ou quando colunas extras geradas
         # por acidente durante o processo de leitura ou gravação dos dados
         df_table = df_table.loc[:, ~df_table.columns.str.contains('^Unnamed')]
+        df_table = df_table[~df_table['DATA ENTRADA'].str.contains('MOTIVO:', na=False)]
+
 
         # Cria um dicionário com as colunas que serão criadas.
         # O conteúdo de todas é vazio e terão o mesmo número

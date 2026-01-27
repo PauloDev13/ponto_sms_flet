@@ -84,7 +84,7 @@ class SplashScreen:
     # cria e exibe a tela principal do sistema
     def hide(self):
 
-        # Agrupa os checkbox numa coluna para que fique um embaixo do outro
+        # Agrupa os checkbox numa coluna para ficar um embaixo do outro
         checkboxs = ft.Column(
             controls=[
                 checkbox_excel_field,
