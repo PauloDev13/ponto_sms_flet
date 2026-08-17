@@ -1,0 +1,9 @@
+# OBSOLETO desde FASE 4/5 — o manifest oficial do ambiente web é
+# requirements-web.txt (raiz do repo). Mantido apenas para referência;
+# não usar para instalar dependências.
+#
+#fastapi~=0.115.0
+#uvicorn[standard]~=0.30.0
+#python-dotenv~=1.0.1
+#requests~=2.32.0
+#pydantic~=2.9.0

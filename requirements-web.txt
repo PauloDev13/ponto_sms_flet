@@ -1,0 +1,20 @@
+# Dependências do ambiente web (FASE 4/5)
+# Baseline medida no .venv local — usada pelo dev/CI e pela instalação da VM de produção.
+# Versões por ~= (patch-safe), espelhando o padrão dos demais requirements do repo.
+
+# Runtime web (backend FastAPI)
+fastapi~=0.141.1
+uvicorn[standard]~=0.52.3
+python-dotenv~=1.2.2
+selenium~=4.47.0
+
+# Dados, scraping e geração de arquivos
+pandas~=3.0.5
+xlsxwriter~=3.2.9
+openpyxl~=3.1.5
+lxml~=6.1.1
+pypdf~=6.16.1
+
+# Testes
+pytest~=9.1.1
+httpx~=0.28.1

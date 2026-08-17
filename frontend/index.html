@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta Ponto Eletrônico</title>
+  <style>
+    :root {
+      --bg: #1e1f22; --card: #21252b; --border: #5a90fc; --fg: #abb2bf;
+      --accent: #4dd0e1; --ok: #43a047; --ko: #e53935; --warn: #ff8f00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; color: var(--fg);
+      background: var(--bg); padding: 24px 12px; min-height: 100vh;
+    }
+    .layout { display: flex; gap: 20px; max-width: 1440px; margin: 0 auto; align-items: flex-start; }
+    .main-col { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .side-col { width: 720px; flex-shrink: 0; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; max-width: 100%; margin-bottom: 16px;
+    }
+    .card h2 { margin: 0 0 16px; font-weight: 500; color: #fff; font-size: 20px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .field { flex: 1; min-width: 150px; margin-bottom: 12px; position: relative; }
+    label { display: block; font-size: 14px; margin-bottom: 4px; color: #8f97a3; }
+    input {
+      width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #3a3d42;
+      background: #2b2d30; color: #e6e6e6; font-size: 16px;
+    }
+    input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #2b2d30 inset;
+      -webkit-text-fill-color: #e6e6e6;
+    }
+    input:focus { outline: none; border-color: var(--border); }
+    input.invalid { border-color: var(--ko); }
+    .field-error { color: #ef9a9a; font-size: 13px; margin-top: 3px; display: none; }
+    .field-error.show { display: block; }
+    .checkboxs { display: flex; gap: 16px; align-items: flex-end; flex-wrap: nowrap; }
+    .checkboxs label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .btn {
+      padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer;
+      font-weight: 600; font-size: 16px; color: var(--fg);
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-primary { background: var(--border); color: #000; }
+    .btn-primary:hover { background: #6aafff; }
+    .btn-secondary { background: #2b2d30; color: var(--fg); }
+    .btn-secondary:hover { background: #3a3d42; }
+    .actions { display: flex; gap: 12px; margin-top: 10px; }
+    .actions .btn { flex: 1; }
+    #formConsulta .actions .btn { font-size: 14px; padding: 10px 16px; }
+    .btn-ghost { background: transparent; color: var(--fg); border: 1px solid #3a3d42; padding: 8px 14px; font-size: 14px; }
+    .btn-ghost:hover { background: #2b2d30; }
+    .btn-download { background: #2b2d30; color: var(--accent); border: 1px solid #3a3d42; }
+    .btn-download:hover { background: #30343a; border-color: var(--accent); }
+    .actions { display: flex; gap: 12px; margin-top: 10px; }
+    .spinner-in-btn {
+      display: inline-block; width: 14px; height: 14px; margin-right: 8px;
+      border: 2px solid rgba(0,0,0,.25); border-top-color: #000; border-radius: 50%;
+      animation: spin .8s linear infinite; vertical-align: -2px;
+    }
+    .toast {
+      display: none; margin-top: 12px; padding: 12px 14px; border-radius: 6px;
+      border: 1px solid var(--border); background: #2b2d30; font-size: 14px;
+    }
+    .toast.error { border-color: var(--ko); color: #ef9a9a; }
+    .toast.success { border-color: var(--ok); color: #a5d6a7; }
+    .dropdown {
+      list-style: none; margin: 2px 0 0; padding: 0; border: 1px solid var(--border);
+      border-radius: 6px; background: #2b2d30; max-height: 200px; overflow-y: auto;
+      position: absolute; z-index: 10; width: 100%;
+    }
+    .dropdown li { padding: 10px 12px; cursor: pointer; font-size: 14px; }
+    .dropdown li:hover { background: #30343a; }
+    #progressCard { display: none; }
+    #progressCard .btn { padding: 8px 14px; font-size: 13px; }
+    .progress-head { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+    .progress-track { height: 16px; background: #2b2d30; border-radius: 8px; overflow: hidden; border: 1px solid #3a3d42; }
+    .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #4dd0e1, #5a90fc); transition: width .4s ease; }
+    .progress-msg { margin-top: 4px; font-size: 14px; min-height: 18px; }
+    .logs { margin-top: 4px; font-size: 13px; color: #6b7280; }
+    #resultCard, #historyCard { display: none; }
+    #historyCard.scrollable { max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+    #historyCard.scrollable .history-header { flex-shrink: 0; }
+    #historyCard.scrollable #historyList { overflow-y: auto; flex: 1; min-height: 0; margin-top: 16px; }
+    #historyCard.scrollable #historyList::-webkit-scrollbar { width: 6px; }
+    #historyCard.scrollable #historyList::-webkit-scrollbar-track { background: #2b2d30; border-radius: 3px; }
+    #historyCard.scrollable #historyList::-webkit-scrollbar-thumb { background: #4a4e57; border-radius: 3px; }
+    #historyCard.scrollable #historyList::-webkit-scrollbar-thumb:hover { background: #5a90fc; }
+    .file-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #30343a; }
+    .file-row:last-child { border-bottom: none; }
+    #resultCard .btn-download { padding: 8px 14px; font-size: 13px; }
+    .file-name { font-size: 14px; word-break: break-all; }
+    .file-tag { display: inline-block; font-size: 12px; padding: 3px 8px; border-radius: 4px; background: #30343a; color: var(--accent); margin-left: 6px; }
+    .status-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .status-badge.queued { background: #37474f; color: #b0bec5; }
+    .status-badge.running { background: #1a237e; color: #9fa8da; }
+    .status-badge.done { background: #1b5e20; color: #a5d6a7; }
+    .status-badge.failed { background: #b71c1c; color: #ef9a9a; }
+    .status-badge.cancelled { background: #4e342e; color: #ffcc80; }
+    .history-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px dashed #30343a; }
+    .history-item:last-child { border-bottom: none; }
+    .history-info { flex: 1; min-width: 0; }
+    .history-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+    .history-files { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .history-files a { font-size: 13px; color: var(--accent); }
+    .history-error { color: #ef9a9a; font-size: 14px; margin-top: 4px; }
+    .empty-note { color: #6b7280; font-size: 14px; }
+    .btn-delete-item { align-self: flex-start; flex-shrink: 0; background: transparent; color: #ef9a9a; border: 1px solid #5c2a2a; padding: 6px 12px; font-size: 13px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+    .btn-delete-item:hover { background: #3a1d1d; }
+    .btn-danger { background: #b71c1c; color: #fff; }
+    .btn-danger:hover { background: #d32f2f; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: #1b1d20; border: 1px solid #3a3d42; border-radius: 10px; padding: 24px 28px; max-width: 460px; width: calc(100% - 40px); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+    .modal h3 { margin: 0 0 12px; font-size: 18px; }
+    .modal p { margin: 0 0 20px; font-size: 15px; color: #c9cdd3; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1100px) {
+      .layout { flex-direction: column; }
+      .side-col { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ LOGIN (FASE 4) ============ -->
+  <div class="card" id="loginCard" style="max-width:420px; margin:80px auto; display:none">
+    <h2 style="text-align:center">Consulta Ponto Eletrônico</h2>
+    <form id="formLogin">
+      <div class="field">
+        <label for="loginUser">Usuário</label>
+        <input id="loginUser" autocomplete="username" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="loginPass">Senha</label>
+        <input id="loginPass" type="password" autocomplete="current-password" />
+      </div>
+      <div class="actions" style="margin-top:4px">
+        <button type="submit" class="btn btn-primary" id="btnLogin">ENTRAR</button>
+      </div>
+      <div class="toast" id="loginToast"></div>
+    </form>
+  </div>
+
+  <div id="appView" style="display:none">
+
+  <!-- Barra de usuário -->
+  <div style="max-width:1440px; margin:0 auto 8px; display:flex; justify-content:flex-end; align-items:center; gap:12px">
+    <span id="currentUser" style="color:#8f97a3; font-size:14px"></span>
+    <button type="button" class="btn btn-ghost" style="padding:6px 14px; font-size:14px" id="btnLogout">Sair</button>
+  </div>
+
+  <div class="layout">
+    <div class="main-col">
+
+  <!-- ============ FORMULÁRIO ============ -->
+  <div class="card">
+    <h2>Dados da consulta</h2>
+    <form id="formConsulta">
+      <div class="row">
+        <div class="field">
+          <label for="cpf">CPF</label>
+          <input id="cpf" name="cpf" placeholder="000.000.000-00" autocomplete="off" inputmode="numeric" />
+          <div class="field-error" id="err-cpf"></div>
+        </div>
+        <div class="field">
+          <label for="unit">Código da Unidade</label>
+          <input id="unit" name="unit" placeholder="Busca pelo nome da unidade" autocomplete="off" />
+          <ul id="unitList" class="dropdown" style="display:none"></ul>
+          <div class="field-error" id="err-unit"></div>
+        </div>
+      </div>
+      <div class="row" style="align-items:flex-start; justify-content:space-between">
+        <div class="field" style="flex:0.4; margin-bottom:0">
+          <label for="date_start">Data Inicial (Mês/Ano)</label>
+          <input id="date_start" name="date_start" placeholder="Mês/Ano" inputmode="numeric" />
+          <div class="field-error" id="err-start"></div>
+        </div>
+        <div class="field" style="flex:0.4; margin-bottom:0">
+          <label for="date_end">Data Final (Mês/Ano)</label>
+          <input id="date_end" name="date_end" placeholder="Mês/Ano" inputmode="numeric" />
+          <div class="field-error" id="err-end"></div>
+        </div>
+        <div style="flex:0 0 auto; align-self:center; margin-top:16px">
+          <div class="checkboxs" style="gap:20px">
+            <label><input type="checkbox" id="excel" checked /> Gerar planilhas</label>
+            <label><input type="checkbox" id="pdf" /> Gerar PDF</label>
+          </div>
+          <div class="field-error" id="err-format"></div>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:20px">
+        <button type="button" class="btn btn-secondary" id="btnCancel">LIMPAR CONSULTA</button>
+        <button type="submit" class="btn btn-primary" id="btnGenerate">GERAR ARQUIVO</button>
+      </div>
+      <div class="toast" id="toast"></div>
+    </form>
+  </div>
+
+  <!-- ============ PROGRESSO ============ -->
+  <div class="card" id="progressCard">
+    <h2>Processamento</h2>
+    <div class="progress-head">
+      <span id="progressStatus">Na fila...</span>
+      <span id="progressPercent">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-msg" id="progressMsg">Aguardando início...</div>
+    <div class="logs" id="progressLogs"></div>
+  </div>
+
+  <!-- ============ ARQUIVOS ============ -->
+  <div class="card" id="resultCard">
+    <h2>Arquivos gerados</h2>
+    <div id="filesList"></div>
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap" id="filesActions"></div>
+  </div>
+
+    </div><!-- /main-col -->
+    <div class="side-col">
+
+  <!-- ============ HISTÓRICO ============ -->
+  <div class="card" id="historyCard">
+    <div class="history-header" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h2 style="margin:0;">Histórico de gerações</h2>
+      <button type="button" class="btn btn-ghost" onclick="clearHistory()" title="Remove todas as gerações concluídas e falhas da lista e do disco">Limpar histórico</button>
+    </div>
+    <div id="historyList"><span class="empty-note">Nenhuma geração realizada nesta sessão.</span></div>
+  </div>
+
+    </div><!-- /side-col -->
+  </div><!-- /layout -->
+
+  </div><!-- /appView -->
+
+  <!-- ============ MODAL DE CONFIRMAÇÃO ============ -->
+  <div class="modal-overlay" id="confirmModal" style="display:none">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">Confirmar</h3>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmCancel">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // ---------------------------------------------------------------- helpers
+    const $ = (id) => document.getElementById(id);
+    const state = { job: null, es: null, pollTimer: null };
+    const STATUS_LABEL = { QUEUED: 'Na fila', RUNNING: 'Processando', DONE: 'Concluído', FAILED: 'Falhou', CANCELLED: 'Cancelado' };
+
+    // -------------------------------------------------------- auth (FASE 4)
+    function showLoginToast(message, type) {
+      const t = $('loginToast');
+      t.textContent = message;
+      t.className = 'toast ' + type;
+      t.style.display = 'block';
+      clearTimeout(showLoginToast._timer);
+      showLoginToast._timer = setTimeout(() => { t.style.display = 'none'; }, type === 'error' ? 6000 : 4000);
+    }
+
+    function showApp(user) {
+      $('loginCard').style.display = 'none';
+      $('appView').style.display = 'block';
+      $('currentUser').textContent = 'Usuário: ' + user;
+    }
+
+    function showLogin(message) {
+      $('appView').style.display = 'none';
+      $('loginCard').style.display = 'block';
+      if (message) showLoginToast(message, 'error');
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        const data = await res.json();
+        if (res.ok && data.ok) { showApp(data.user); loadHistory(); return; }
+      } catch (e) { /* segue para exibir login */ }
+      showLogin();
+    }
+
+    async function doLogout() {
+      try { await fetch('/api/v1/auth/logout', { method: 'POST' }); } catch (e) { /* segue */ }
+      $('loginUser').value = '';
+      $('loginPass').value = '';
+      showLogin();
+    }
+
+    $('formLogin').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const btn = $('btnLogin');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: $('loginUser').value.trim(), password: $('loginPass').value }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.ok) {
+          showLoginToast((data && data.message) || 'Falha no login.', 'error');
+          return;
+        }
+        showApp(data.user);
+        loadHistory();
+      } catch (e) {
+        showLoginToast('Erro ao conectar com a API.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('btnLogout').addEventListener('click', doLogout);
+
+    function showToast(message, type = 'error') {
+      const toast = $('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.style.display = 'block';
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        toast.style.display = 'none';
+        if (type === 'success') $('progressCard').style.display = 'none';
+      }, type === 'error' ? 8000 : 5000);
+    }
+    function clearToast() { $('toast').style.display = 'none'; }
+
+    function setFieldError(fieldId, message) {
+      $('err-' + fieldId).textContent = message || '';
+      $('err-' + fieldId).classList.toggle('show', !!message);
+      $('err-' + fieldId).classList.toggle('invalid', !!message);
+      const input = fieldId === 'start' ? $('date_start') : fieldId === 'end' ? $('date_end') : $(fieldId);
+      if (input) input.classList.toggle('invalid', !!message);
+    }
+    function clearErrors() {
+      ['cpf', 'unit', 'start', 'end'].forEach(id => setFieldError(id, ''));
+    }
+
+    // ------------------------------------------------------------- masks
+    function maskCpf(v) {
+      const d = v.replace(/\D/g, '').slice(0, 11);
+      if (d.length > 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+      if (d.length > 6) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+      if (d.length > 3) return d.slice(0, 3) + '.' + d.slice(3);
+      return d;
+    }
+    function maskMonthYear(v) {
+      const d = v.replace(/\D/g, '').slice(0, 6);
+      if (d.length > 4) return d.slice(0, 2) + '/' + d.slice(2);
+      if (d.length > 2) return d.slice(0, 2) + '/' + d.slice(2);
+      return d;
+    }
+
+    // ------------------------------------------------------- client validation
+    function checkCpfDigits(d) {
+      const sum1 = Array.from({ length: 9 }, (_, i) => +d[i] * (10 - i)).reduce((a, b) => a + b, 0);
+      const d1 = (sum1 * 10 % 11) % 10;
+      const sum2 = Array.from({ length: 10 }, (_, i) => +d[i] * (11 - i)).reduce((a, b) => a + b, 0);
+      const d2 = (sum2 * 10 % 11) % 10;
+      return d1 === +d[9] && d2 === +d[10];
+    }
+    function parseMonthYear(v) {
+      const m = /^(\d{2})\/(\d{4})$/.exec((v || '').trim());
+      if (!m) return null;
+      const month = +m[1], year = +m[2];
+      if (month < 1 || month > 12) return null;
+      return { month, year };
+    }
+    function clientValidate(p) {
+      const errors = {};
+      const digits = (p.cpf || '').replace(/\D/g, '');
+      if (!digits) errors.cpf = 'O CPF é obrigatório!';
+      else if (digits.length !== 11) errors.cpf = 'CPF inválido!';
+      else if (digits[0].repeat(11) === digits) errors.cpf = 'CPF inválido!';
+      else if (!checkCpfDigits(digits)) errors.cpf = 'CPF inválido!';
+
+      if (!(p.unit || '').trim()) errors.unit = 'Informe o Código da Unidade!';
+
+      const s = parseMonthYear(p.date_start), f = parseMonthYear(p.date_end);
+      if (!(p.date_start || '').trim()) errors.start = 'Data Inicial é obrigatório!';
+      else if (!s) errors.start = 'A data Inicial (' + p.date_start + ') é inválida!';
+      else if (s.year < 2000) errors.start = 'O Ano Inicial deve ser igual ou maior que 2000!';
+
+      if (!(p.date_end || '').trim()) errors.end = 'A data Final é obrigatório!';
+      else if (!f) errors.end = 'A data Final (' + p.date_end + ') é inválida!';
+      else if (f.year < 2000) errors.end = 'O Ano Final deve ser igual ou maior que 2000!';
+      else if (s && f && s.year * 12 + s.month > f.year * 12 + f.month) {
+        errors.end = 'O Ano Final deve ser posterior ao Ano Inicial!';
+      }
+
+      if (!p.excel && !p.pdf) errors.format = 'Escolha pelo menos um tipo de arquivo a ser gerado!';
+      return errors;
+    }
+    function showFieldErrors(errors) {
+      const map = { cpf: 'cpf', unit: 'unit', start_date: 'start', end_date: 'end', format: 'format' };
+      Object.keys(errors).forEach(key => {
+        const field = map[key] || key;
+        if (['cpf', 'unit', 'start', 'end', 'format'].includes(field)) setFieldError(field, errors[key]);
+        else showToast(errors[key]);
+      });
+    }
+
+    // -------------------------------------------------------------- buttons
+    function updateButtonLabel() {
+      const excel = $('excel').checked, pdf = $('pdf').checked;
+      $('btnGenerate').textContent = excel && pdf ? 'GERAR PLANILHAS E ARQUIVO PDF'
+        : excel ? 'GERAR PLANILHAS' : pdf ? 'GERAR ARQUIVO PDF' : 'GERAR ARQUIVO';
+    }
+    function setGenerating(on, label) {
+      $('btnGenerate').disabled = on;
+      if (on) $('btnGenerate').innerHTML = '<span class="spinner-in-btn"></span>' + (label || 'GERANDO...');
+      else updateButtonLabel();
+    }
+
+    // ------------------------------------------------------------ job render
+    function jobUrl(path) { return '/api/v1/jobs/' + state.job.id + path; }
+
+    function renderProgress(job) {
+      $('progressCard').style.display = 'block';
+      const p = job.progress || {};
+      const percent = p.percent || 0;
+      $('progressPercent').textContent = percent + '%';
+      $('progressBar').style.width = percent + '%';
+      $('progressStatus').textContent = STATUS_LABEL[job.status] || job.status;
+      $('progressMsg').textContent = p.message || '';
+      const logs = (job.logs || []).slice(-3);
+      $('progressLogs').textContent = logs.length ? logs.join(' • ') : '';
+      const months = p.months_total ? ' (' + (p.months_ok || 0) + '/' + p.months_total + ' meses)' : '';
+      $('progressStatus').textContent += months && job.status !== 'DONE' ? months : '';
+    }
+
+    function renderFiles(files) {
+      $('resultCard').style.display = 'block';
+      const wrap = $('filesList');
+      wrap.innerHTML = '';
+      files.forEach(f => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+        row.innerHTML = '<span class="file-name">' + f.name + '<span class="file-tag">' + f.format.toUpperCase() + '</span></span>';
+        const link = document.createElement('a');
+        link.className = 'btn btn-download';
+        link.href = fileUrl(f.name);
+        link.textContent = 'Baixar';
+        row.appendChild(link);
+        wrap.appendChild(row);
+      });
+
+      const actions = $('filesActions');
+      actions.innerHTML = '';
+      const kinds = new Set(files.map(f => f.format));
+      if (kinds.has('xlsx')) actions.appendChild(downloadButton('XLSX', 'xlsx'));
+      if (kinds.has('pdf')) actions.appendChild(downloadButton('PDF', 'pdf'));
+      if (kinds.has('pdf') && files.filter(f => f.format === 'pdf').length > 1) {
+        actions.appendChild(downloadButton('Partes (ZIP)', 'pdf&parts=zip'));
+      }
+      const all = downloadButton('Baixar tudo (ZIP)', 'zip');
+      all.style.background = 'var(--border)'; all.style.color = '#000';
+      actions.appendChild(all);
+    }
+    function downloadButton(text, format) {
+      const btn = document.createElement('a');
+      btn.className = 'btn btn-download';
+      btn.href = jobUrl('/download?format=' + format);
+      btn.textContent = text;
+      return btn;
+    }
+    function fileUrl(name) { return '/api/v1/jobs/' + state.job.id + '/files/' + encodeURIComponent(name); }
+
+    function onDone(job) {
+      stopTracking();
+      setGenerating(false);
+      renderProgress(job);
+      renderFiles(job.files || []);
+      autoDownload(job);
+      showToast('Arquivos gerados com sucesso!', 'success');
+      loadHistory();
+      state.job = null;
+    }
+    function onFailed(job) {
+      stopTracking();
+      setGenerating(false);
+      showToast(job.error || 'Falha ao gerar os arquivos. Consulte o histórico.', 'error');
+      renderProgress(job);
+      loadHistory();
+      state.job = null;
+    }
+    function onCancelled(job) {
+      stopTracking();
+      setGenerating(false);
+      $('progressCard').style.display = 'none';
+      showToast('Processamento cancelado.', 'success');
+      loadHistory();
+      state.job = null;
+    }
+
+    function autoDownload(job) {
+      const files = job.files || [];
+      const count = { xlsx: 0, pdf: 0 };
+      files.forEach(f => { count[f.format] = (count[f.format] || 0) + 1; });
+      let url = null;
+      if (count.xlsx) url = jobUrl('/download?format=xlsx');
+      else if (count.pdf === 1) url = jobUrl('/download?format=pdf');
+      else if (count.pdf > 1) url = jobUrl('/download?format=pdf&parts=zip');
+      else url = jobUrl('/download?format=zip');
+      window.location.href = url;
+      showToast('Download iniciado...', 'success');
+    }
+
+    // ----------------------------------------------------------- SSE + polling
+    function startJob(job) {
+      state.job = job;
+      setGenerating(true);
+      renderProgress(job);
+      clearToast();
+
+      const es = new EventSource('/api/v1/jobs/' + job.id + '/events');
+      state.es = es;
+      es.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.type !== 'update') { showToast(msg.message || 'Erro no acompanhamento.'); return; }
+        const j = msg.job;
+        if (j.status === 'DONE') onDone(j);
+        else if (j.status === 'FAILED') onFailed(j);
+        else if (j.status === 'CANCELLED') onCancelled(j);
+        else renderProgress(j);
+      };
+      es.onerror = () => { if (state.job) startPolling(job.id); };
+    }
+
+    function startPolling(jobId) {
+      clearInterval(state.pollTimer);
+      state.pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch('/api/v1/jobs/' + jobId);
+          const data = await res.json();
+          if (data.ok) {
+            const j = data.job;
+            if (j.status === 'DONE') onDone(j);
+            else if (j.status === 'FAILED') onFailed(j);
+            else if (j.status === 'CANCELLED') onCancelled(j);
+            else renderProgress(j);
+          }
+        } catch (e) { /* mantém o polling */ }
+      }, 2000);
+    }
+
+    function stopTracking() {
+      if (state.es) { state.es.close(); state.es = null; }
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+
+    // -------------------------------------------------------------- history
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/v1/jobs?limit=20');
+        if (res.status === 401) { showLogin('Sua sessão expirou. Entre novamente.'); return; }
+        const data = await res.json();
+        if (!data.ok) return;
+        $('historyCard').style.display = 'flex';
+        $('historyCard').classList.add('scrollable');
+        const wrap = $('historyList');
+        if (!data.jobs.length) {
+          wrap.innerHTML = '<span class="empty-note">Nenhuma geração realizada.</span>';
+          $('resultCard').style.display = 'none';
+          $('filesList').innerHTML = '';
+          $('filesActions').innerHTML = '';
+          return;
+        }
+        wrap.innerHTML = '';
+        data.jobs.forEach(j => {
+          const item = document.createElement('div');
+          item.className = 'history-item';
+
+          const when = new Date(j.created_at).toLocaleString('pt-BR');
+          const payload = j.payload || {};
+          const summary = 'Unid. ' + (payload.unit || '?') +
+            ' • ' + (payload.date_start || '') + ' a ' + (payload.date_end || '');
+          const files = j.files || [];
+
+          let html = '<div class="history-info"><div class="history-meta">' +
+            '<span class="status-badge ' + j.status.toLowerCase() + '">' + (STATUS_LABEL[j.status] || j.status) + '</span>' +
+            '<span>' + when + '</span><span>' + summary + '</span></div>';
+
+          if (j.status === 'FAILED' && j.error) {
+            html += '<div class="history-error">' + j.error + '</div>';
+          }
+          if (j.status === 'DONE' && files.length) {
+            const host = '/api/v1/jobs/' + j.id;
+            html += '<div class="history-files">';
+            files.forEach(f => {
+              html += '<a href="' + host + '/files/' + encodeURIComponent(f.name) + '">' + f.name + '</a>';
+            });
+            const hasMultiplePdf = files.filter(f => f.format === 'pdf').length > 1;
+            html += '<a href="' + host + '/download?format=zip"><strong>Todos (ZIP)</strong></a>';
+            if (hasMultiplePdf) html += '<a href="' + host + '/download?format=pdf&parts=zip">Partes PDF (ZIP)</a>';
+            html += '</div>';
+          }
+          html += '</div>';
+          if (j.status === 'DONE' || j.status === 'FAILED' || j.status === 'CANCELLED') {
+            html += '<button type="button" class="btn-delete-item" title="Excluir esta geração" onclick="deleteJob(\'' + j.id + '\')">Excluir</button>';
+          }
+          item.innerHTML = html;
+          wrap.appendChild(item);
+        });
+      } catch (e) { /* histórico indisponível: silencioso */ }
+    }
+
+    // --------------------------------------------------------- confirm modal
+    let confirmResolve = null;
+    function askConfirm(message, title = 'Confirmar') {
+      return new Promise(resolve => {
+        confirmResolve = resolve;
+        $('confirmTitle').textContent = title;
+        $('confirmMessage').textContent = message;
+        $('confirmModal').style.display = 'flex';
+        $('confirmOk').focus();
+      });
+    }
+    function settleConfirm(result) {
+      $('confirmModal').style.display = 'none';
+      if (confirmResolve) {
+        const r = confirmResolve;
+        confirmResolve = null;
+        r(result);
+      }
+    }
+    (function initConfirmModal() {
+      $('confirmOk').addEventListener('click', () => settleConfirm(true));
+      $('confirmCancel').addEventListener('click', () => settleConfirm(false));
+      $('confirmModal').addEventListener('click', e => {
+        if (e.target === $('confirmModal')) settleConfirm(false);
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && $('confirmModal').style.display === 'flex') settleConfirm(false);
+      });
+    })();
+
+    async function deleteJob(jobId) {
+      const want = await askConfirm('Excluir esta geração e remover os arquivos gerados do disco?', 'Excluir geração');
+      if (!want) return;
+      try {
+        const res = await fetch('/api/v1/jobs/' + jobId, { method: 'DELETE' });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.ok) throw new Error((data && (data.message || data.error)) || 'Erro ' + res.status + ' na exclusão.');
+        showToast('Geração excluída.', 'success');
+        loadHistory();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    async function clearHistory() {
+      const want = await askConfirm('Remover todas as gerações concluídas e as que falharam do histórico e do disco?', 'Limpar histórico');
+      if (!want) return;
+      try {
+        const res = await fetch('/api/v1/jobs', { method: 'DELETE' });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.ok) throw new Error((data && (data.message || data.error)) || 'Erro ' + res.status + ' ao limpar o histórico.');
+        showToast(data.removed + ' geração(ões) removida(s).', 'success');
+        loadHistory();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    // --------------------------------------------------------- unit autocomplete
+    const unitInput = $('unit');
+    const unitList = $('unitList');
+    let debounceTimer = null;
+    unitInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const q = unitInput.value.trim();
+      if (q.length < 2) { unitList.style.display = 'none'; return; }
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/v1/unidades?q=' + encodeURIComponent(q));
+          const data = await res.json();
+          unitList.innerHTML = '';
+          if (!data.ok || data.count === 0) { unitList.style.display = 'none'; return; }
+          data.results.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.code + ' - ' + item.description;
+            li.addEventListener('click', () => {
+              unitInput.value = item.code;
+              unitList.style.display = 'none';
+              setFieldError('unit', '');
+            });
+            unitList.appendChild(li);
+          });
+          unitList.style.display = 'block';
+        } catch (e) { unitList.style.display = 'none'; }
+      }, 250);
+    });
+    document.addEventListener('click', (e) => {
+      if (!unitList.contains(e.target) && e.target !== unitInput) unitList.style.display = 'none';
+    });
+
+    // ------------------------------------------------------------- listeners
+    $('cpf').addEventListener('input', (e) => {
+      e.target.value = maskCpf(e.target.value);
+      setFieldError('cpf', '');
+    });
+    ['date_start', 'date_end'].forEach(id => {
+      $(id).addEventListener('input', (e) => {
+        e.target.value = maskMonthYear(e.target.value);
+        setFieldError(id === 'date_start' ? 'start' : 'end', '');
+      });
+    });
+    $('unit').addEventListener('input', () => setFieldError('unit', ''));
+    ['excel', 'pdf'].forEach(id => $(id).addEventListener('change', () => { updateButtonLabel(); setFieldError('format', ''); }));
+    updateButtonLabel();
+
+    $('formConsulta').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (state.job) { showToast('Já existe uma geração em andamento. Aguarde a conclusão.'); return; }
+      clearToast();
+      clearErrors();
+
+      const payload = {
+        cpf: $('cpf').value.replace(/\D/g, ''),
+        unit: $('unit').value.trim(),
+        date_start: $('date_start').value.trim(),
+        date_end: $('date_end').value.trim(),
+        excel: $('excel').checked,
+        pdf: $('pdf').checked,
+      };
+
+      const clientErrors = clientValidate(payload);
+      if (Object.keys(clientErrors).length) {
+        showFieldErrors(clientErrors);
+        showToast('Corrija os campos destacados.');
+        return;
+      }
+
+      setGenerating(true, 'VALIDANDO...');
+      try {
+        const vres = await fetch('/api/v1/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const vdata = await vres.json();
+        if (!vdata.valid) {
+          showFieldErrors(vdata.errors || {});
+          showToast('Corrija os campos destacados.');
+          setGenerating(false);
+          return;
+        }
+
+        setGenerating(true, 'ENFILEIRANDO...');
+        const res = await fetch('/api/v1/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showFieldErrors(data.errors || {});
+          showToast(data.message || 'Erro ao criar a geração.');
+          setGenerating(false);
+          return;
+        }
+        startJob(data.job);
+      } catch (err) {
+        showToast('Erro ao conectar com a API.');
+        setGenerating(false);
+      }
+    });
+
+    async function cancelJob(jobId) {
+      try {
+        const res = await fetch('/api/v1/jobs/' + jobId + '/cancel', { method: 'POST' });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !data.ok) throw new Error((data && (data.message || data.error)) || 'Erro ' + res.status + ' ao cancelar.');
+        return true;
+      } catch (e) {
+        showToast(e.message, 'error');
+        return false;
+      }
+    }
+
+    $('btnCancel').addEventListener('click', async () => {
+      if (state.job && (state.job.status === 'QUEUED' || state.job.status === 'RUNNING')) {
+        const ok = await cancelJob(state.job.id);
+        if (ok) showToast('Processamento cancelado.', 'success');
+      }
+      ['cpf', 'unit', 'date_start', 'date_end'].forEach(id => $(id).value = '');
+      $('excel').checked = true;
+      $('pdf').checked = false;
+      updateButtonLabel();
+      clearErrors();
+      $('progressCard').style.display = 'none';
+      if (state.job) {
+        stopTracking();
+        state.job = null;
+      } else {
+        clearToast();
+      }
+      setGenerating(false);
+    });
+
+    // Autenticação primeiro: só então carrega o histórico e libera o app
+    checkAuth();
+  </script>
+</body>
+</html>
