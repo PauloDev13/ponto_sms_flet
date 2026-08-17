@@ -23,9 +23,9 @@ from pathlib import Path
 
 from selenium.webdriver.common.by import By
 
-from config.config_env import URL_INIT
-from services.auth_core import authenticate
-from services.browser_session import create_driver, default_profile_dir
+from backend.core.settings import settings
+from backend.core.auth_core import authenticate
+from backend.core.browser_session import create_driver, default_profile_dir
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def _session_alive(driver) -> bool:
     presente). Baseado na presença do formulário (robusto a redirects).
     """
     try:
-        driver.get(URL_INIT)
+        driver.get(settings.url_init)
         return not _has_login_form(driver)
     except Exception:
         return False
@@ -90,7 +90,7 @@ def _load_cookies(driver) -> bool:
         cookies = json.loads(COOKIES_FILE.read_text(encoding='utf-8'))
         if not cookies:
             return False
-        driver.get(URL_INIT)  # estabelece a origem para add_cookie
+        driver.get(settings.url_init)  # estabelece a origem para add_cookie
         ok = 0
         for cookie in cookies:
             try:

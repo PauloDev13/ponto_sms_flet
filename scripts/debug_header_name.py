@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from selenium.webdriver.common.by import By  # noqa: E402
 
 from backend.core.scraper import build_search_url  # noqa: E402
-from services.auth_core import login_service  # noqa: E402
+from backend.core.auth_core import login_service  # noqa: E402
 
 
 def _read_env(key: str) -> str:

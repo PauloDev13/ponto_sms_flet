@@ -32,6 +32,13 @@ _LOGIN_ATTEMPTS: Dict[str, List[float]] = {}
 _LOGIN_LIMIT = 8
 _LOGIN_WINDOW_SECONDS = 60
 
+# Rate-limit da criação de jobs: "usuário|ip" -> [início da janela, criações]
+_JOB_CREATIONS: Dict[str, List[float]] = {}
+_JOB_CREATE_LIMIT = 10
+_JOB_CREATE_WINDOW_SECONDS = 60
+# Quantos jobs ativos (fila + execução) cada usuário pode ter simultaneamente
+JOB_MAX_ACTIVE = 3
+
 
 # ---------------------------------------------------------------------------
 # Senhas (PBKDF2)
@@ -149,3 +156,25 @@ def login_allowed(ip: str) -> bool:
 def reset_rate_limit() -> None:
     """Zera as contagens de tentativas (usado em testes)."""
     _LOGIN_ATTEMPTS.clear()
+
+
+# ---------------------------------------------------------------------------
+# Rate-limit da criação de jobs
+# ---------------------------------------------------------------------------
+
+
+def job_creation_allowed(ip: str, username: str) -> bool:
+    """True se usuário+IP ainda pode criar jobs na janela (N por minuto)."""
+    key = f'{username}|{ip}'
+    now = time.time()
+    record = _JOB_CREATIONS.get(key)
+    if record is None or now - record[0] > _JOB_CREATE_WINDOW_SECONDS:
+        _JOB_CREATIONS[key] = [now, 1]
+    else:
+        record[1] += 1
+    return _JOB_CREATIONS[key][1] <= _JOB_CREATE_LIMIT
+
+
+def reset_job_rate_limit() -> None:
+    """Zera as contagens de criação de jobs (usado em testes)."""
+    _JOB_CREATIONS.clear()

@@ -1,4 +1,4 @@
-"""Testes unitários do núcleo de autenticação (services/auth_core.py).
+"""Testes unitários do núcleo de autenticação (backend/core/auth_core.py).
 
 Valida o wiring do fluxo com um driver falso e com o CaptchaSolver
 mockado, cobrindo:
@@ -135,7 +135,7 @@ class AuthCoreTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-        from services import auth_core
+        from backend.core import auth_core
         self.auth_core = auth_core
 
         # Mock do CaptchaSolver para não depender do Selenium real
@@ -306,7 +306,7 @@ class AuthCoreTest(unittest.TestCase):
 
     def test_login_sends_masked_cpf(self):
         """O CPF digitado no portal deve ir MASCARADO (###.###.###-##)."""
-        from services.auth_core import CPF_INPUT_XPATH
+        from backend.core.auth_core import CPF_INPUT_XPATH
         self.configure_solver(strategy='checkbox_pass', success=True)
         driver = FakeDriver()
         self.install_script(driver, accept=True)

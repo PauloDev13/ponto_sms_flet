@@ -15,13 +15,14 @@ módulo da API. Verifica:
 import time
 import urllib.parse
 import zipfile
+import threading
 from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import main as main_module
-from backend.app.auth import reset_rate_limit
+from backend.app.auth import reset_job_rate_limit, reset_rate_limit
 from backend.core.exceptions import JobCancelledError
 from backend.core.job import JobFile, JobManager
 
@@ -83,6 +84,7 @@ def _fresh_manager(tmp_path, monkeypatch):
     monkeypatch.setenv('WEB_USERS', f'{WEB_USER}:{WEB_PASSWORD}')
     monkeypatch.setenv('SESSION_SECRET', 'test-secret')
     reset_rate_limit()
+    reset_job_rate_limit()
     manager = JobManager(
         run_fn=make_runner([
             JobFile(XLSX_NAME, 'xlsx'),
@@ -384,3 +386,67 @@ class TestSse:
         res = client.get('/api/v1/jobs/nao-existe/events')
         assert res.status_code == 404
         assert 'não encontrado' in res.json()['message']
+
+
+class TestJobRateLimit:
+
+    def test_active_jobs_limited_per_user(self, client):
+        """Mais que JOB_MAX_ACTIVE jobs ativos por usuário -> 429."""
+        from backend.app.auth import JOB_MAX_ACTIVE
+
+        gate = threading.Event()
+
+        def blocked_runner(job_id, payload, job_dir, on_message, on_progress,
+                           cancel_check=None):
+            gate.wait(timeout=5)
+            return [JobFile(XLSX_NAME, 'xlsx')]
+
+        main_module.JOB_MANAGER = JobManager(
+            run_fn=blocked_runner, history_limit=5)
+
+        ok = 0
+        for _ in range(JOB_MAX_ACTIVE):
+            if create_job(client).status_code == 202:
+                ok += 1
+        res = create_job(client)
+        gate.set()  # libera os jobs presos para o teardown
+        assert res.status_code == 429
+        assert ok == JOB_MAX_ACTIVE
+
+    def test_rate_limit_10_per_minute_per_user(self, client):
+        """Criações além do limite/minuto por usuário -> 429."""
+        from backend.app.auth import _JOB_CREATE_LIMIT
+
+        # Runner instantâneo: cada job termina na hora, para o limite de
+        # ATIVOS (3) não influir; mede apenas o contador/minuto (10).
+        main_module.JOB_MANAGER = JobManager(run_fn=make_runner(
+            [JobFile(XLSX_NAME, 'xlsx')], delay=0.0), history_limit=50)
+
+        for _ in range(_JOB_CREATE_LIMIT):
+            job_id = create_job(client).json()['job']['id']
+            wait_done(job_id)
+
+        res = create_job(client)
+        assert res.status_code == 429
+
+    def test_rate_limit_allow_after_jobs_finish(self, client):
+        """Jobs ativos que terminam liberam a cota (novo job aceito)."""
+        from backend.app.auth import JOB_MAX_ACTIVE
+        from backend.app.auth import reset_job_rate_limit
+
+        main_module.JOB_MANAGER = JobManager(run_fn=make_runner(
+            [JobFile(XLSX_NAME, 'xlsx')], delay=0.05), history_limit=5)
+
+        accepted = 0
+        for _ in range(JOB_MAX_ACTIVE):
+            if create_job(client).status_code == 202:
+                accepted += 1
+        # Cota de ativos cheia enquanto jobs ainda rodam
+        if accepted == JOB_MAX_ACTIVE:
+            assert create_job(client).status_code == 429
+
+        # Aguarda os jobs ativos terminarem => cota liberada
+        for job in list(main_module.JOB_MANAGER._jobs.values()):
+            wait_done(job.id)
+        reset_job_rate_limit()  # janela/minuto zerada p/ não afetar a assertiva
+        assert create_job(client).status_code == 202

@@ -363,8 +363,8 @@ _prepare_window(driver, preload_url)
 
 | Arquivo | Mudança | Prioridade |
 |---------|---------|------------|
-| `services/browser_session.py` | Adicionar `_apply_advanced_stealth()` | Alta |
-| `services/auth_core.py` | Trocar `_clear_portal_cookies` por `_clear_stale_php_sessions` | Alta |
+| `backend/core/browser_session.py` | Adicionar `_apply_advanced_stealth()` | Alta |
+| `backend/core/auth_core.py` | Trocar `_clear_portal_cookies` por `_clear_stale_php_sessions` | Alta |
 | `services/captcha_solver.py` | Não precisa mudar | — |
 | `backend/app/session_manager.py` | Ajustar fluxo de cookies | Média |
 

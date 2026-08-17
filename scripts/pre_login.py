@@ -21,8 +21,8 @@ sys.path.insert(0, str(ROOT))
 # Garante o working directory na raiz (config_env carrega o .env a partir do CWD)
 os.chdir(ROOT)
 
-from services.auth_core import authenticate  # noqa: E402
-from services.browser_session import create_driver  # noqa: E402
+from backend.core.auth_core import authenticate  # noqa: E402
+from backend.core.browser_session import create_driver  # noqa: E402
 
 STATUS_MESSAGES = {
     'session_active': 'Sessão ativa reutilizada (sem captcha).',

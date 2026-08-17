@@ -8,8 +8,10 @@ do formulário de login: formulário presente => sessão expirada.
 """
 import pytest
 
-from config.config_env import URL_INIT
 from backend.app import session_manager as sm
+from backend.core.settings import settings
+
+URL_INIT = settings.url_init
 
 PRELOAD_URL = 'http://portal/busca?cpf=111.222.333-44&mes=01&ano=2024&unidade=7'
 

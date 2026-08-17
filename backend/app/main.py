@@ -41,9 +41,11 @@ from backend.app.auth import (
     authenticate_user,
     client_ip,
     get_current_user,
+    job_creation_allowed,
     login_allowed,
     make_session_token,
 )
+from backend.app.auth import JOB_MAX_ACTIVE
 from backend.app.ponto_service import (
     PontoRequestError,
     build_zip_filename,
@@ -317,6 +319,22 @@ def api_create_job(payload: PontoRequest, request: Request) -> object:
         return JSONResponse(
             status_code=422,
             content={'ok': False, 'errors': validation['errors']},
+        )
+
+    ip = client_ip(request)
+    if not job_creation_allowed(ip, user):
+        return JSONResponse(
+            status_code=429,
+            content={'ok': False,
+                     'message': 'Muitas gerações iniciadas em pouco tempo. '
+                                'Aguarde um minuto.'},
+        )
+    if JOB_MANAGER.count_active(owner=user) >= JOB_MAX_ACTIVE:
+        return JSONResponse(
+            status_code=429,
+            content={'ok': False,
+                     'message': f'Limite de {JOB_MAX_ACTIVE} gerações ativas '
+                                'por usuário. Aguarde uma concluir.'},
         )
 
     job = JOB_MANAGER.create(payload.model_dump(), owner=user)

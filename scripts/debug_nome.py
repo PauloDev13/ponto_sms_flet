@@ -78,8 +78,8 @@ def main() -> int:
 
     # Verifica a página interna inicial (pode conter o nome)
     print('=== Navegando para URL_INIT ===')
-    from config.config_env import URL_INIT  # noqa: E402
-    driver.get(URL_INIT)
+    from backend.core.settings import settings  # noqa: E402
+    driver.get(settings.url_init)
     print(f'URL atual: {driver.current_url}')
 
     for tag, attr in [('font', ''), ('span', ''), ('a', '')]:

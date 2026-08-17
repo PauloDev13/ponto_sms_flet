@@ -62,7 +62,25 @@ Selenium/Chrome com perfil persistente.
     `write_array_formula(value=total)` grava o valor em cache junto da
     fórmula — sem isso o LibreOffice (e o Modo de Exibição Protegido de
     arquivos baixados) exibe as células de TOTAIS vazias.
-- **Pendente:** FASES 4 (multi-usuário/segurança) e 5 (Docker/CI/testes E2E).
+- **FASE 4 (feita):** multi-usuário e segurança:
+  - Sessão web autenticada por cookie assinado (HMAC-SHA256,
+    HttpOnly/SameSite=Lax, expiração via `SESSION_TTL_HOURS`);
+    contas locais `WEB_USERS` com senhas hash PBKDF2
+    (`backend/app/auth.py`); login/logout/`/me`; todos os endpoints de
+    jobs escopados por usuário (`job.owner` + 403/404).
+  - Credenciais nunca expostas: `/health` só devolve `masked_user`;
+    `USER/PASSWORD` jamais via API/frontend.
+  - Rate-limit: login por IP (8/60s, `auth.py`) e criação de jobs por
+    usuário+IP (`JOB_MAX_ACTIVE=3` ativos + `_JOB_CREATE_LIMIT=10`/min).
+  - Retry no scraper: `fetch_month_table` tenta `SCRAPE_RETRIES=2` com
+    `RETRY_BACKOFF=3s` para timeouts TRANSITÓRIOS; NUNCA retenta quando a
+    sessão caiu (`session_lost`) — aborta com `JobCancelledError`.
+  - **Decisão documentada (drivers):** o pool de drivers por usuário NÃO
+    foi implementado de propósito. A fila é serial (1 worker) e o portal
+    tem UMA conta (USER/PASSWORD) compartilhada por todos os usuários web;
+    portanto um driver único + serializer já garante o isolamento exigido
+    ("2 usuários simultâneos não interferem") sem custo nem risco extra.
+- **Pendente (FASE 5):** deploy e validação.
 
 ## Arquitetura (mapa de módulos)
 
@@ -81,9 +99,14 @@ backend/
                        # clear() (limpa histórico)
     scraper.py         # scrape_months(...) + on_month_status(month, success, msg)
     excel_service.py, pdf_service.py, dataframe.py, validators.py,
-    unidades_service.py, settings.py, paths.py, exceptions.py
+    unidades_service.py, settings.py, paths.py, exceptions.py,
+    auth_core.py, browser_session.py, captcha_solver.py  # movidos de services/ (Parte B)
 frontend/index.html    # UI completa (FASE 3)
-services/, config/     # código legado do desktop (manter até FASE 5)
+desktop/               # código legado do desktop (Flet/PyInstaller), isolado:
+  main.py, models/, utils/, controls/, config/ (config_env), services/
+  (authenticate_service, data/*, compress/divide_pdf_file), requirements.txt
+data/                  # compartilhado (unidades.csv, outputs)
+scripts/               # utilitários (debug, deploy web)
 
 ```
 
@@ -97,25 +120,45 @@ services/, config/     # código legado do desktop (manter até FASE 5)
 - `tests/test_jobs_api.py` injeta um JobManager com runner fake (sem Chrome)
   através de `main_module.JOB_MANAGER = JobManager(run_fn=...)`.
 
-## FASE 4 — Robustez/segurança (próxima)
+## FASE 4 — Robustez/segurança (feita)
 
 Objetivo: multi-usuário e isolamento de sessão; credenciais protegidas.
 
-1. Sessões web autenticadas (cookie/JWT), pool de drivers por usuário
-   thread-safe (hoje há 1 driver global — lembrança de sessão por usuário
-   deve mapear para drivers distintos; a fila do JobManager já é serializada).
-2. USER/PASSWORD apenas via secrets (nunca expor na API/frontend —
-   hoje aparecem mascarados em /health; manter sempre `masked_user`).
-3. Rate-limit por IP/job; timeout e retry no scraper.
-Aceite: 2 usuários simultâneos não interferem; credenciais nunca transitam.
+1. Sessões web autenticadas (cookie assinado — ver "Estado atual").
+2. USER/PASSWORD apenas via secrets (nunca expor na API/frontend; /health
+   usa sempre `masked_user`).
+3. Rate-limit por IP/job (login 8/60s; jobs `JOB_MAX_ACTIVE` + N/min).
+Aceite: 2 usuários simultâneos não interferem; credenciais nunca transitam —
+coberto por `tests/test_isolation.py` e `tests/test_auth_api.py`.
 
 ## FASE 5 — Deploy e validação
 
-- Dockerfile + CI: Python 3.12, Chrome, Ghostscript, fontes pt_BR,
-  units.csv; `docker compose` dev; CI com py_compile + pytest.
-- Testes E2E: validators, scraper (mocks), Excel/PDF, divisão por tamanho.
+Objetivo: empacotar/validar a web para produção e deixar a suíte verde com
+cobertura garantida nas funcionalidades.
+
+- **CI pronto**: `.github/workflows/ci.yml` (Python 3.12, `pip install -r
+  requirements-web.txt`, `compileall` em backend/scripts/tests/desktop +
+  `pytest tests -q`). Roda em push/PR na branch `PontoSmsWeb`.
+- **Produção VM (Parte D)**: `scripts/setup_prod.ps1` (setup idempotente:
+  venv, deps web, checagem Chrome/Ghostscript, CSV, .env sem sobrescrever),
+  `scripts/install_service.ps1` (serviço NSSM `PontoSmsWeb`, uvicorn :8000,
+  autorestart + rotação de logs) e `docs/runbook-deploy.md` (D3: git pull →
+  setup → nssm restart; D4: plano B do desktop em `version_2.3.1`).
+  Guia completo passo a passo: `docs/guia-producao.md`.
+- **Inventário (Parte E5)**: `docs/inventario-cobertura.md` — checklist
+  desktop→web com status/teste de cada funcionalidade.
+- **Testes E2E/unit**: todos presentes e verdes — `test_core_validators.py`
+  (dedicado), `test_core_ponto_service.py` (normalize_cpf, format_cpf_br,
+  parse_br_month), `test_core_scraper.py` (mocks, retries, sessão perdida,
+  cancelamento), `test_core_excel.py` + `test_excel_totals.py`,
+  `test_core_pdf.py` (combine + divide_pdf_by_size + compressão com
+  Ghostscript mockado), `test_jobs_api.py`, `test_isolation.py`,
+  `test_auth_api.py`, `test_session_manager.py`, `test_settings_reload.py`.
+- **Pendente**: arquivos Docker (Dockerfile + `docker compose` dev) — opcional,
+  a VM usa venv + NSSM.
 - Manter desktop em paralelo só até web validar em produção.
-Aceite: suíte verde e funcionalidades inventariadas 100% cobertas na web.
+Aceite: suíte verde (162 testes) e funcionalidades inventariadas 100%
+cobertas na web.
 
 ## Regras de convenção do projeto
 

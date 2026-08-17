@@ -26,9 +26,9 @@ from selenium.webdriver.common.by import By  # noqa: E402
 from selenium.webdriver.support import expected_conditions as ec  # noqa: E402
 from selenium.webdriver.support.ui import WebDriverWait  # noqa: E402
 
-from services.auth_core import mask_cpf  # noqa: E402
-from services.browser_session import create_driver  # noqa: E402
-from services.captcha_solver import CaptchaSolver  # noqa: E402
+from backend.core.auth_core import mask_cpf  # noqa: E402
+from backend.core.browser_session import create_driver  # noqa: E402
+from backend.core.captcha_solver import CaptchaSolver  # noqa: E402
 
 CPF_XPATH = "//*[@id='cpf']"
 SENHA_XPATH = "//*[@id='senha']"

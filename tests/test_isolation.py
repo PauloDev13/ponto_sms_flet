@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import main as main_module
-from backend.app.auth import reset_rate_limit
+from backend.app.auth import reset_job_rate_limit, reset_rate_limit
 from backend.core.job import JobFile, JobManager
 
 XLSX_NAME = 'MARIA SOUZA - CPF_529.982.247-25.xlsx'
@@ -48,6 +48,7 @@ def two_clients(monkeypatch, tmp_path):
     monkeypatch.setenv('WEB_USERS', f'{ALICE}:{ALICE_PWD},{BOB}:{BOB_PWD}')
     monkeypatch.setenv('SESSION_SECRET', 'test-secret')
     reset_rate_limit()
+    reset_job_rate_limit()
 
     manager = JobManager(
         run_fn=make_runner([JobFile(XLSX_NAME, 'xlsx')]),

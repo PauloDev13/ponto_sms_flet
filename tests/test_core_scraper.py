@@ -165,6 +165,8 @@ def test_scrape_months_falha_total(monkeypatch):
         def until(self, condition):
             raise SeleniumTimeout('timeout da tabela')
     monkeypatch.setattr(scraper_mod, 'WebDriverWait', _WaitFail)
+    # Retry sem sleep: falha nas 2 tentativas rapidamente
+    monkeypatch.setattr(scraper_mod, 'RETRY_BACKOFF', 0.0)
 
     driver = FakeDriver()
     with pytest.raises(ScrapeError):
@@ -218,3 +220,65 @@ def test_scrape_months_sessao_perdida_aborta(monkeypatch):
             start_date=datetime.date(2025, 1, 1),
             end_date=datetime.date(2025, 3, 1),
         )
+
+
+def test_fetch_month_table_retries_transient_timeout(monkeypatch):
+    """Timeout transitório na 1ª tentativa: retry conclui o mês sem falha."""
+    import backend.core.scraper as scraper_mod
+    from selenium.common.exceptions import TimeoutException as SeleniumTimeout
+
+    attempts = {'n': 0}
+
+    class _WaitRetryOnce:
+        def __init__(self, driver, timeout):
+            pass
+
+        def until(self, condition):
+            attempts['n'] += 1
+            if attempts['n'] <= 1:  # só a primeira chamada falha
+                raise SeleniumTimeout('timeout transitório')
+            return FakeElement(html=TABLE_HTML)
+
+    monkeypatch.setattr(scraper_mod, 'WebDriverWait', _WaitRetryOnce)
+    monkeypatch.setattr(scraper_mod, 'RETRY_BACKOFF', 0.0)
+
+    driver = FakeDriver()
+    result = scrape_months(
+        driver,
+        cpf='123',
+        unit='11',
+        start_date=datetime.date(2025, 1, 1),
+        end_date=datetime.date(2025, 1, 1),
+    )
+    assert result.months_processed == 1
+    assert result.months_failed == 0
+
+
+def test_fetch_month_table_no_retry_when_session_lost(monkeypatch):
+    """Sessão perdida NÃO é re-tentada (problema de estado, não de tempo)."""
+    import backend.core.scraper as scraper_mod
+    from selenium.common.exceptions import TimeoutException as SeleniumTimeout
+    from backend.core.exceptions import JobCancelledError
+
+    tries = {'n': 0}
+
+    class _WaitFail:
+        def __init__(self, driver, timeout):
+            pass
+
+        def until(self, condition):
+            tries['n'] += 1
+            raise SeleniumTimeout('timeout da tabela')
+
+    monkeypatch.setattr(scraper_mod, 'WebDriverWait', _WaitFail)
+
+    with pytest.raises(JobCancelledError, match='Sessão do portal'):
+        scrape_months(
+            FakeDriver(login_form=True),
+            cpf='123',
+            unit='11',
+            start_date=datetime.date(2025, 1, 1),
+            end_date=datetime.date(2025, 1, 1),
+        )
+    # Única tentativa: o retry não ocorreu para a sessão perdida
+    assert tries['n'] == 1

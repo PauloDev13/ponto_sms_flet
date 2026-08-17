@@ -479,8 +479,7 @@
       setGenerating(false);
       renderProgress(job);
       renderFiles(job.files || []);
-      autoDownload(job);
-      showToast('Arquivos gerados com sucesso!', 'success');
+      showToast('Arquivos gerados com sucesso. Escolha os arquivos para baixar.', 'success');
       loadHistory();
       state.job = null;
     }
@@ -499,19 +498,6 @@
       showToast('Processamento cancelado.', 'success');
       loadHistory();
       state.job = null;
-    }
-
-    function autoDownload(job) {
-      const files = job.files || [];
-      const count = { xlsx: 0, pdf: 0 };
-      files.forEach(f => { count[f.format] = (count[f.format] || 0) + 1; });
-      let url = null;
-      if (count.xlsx) url = jobUrl('/download?format=xlsx');
-      else if (count.pdf === 1) url = jobUrl('/download?format=pdf');
-      else if (count.pdf > 1) url = jobUrl('/download?format=pdf&parts=zip');
-      else url = jobUrl('/download?format=zip');
-      window.location.href = url;
-      showToast('Download iniciado...', 'success');
     }
 
     // ----------------------------------------------------------- SSE + polling

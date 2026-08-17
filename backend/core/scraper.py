@@ -9,6 +9,7 @@ import calendar
 import datetime
 import logging
 import re
+import time
 from dataclasses import dataclass, field
 from io import StringIO
 from typing import Dict, List, Optional
@@ -28,6 +29,12 @@ logger = logging.getLogger(__name__)
 
 # Tempo (s) de espera pela tabela de dados de cada mês
 TABLE_TIMEOUT: int = 10
+
+# Retry por mês para timeouts TRANSITÓRIOS (rede lenta, portal momentaneamente
+# demorado). Nunca retenta quando a sessão caiu (session_lost) — o problema aí
+# é de estado, não de tempo.
+SCRAPE_RETRIES: int = 2
+RETRY_BACKOFF: float = 3.0
 
 # XPATH do formulário de login (presença indica sessão encerrada)
 LOGIN_FORM_XPATH: str = "//*[@id='cpf']"
@@ -99,25 +106,51 @@ def find_employee_name(driver) -> str:
     return ''
 
 
-def fetch_month_table(driver, url: str) -> Optional[pd.DataFrame]:
+def fetch_month_table(driver, url: str,
+                      retries: Optional[int] = None,
+                      backoff: Optional[float] = None) -> Optional[pd.DataFrame]:
     """Navega até a URL e obtém a tabela HTML do mês como DataFrame.
 
     O desktop aguarda o bloco com o nome do funcionário antes da tabela;
     mantemos a mesma sequência para garantir que a página terminou de carregar.
+
+    Retry: para timeouts TRANSITÓRIOS (rede lenta, portal momentaneamente
+    demorado) tenta até `retries` vezes, com intervalo `backoff` entre elas.
+    NUNCA retenta quando a sessão caiu no meio do caminho: aí o erro é
+    repassado de imediato para o fluxo que aborta a coleta.
     """
-    driver.get(url)
-    try:
-        WebDriverWait(driver, TABLE_TIMEOUT).until(
-            ec.presence_of_element_located((By.XPATH, NAME_BLOCK_XPATH)))
-        table = WebDriverWait(driver, TABLE_TIMEOUT).until(
-            ec.presence_of_element_located((By.XPATH, TABLE_XPATH)))
-        html = table.get_attribute('outerHTML')
-        df_table = pd.read_html(StringIO(html), encoding='utf-8')[0]
-        logger.debug('Tabela do mês carregada: %s linhas', len(df_table))
-        return df_table
-    except TimeoutException as e:
-        logger.warning('Tabela/nome não encontrados na URL %s', url)
-        raise ScrapeError(f'Dados não encontrados para a URL: {url}', cause=e) from e
+    if retries is None:
+        retries = SCRAPE_RETRIES
+    if backoff is None:
+        backoff = RETRY_BACKOFF
+    for attempt in range(1, retries + 1):
+        driver.get(url)
+        try:
+            WebDriverWait(driver, TABLE_TIMEOUT).until(
+                ec.presence_of_element_located((By.XPATH, NAME_BLOCK_XPATH)))
+            table = WebDriverWait(driver, TABLE_TIMEOUT).until(
+                ec.presence_of_element_located((By.XPATH, TABLE_XPATH)))
+            html = table.get_attribute('outerHTML')
+            df_table = pd.read_html(StringIO(html), encoding='utf-8')[0]
+            logger.debug('Tabela do mês carregada: %s linhas', len(df_table))
+            return df_table
+        except TimeoutException as e:
+            # Sessão perdida (janela fechada/cookie expirado): não faz sentido
+            # tentar de novo — o problema é de estado, não de tempo.
+            if session_lost(driver):
+                raise ScrapeError(f'Dados não encontrados para a URL: {url}',
+                                  cause=e) from e
+            if attempt < retries:
+                logger.warning(
+                    'Tentativa %d/%d falhou na URL %s; aguardando %.1fs antes '
+                    'de tentar de novo.', attempt, retries, url, backoff)
+                time.sleep(backoff)
+                continue
+            logger.warning('Tabela/nome não encontrados na URL %s '
+                           '(após %d tentativas).', url, retries)
+            raise ScrapeError(f'Dados não encontrados para a URL: {url}',
+                              cause=e) from e
+    raise ScrapeError('Falha inesperada ao carregar a tabela.')
 
 
 def _month_name(month: int) -> str:

@@ -180,6 +180,21 @@ class JobManager:
                 values = [j for j in values if j.owner == owner]
             return len(values)
 
+    def count_active(self, owner: Optional[str] = None) -> int:
+        """Jobs em QUEUED ou RUNNING (fila + execução) de um usuário.
+
+        Usado pelo rate-limit da API: impede que um usuário entupa a fila
+        (execução é serial) com mais do que o limite configurado.
+        """
+        with self._lock:
+            active = 0
+            for job in self._jobs.values():
+                if owner is not None and job.owner != owner:
+                    continue
+                if job.status in (JobStatus.QUEUED, JobStatus.RUNNING):
+                    active += 1
+            return active
+
     # --------------------------- execução ------------------------------
 
     def _run(self, job_id: str) -> None:
