@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-  Prepara a VM Windows de produção com o ambiente web do ponto eletrônico.
+  Prepara a VM Windows de producao com o ambiente web do ponto eletronico.
 
 .DESCRIPTION
-  Runbook idempotente da Parte D (FASE 5). Executa com segurança mais de
+  Runbook idempotente da Parte D (FASE 5). Executa com seguranca mais de
   uma vez sem quebrar nada:
     1. Valida Python 3.10+ instalado.
     2. Cria/atualiza o venv (".venv" na raiz) e instala requirements-web.txt.
-    3. Checa navegador (Chrome/Edge) e Ghostscript (gswin64c) disponíveis.
-    4. Garante data/unidades.csv presente (o CSV não pode existir sem isso).
-    5. Cria o .env a partir de .env.example se ainda não existir (NUNCA
-       sobrescreve credenciais já configuradas).
+    3. Checa navegador (Chrome/Edge) e Ghostscript (gswin64c) disponiveis.
+    4. Garante data/unidades.csv presente (o CSV nao pode existir sem isso).
+    5. Cria o .env a partir de .env.example se ainda nao existir (NUNCA
+       sobrescreve credenciais ja configuradas).
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\setup_prod.ps1
@@ -32,20 +32,66 @@ Write-Step "Raiz do projeto: $Root"
 # ---------------------------------------------------------------------------
 # 1) Python do sistema
 # ---------------------------------------------------------------------------
-$Python = (Get-Command python -ErrorAction SilentlyContinue).Source
-if (-not $Python) {
-    throw 'Python nao encontrado. Instale Python 3.10+ e adicione ao PATH.'
+# O comando 'python' pode resolver o stub 0-byte da Microsoft Store
+# (WindowsApps\python.exe), que nao e um Python real. Preferimos o launcher
+# 'py -3' (habilitado pelo install_python.ps1) e validamos que o caminho
+# encontrado realmente executa.
+function Resolve-RealPython {
+    $candidates = New-Object System.Collections.Generic.List[string]
+
+    # 1a. Launcher py -3 (aponta sempre para um Python REAL instalado)
+    try {
+        $out = (& py -3 -c "import sys; print(sys.executable)" 2>&1 | Out-String).Trim()
+        if ($out -match '^[A-Za-z]:\\' -and (Test-Path $out)) { $candidates.Add($out) }
+    } catch { }
+
+    # 1b. 'python' no PATH, descartando o alias do WindowsApps
+    $cmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -notmatch 'AppData\\Local\\Microsoft\\WindowsApps') {
+        $candidates.Add($cmd.Source)
+    }
+
+    # 1c. Instalacoes registradas no Windows (HKLM/HKCU)
+    foreach ($hive in @('HKLM:\SOFTWARE\Python\PythonCore', 'HKCU:\SOFTWARE\Python\PythonCore')) {
+        $roots = Get-ChildItem -Path $hive -ErrorAction SilentlyContinue | Where-Object Name -match '3\.'
+        foreach ($r in $roots) {
+            $installKey = Join-Path $r.PSPath 'InstallPath'
+            $path = (Get-ItemProperty -Path $installKey -Name '(default)' -ErrorAction SilentlyContinue).'(default)'
+            $exe = Join-Path $path 'python.exe'
+            if (Test-Path $exe) { $candidates.Add($exe) }
+        }
+    }
+
+    foreach ($p in ($candidates | Select-Object -Unique)) {
+        try {
+            $ver = (& $p --version 2>&1 | Out-String).Trim()
+            if ($ver -match '\d+\.\d+') { return @{ Exe = $p; Version = $ver } }
+        } catch { }
+    }
+    return $null
 }
-Write-Step "Python base: $Python"
+
+$Py = Resolve-RealPython
+if (-not $Py) {
+    throw 'Python 3.10+ nao encontrado. Rode primeiro: scripts\install_python.ps1 e abra um NOVO terminal.'
+}
+Write-Step "Python base: $($Py.Exe)  ($($Py.Version))"
 
 # ---------------------------------------------------------------------------
 # 2) venv + dependencias web
 # ---------------------------------------------------------------------------
 if (-not (Test-Path $PythonVenv)) {
     Write-Step "Criando venv em $Venv ..."
-    & python -m venv $Venv
+    & $Py.Exe -m venv $Venv
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao criar o venv com $($Py.Exe)."
+    }
 } else {
     Write-Step "venv ja existe ($Venv) - pulando criacao."
+}
+
+if (-not (Test-Path $PipVenv)) {
+    throw "pip.exe nao encontrado em $PipVenv. O venv nao foi criado corretamente."
 }
 
 Write-Step 'Instalando/atualizando requirements-web.txt ...'

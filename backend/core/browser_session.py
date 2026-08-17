@@ -9,6 +9,7 @@ tanto na aplicação desktop quanto no futuro backend web.
 """
 import logging
 import os
+import subprocess
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -229,6 +230,55 @@ def _apply_advanced_stealth(driver) -> None:
     logger.debug('Stealth avançado aplicado (CDP).')
 
 
+def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
+    """Encerra Chrome órfãos presos ao perfil persistente (Windows).
+
+    O Chrome trava o 'user-data-dir' enquanto está aberto. Se uma instância
+    anterior (crashada/órfã) ainda estiver usando o mesmo perfil, uma nova
+    chamada a `webdriver.Chrome` falha com "Chrome instance exited".
+
+    Aqui matamos apenas processos do Chrome cuja linha de comando referencia
+    o perfil desta aplicação -- o Chrome do usuário fica intocado.
+    """
+    profile_dir = profile_dir or default_profile_dir()
+    if os.name != 'nt':
+        return
+    try:
+        profile_norm = os.path.normcase(profile_dir).lower()
+        ps = subprocess.run(
+            [
+                'powershell', '-NoProfile', '-Command',
+                "Get-CimInstance Win32_Process -Filter \"Name='chrome.exe'\" | "
+                "Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress",
+            ],
+            capture_output=True, text=True, timeout=30, errors='replace',
+        )
+        if ps.returncode != 0:
+            logger.debug('cleanup_orphan_browsers: powershell retornou %s.', ps.returncode)
+            return
+
+        import json
+        data = json.loads(ps.stdout or '[]')
+        if isinstance(data, dict):
+            data = [data]
+        for proc in data:
+            cmd = (proc.get('CommandLine') or '') + ''
+            if profile_norm in os.path.normcase(cmd).lower():
+                pid = proc.get('ProcessId')
+                try:
+                    pid = int(pid)
+                except (TypeError, ValueError):
+                    continue
+                logger.warning(
+                    'Encerrando Chrome orfao (PID %s) preso ao perfil %s.', pid, profile_dir)
+                subprocess.run(
+                    ['taskkill', '/PID', str(pid), '/F'],
+                    capture_output=True, text=True, timeout=15,
+                )
+    except Exception:
+        logger.debug('cleanup_orphan_browsers falhou.', exc_info=True)
+
+
 def create_driver(
         profile_dir: str | None = None,
         headless: bool = False,
@@ -244,6 +294,11 @@ def create_driver(
     """
     profile_dir = profile_dir or default_profile_dir()
     os.makedirs(profile_dir, exist_ok=True)
+
+    # Limpa instâncias órfãs que estejam segurando o lock do perfil; caso
+    # contrário uma nova sessão falha com "session not created: Chrome
+    # instance exited".
+    cleanup_orphan_browsers(profile_dir)
 
     options = build_chrome_options(
         profile_dir=profile_dir,
@@ -272,9 +327,15 @@ def create_driver(
                 pass
         logger.warning('create_driver: tentativa 1 falhou (%s).', e)
 
-    # 2ª tentativa: undetected_chromedriver (gerencia o perfil internamente)
+    # 2ª tentativa: undetected_chromedriver (gerencia o perfil internamente),
+    # só se o pacote estiver instalado (é opcional nos requirements web)
     driver = None
     try:
+        import importlib.util
+
+        if importlib.util.find_spec('undetected_chromedriver') is None:
+            raise ImportError('undetected_chromedriver nao instalado (opcional)')
+
         import undetected_chromedriver as uc
 
         driver = uc.Chrome(user_data_dir=profile_dir, headless=headless)
@@ -287,7 +348,8 @@ def create_driver(
                 driver.quit()
             except Exception:
                 pass
-        logger.warning('create_driver: tentativa 2 falhou (%s).', e)
+        if not isinstance(e, ImportError):
+            logger.warning('create_driver: tentativa 2 falhou (%s).', e)
 
     # 3ª tentativa: selenium padrão sem stealth (perfil persistente)
     try:
