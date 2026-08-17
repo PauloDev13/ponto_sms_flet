@@ -9,6 +9,7 @@ tanto na aplicação desktop quanto no futuro backend web.
 """
 import logging
 import os
+import shutil
 import subprocess
 
 from selenium import webdriver
@@ -230,15 +231,57 @@ def _apply_advanced_stealth(driver) -> None:
     logger.debug('Stealth avançado aplicado (CDP).')
 
 
+def _edge_binary() -> str | None:
+    """Retorna o caminho do Edge se instalado (fallback ao Chrome)."""
+    candidates = [
+        r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+        r'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+    ]
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def _build_edge_options(
+        profile_dir: str,
+        headless: bool = False,
+        window_size: tuple[int, int] = (1280, 900),
+) -> 'Options':
+    """Opções do Edge (mesmas bases de estabilidade/anti-detecção do Chrome)."""
+    from selenium.webdriver.edge.options import Options as EdgeOptions
+
+    options = EdgeOptions()
+    options.add_argument(f'--user-data-dir={profile_dir}')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--lang=pt-BR')
+    options.add_argument(f'--window-size={window_size[0]},{window_size[1]}')
+    if headless:
+        options.add_argument('--headless=new')
+    options.add_experimental_option('excludeSwitches', [
+        'enable-automation',
+        'enable-blink-features=AutomationControlled',
+    ])
+    options.add_experimental_option('useAutomationExtension', False)
+    edge = _edge_binary()
+    if edge:
+        options.binary_location = edge
+    return options
+
+
 def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
-    """Encerra Chrome órfãos presos ao perfil persistente (Windows).
+    """Encerra Chrome/Edge órfãos presos ao perfil persistente (Windows).
 
     O Chrome trava o 'user-data-dir' enquanto está aberto. Se uma instância
     anterior (crashada/órfã) ainda estiver usando o mesmo perfil, uma nova
     chamada a `webdriver.Chrome` falha com "Chrome instance exited".
 
-    Aqui matamos apenas processos do Chrome cuja linha de comando referencia
-    o perfil desta aplicação -- o Chrome do usuário fica intocado.
+    Aqui matamos apenas processos (chrome.exe/msedge.exe) cuja linha de comando
+    referencia o perfil desta aplicação -- o browser do usuário fica intocado.
     """
     profile_dir = profile_dir or default_profile_dir()
     if os.name != 'nt':
@@ -248,7 +291,8 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
         ps = subprocess.run(
             [
                 'powershell', '-NoProfile', '-Command',
-                "Get-CimInstance Win32_Process -Filter \"Name='chrome.exe'\" | "
+                "Get-CimInstance Win32_Process -Filter "
+                "\"Name='chrome.exe' -or Name='msedge.exe'\" | "
                 "Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress",
             ],
             capture_output=True, text=True, timeout=30, errors='replace',
@@ -270,7 +314,7 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
                 except (TypeError, ValueError):
                     continue
                 logger.warning(
-                    'Encerrando Chrome orfao (PID %s) preso ao perfil %s.', pid, profile_dir)
+                    'Encerrando Chrome/Edge orfao (PID %s) preso ao perfil %s.', pid, profile_dir)
                 subprocess.run(
                     ['taskkill', '/PID', str(pid), '/F'],
                     capture_output=True, text=True, timeout=15,
@@ -287,71 +331,106 @@ def create_driver(
         maximize_window: bool = True,
         start_minimized: bool = False,
 ):
-    """Cria e retorna uma instância do WebDriver do Chrome.
+    """Cria e retorna uma instância do WebDriver do Chrome (ou Edge).
 
-    Tenta usar `undetected_chromedriver` (mais resistente a detecção) e, se
-    indisponível, cai para o selenium.webdriver padrão com stealth.
+    Tenta, em ordem:
+      1) Chrome com o perfil persistente da aplicação (reuso de cookies);
+      2) Chrome com o perfil persistente RECRIADO do zero (contorna
+         lock/corrupção do perfil - causa do "Chrome instance exited");
+      3) Edge (msedge.exe) - fallback final (Windows sempre tem Edge).
     """
     profile_dir = profile_dir or default_profile_dir()
     os.makedirs(profile_dir, exist_ok=True)
 
-    # Limpa instâncias órfãs que estejam segurando o lock do perfil; caso
-    # contrário uma nova sessão falha com "session not created: Chrome
-    # instance exited".
+    # Limpa instâncias órfãs (Chrome/Edge) que estejam segurando o lock do
+    # perfil; caso contrário uma nova sessão falha com "session not created:
+    # Chrome instance exited".
     cleanup_orphan_browsers(profile_dir)
 
+    def _launch(options, label: str):
+        """Tenta criar o driver com as opções dadas; retorna driver ou None."""
+        drv = None
+        try:
+            drv = webdriver.Chrome(options=options)
+            if apply_stealth:
+                _apply_stealth(drv)
+                _apply_advanced_stealth(drv)
+            if maximize_window:
+                drv.maximize_window()
+            return drv
+        except Exception as e:
+            if drv is not None:
+                try:
+                    drv.quit()
+                except Exception:
+                    pass
+            logger.warning('create_driver: %s falhou (%s).', label, e)
+            return None
+
+# 1ª tentativa: perfil persistente da aplicação (reuso de sessão/cookies)
     options = build_chrome_options(
         profile_dir=profile_dir,
         headless=headless,
         print_to_pdf=print_to_pdf,
         start_minimized=start_minimized,
     )
-
-    # 1ª tentativa: selenium padrão + stealth (estável e suficiente)
-    driver = None
-    try:
-        driver = webdriver.Chrome(options=options)
-        if apply_stealth:
-            _apply_stealth(driver)
-            _apply_advanced_stealth(driver)
-        if maximize_window:
-            driver.maximize_window()
+    driver = _launch(options, 'tentativa 1 (perfil persistente)')
+    if driver is not None:
         return driver
-    except Exception as e:
-        # Se o Chrome já abriu mas a config falhou, fecha para não deixar
-        # janela órfã (causa das "duas janelas" ao iniciar sem sessão).
-        if driver is not None:
-            try:
-                driver.quit()
-            except Exception:
-                pass
-        logger.warning('create_driver: tentativa 1 falhou (%s).', e)
 
-    # 2ª tentativa: undetected_chromedriver (gerencia o perfil internamente),
-    # só se o pacote estiver instalado (é opcional nos requirements web)
-    driver = None
+    # 2ª tentativa: PERFIL PERSISTENTE RECRIADO DO ZERO. Descarta o diretório
+    # corrompido/travado (causa do "Chrome instance exited") e recria a
+    # estrutura vazia, mantendo o caminho default (persistência de cookies).
+    # Se houver instância órfã segurando o diretório, a remoção falha e
+    # seguimos para o Edge abaixo.
     try:
-        import importlib.util
-
-        if importlib.util.find_spec('undetected_chromedriver') is None:
-            raise ImportError('undetected_chromedriver nao instalado (opcional)')
-
-        import undetected_chromedriver as uc
-
-        driver = uc.Chrome(user_data_dir=profile_dir, headless=headless)
-        if maximize_window:
-            driver.maximize_window()
-        return driver
-    except Exception as e:
+        if os.path.isdir(profile_dir):
+            cleanup_orphan_browsers(profile_dir)
+            shutil.rmtree(profile_dir, ignore_errors=False)
+        os.makedirs(profile_dir, exist_ok=True)
+        logger.warning(
+            'create_driver: perfil persistente recriado do zero (%s).', profile_dir)
+        options_reset = build_chrome_options(
+            profile_dir=profile_dir,
+            headless=headless,
+            print_to_pdf=print_to_pdf,
+            start_minimized=start_minimized,
+        )
+        driver = _launch(options_reset, 'tentativa 2 (perfil recriado do zero)')
         if driver is not None:
-            try:
-                driver.quit()
-            except Exception:
-                pass
-        if not isinstance(e, ImportError):
-            logger.warning('create_driver: tentativa 2 falhou (%s).', e)
+            return driver
+    except Exception as e:
+        logger.warning('create_driver: tentativa 2 (reset do perfil) falhou (%s).', e)
 
-    # 3ª tentativa: selenium padrão sem stealth (perfil persistente)
+    # 3ª tentativa: Edge como fallback (Windows tem Edge sempre)
+    if _edge_binary():
+        edge_options = _build_edge_options(
+            profile_dir=profile_dir, headless=headless,
+        )
+        try:
+            from selenium.webdriver.edge.webdriver import WebDriver as EdgeDriver
+            driver = EdgeDriver(options=edge_options)
+            if apply_stealth:
+                _apply_stealth(driver)
+                _apply_advanced_stealth(driver)
+            if maximize_window:
+                driver.maximize_window()
+            return driver
+        except Exception as e:
+            if driver is not None:
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+            logger.warning('create_driver: tentativa 3 (Edge) falhou (%s).', e)
+
+    # 4ª tentativa (fallback geral): selenium padrão sem stealth
+    options = build_chrome_options(
+        profile_dir=profile_dir,
+        headless=headless,
+        print_to_pdf=print_to_pdf,
+        start_minimized=start_minimized,
+    )
     try:
         driver = webdriver.Chrome(options=options)
         if maximize_window:
