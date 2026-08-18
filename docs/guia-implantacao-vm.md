@@ -134,13 +134,15 @@ JOBS_HISTORY_LIMIT=20
 GHOSTSCRIPT_BIN=''
 ```
 
-Gerar o `SESSION_SECRET`:
+Gerar o `SESSION_SECRET` (ou deixe vazio — o `setup_prod.ps1` gera automaticamente se for o placeholder):
 
 ```powershell
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 > O `.env` está no `.gitignore` e nunca vai para o git.
+> O `setup_prod.ps1` detecta se `SESSION_SECRET` ainda é `troque-este-segredo`
+> e gera um valor seguro automaticamente.
 
 ---
 
@@ -167,16 +169,25 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 ## 6. Transcrição do login: deixar a sessão do portal pronta (1ª vez)
 
+> **OBRIGATÓRIO:** Este passo deve ser executado ANTES do passo 7 (serviço).
+> Sem ele, o serviço não tem sessão válida no portal e todos os jobs falham
+> com "Captcha não resolvido no tempo limite".
+
+> **IMPORTANTE:** Use SEMPRE o Python do venv (`.\.venv\Scripts\python.exe`),
+> nunca o `python.exe` do sistema. O selenium só está instalado no venv.
+
 Antes de parar o uvicorn manual e migrar para o serviço, **faça o pré-login no
 portal** para o serviço reaproveitar a sessão sem novo captcha:
 
 ```powershell
+cd C:\Apps\ponto_sms_flet
 .\.venv\Scripts\python.exe scripts\pre_login.py --manual-wait 180
 ```
 
 - Uma janela do Chrome abre; se o reCAPTCHA aparecer, resolva-o manualmente.
 - Ao terminar com `session_active` ou `success`, o perfil/cookies ficam em
   `~/.ponto_sms_flet\` e o serviço reaproveita a sessão (janela minimizada).
+- Se falhar ou der timeout, execute novamente até obter `session_active`/`success`.
 
 ---
 
@@ -189,6 +200,35 @@ Pré-requisito: `nssm.exe` no PATH da VM.
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1
 ```
+
+
+# Se der erro, verificar se NSSM já existe na VM. Se não existir, baixar e instalar
+Usar Powershell para executar todos os comandos
+
+- Criar diretório de instalação 
+New-Item -ItemType Directory -Path "C:\Tools\nssm" -Force | Out-Null
+
+- Baixar NSSM 2.24 (última estável)
+Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$env:TEMP\nssm.zip"
+
+- Extrair
+Expand-Archive -Path "$env:TEMP\nssm.zip" -DestinationPath "$env:TEMP\nssm" -Force
+
+- Copiar o executável para o destino
+Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" "C:\Tools\nssm\nssm.exe" -Force
+
+- Adicionar ao PATH do sistema (permanente)
+$CurrentPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+if ($CurrentPath -notlike "*C:\Tools\nssm*") {
+    [Environment]::SetEnvironmentVariable("Path", "$CurrentPath;C:\Tools\nssm", "Machine")
+    Write-Host "PATH atualizado: C:\Tools\nssm adicionado"
+}
+
+- Atualizar PATH na sessão atual
+$env:Path = "$env:Path;C:\Tools\nssm"
+
+- Confirmar
+nssm --version
 
 Cria o serviço **`PontoSmsWeb`**:
 

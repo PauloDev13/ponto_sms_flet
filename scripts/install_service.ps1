@@ -66,6 +66,18 @@ New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 & $NssmExe set $ServiceName AppExit Default Restart
 & $NssmExe set $ServiceName AppRestartDelay 5000
 
+# ---------------------------------------------------------------------------
+# Verificacao pre-start: sessao do portal
+# ---------------------------------------------------------------------------
+$CookieFile = Join-Path $env:USERPROFILE '.ponto_sms_flet\cookies.json'
+if (-not (Test-Path $CookieFile)) {
+    Write-Warning "cookies.json NAO encontrado em $CookieFile"
+    Write-Warning "A sessao do portal nao foi criada. O servico vai precisar de login manual (captcha)."
+    Write-Warning "Recomendado: cancele o servico, rode pre_login.py com desktop interativo e volte."
+} else {
+    Write-Step "Sessao do portal encontrada ($CookieFile)."
+}
+
 & $NssmExe start $ServiceName
 
 Write-Host "==> Servico '$ServiceName' instalado e iniciado." -ForegroundColor Green

@@ -172,4 +172,21 @@ if (-not (Test-Path $EnvFile)) {
     Write-Step '.env ja existe - mantido (nao sobrescreve credenciais).'
 }
 
+# ---------------------------------------------------------------------------
+# 5b) SESSION_SECRET: gerar se ainda for o placeholder
+# ---------------------------------------------------------------------------
+$EnvContent = Get-Content $EnvFile -Raw -ErrorAction SilentlyContinue
+if ($EnvContent -and $EnvContent -match "SESSION_SECRET='troque-este-segredo'") {
+    $NewSecret = & $PythonVenv -c "import secrets; print(secrets.token_urlsafe(32))"
+    if ($LASTEXITCODE -eq 0 -and $NewSecret) {
+        $EnvContent = $EnvContent -replace "SESSION_SECRET='troque-este-segredo'", "SESSION_SECRET='$NewSecret'"
+        Set-Content -Path $EnvFile -Value $EnvContent -Encoding UTF8 -NoNewline
+        Write-Step "SESSION_SECRET gerado automaticamente (substituido o placeholder)."
+    } else {
+        Write-Warning "Nao foi possivel gerar SESSION_SECRET. Gere manualmente: python -c `"import secrets; print(secrets.token_urlsafe(32))`""
+    }
+} else {
+    Write-Step "SESSION_SECRET ja configurado (nao e placeholder)."
+}
+
 Write-Step 'Setup concluido. Para rodar: .venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000'
