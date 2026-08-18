@@ -33,6 +33,12 @@ STATUS_MESSAGES = {
 }
 
 
+def _print_captcha_progress(seconds_remaining: int) -> None:
+    """Imprime progresso durante a espera pela resolução manual do captcha."""
+    if seconds_remaining % 15 == 0 or seconds_remaining <= 10:
+        print(f'  Aguardando resolução do captcha... ({seconds_remaining}s restantes)')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='Pré-login no portal (sessão persistente)')
     parser.add_argument('--manual-wait', default=180, type=int,
@@ -55,6 +61,7 @@ def main() -> int:
             driver,
             manual_solve_wait=args.manual_wait,
             redirect_timeout=args.redirect_timeout,
+            on_manual_wait=_print_captcha_progress,
         )
     except Exception as e:
         print(f'Erro durante o login: {e}')

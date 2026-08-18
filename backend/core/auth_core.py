@@ -176,17 +176,41 @@ def is_session_active(driver) -> bool:
 def _read_recaptcha_token(driver) -> str:
     """Lê o token do reCAPTCHA do textarea na página (vazio = não resolvido).
 
-    Usa querySelector por name (canônico do formulário) com fallback
-    para getElementById — cobre variações de render do reCAPTCHA v2.
+    Tenta primeiro no documento principal; se vazio, tenta dentro do iframe
+    bframe (onde o token fica após resolução manual do desafio de imagem).
     """
+    # Documento principal
     try:
         token = driver.execute_script(
             "var t=document.querySelector('[name=g-recaptcha-response]');"
             " if(!t) t=document.getElementById('g-recaptcha-response');"
             " return t ? (t.value||'') : ''")
-        return token or ''
+        if token:
+            return token
     except Exception:
-        return ''
+        pass
+
+    # Fallback: iframe bframe (desafio de imagem)
+    try:
+        iframes = driver.find_elements(By.XPATH, _BFRAME_IFRAME_XPATH)
+        for iframe in iframes:
+            driver.switch_to.frame(iframe)
+            try:
+                token = driver.execute_script(
+                    "var t=document.querySelector('[name=g-recaptcha-response]');"
+                    " if(!t) t=document.getElementById('g-recaptcha-response');"
+                    " return t ? (t.value||'') : ''")
+                if token:
+                    return token
+            finally:
+                driver.switch_to.default_content()
+    except Exception:
+        try:
+            driver.switch_to.default_content()
+        except Exception:
+            pass
+
+    return ''
 
 
 def _finish_login(driver, url_init: str, redirect_timeout: int, via: str,
@@ -344,6 +368,14 @@ def authenticate(
     while time.time() < deadline:
         if is_session_active(driver):
             return 'session_active', driver.current_url or ''
+
+        # Callback de progresso (ex.: imprimir tempo restante no terminal)
+        if on_manual_wait:
+            remaining = int(deadline - time.time())
+            try:
+                on_manual_wait(remaining)
+            except Exception:
+                pass
 
         if submitted_at is None:
             token = _read_recaptcha_token(driver)
