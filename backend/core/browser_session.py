@@ -54,6 +54,13 @@ def build_chrome_options(
     # Perfil persistente (reuso de cookies/sessão de login)
     options.add_argument(f'--user-data-dir={profile_dir}')
 
+    # Força o ChromeDriver a usar PORTA (não pipe) para o DevTools.
+    # ChromeDriver recente (>=138) usa --remote-debugging-pipe por padrão,
+    # que em alguns Windows faz o Chrome encerrar em ~0,1s com
+    # "session not created: Chrome instance exited" (verificado na VM).
+    # Com --remote-debugging-port=0 o próprio sistema escolhe a porta livre.
+    options.add_argument('--remote-debugging-port=0')
+
     # Abre a janela já minimizada (janela do backend fica em segundo plano;
     # só é maximizada quando um novo login/captcha é necessário)
     if start_minimized:
@@ -254,6 +261,7 @@ def _build_edge_options(
 
     options = EdgeOptions()
     options.add_argument(f'--user-data-dir={profile_dir}')
+    options.add_argument('--remote-debugging-port=0')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
