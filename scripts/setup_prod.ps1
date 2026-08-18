@@ -30,6 +30,37 @@ function Write-Step { param([string]$Msg) Write-Host "==> $Msg" -ForegroundColor
 Write-Step "Raiz do projeto: $Root"
 
 # ---------------------------------------------------------------------------
+# 0) Exclusoes do Windows Defender (contorna bloqueio de automacao Selenium)
+# ---------------------------------------------------------------------------
+# O Windows Defender (MsMpEng) em ambientes corporativos pode matar o Chrome
+# quando o Selenium ChromeDriver o inicia com flags automaticas. Adicionar
+# os diretorios do projeto na lista de exclusoes resolve o problema.
+$ExclusionPaths = @(
+    $Root,                                          # projeto inteiro
+    (Join-Path $env:USERPROFILE '.cache\selenium'), # ChromeDriver cache
+    (Join-Path $env:USERPROFILE '.ponto_sms_flet')  # perfil Chrome/Edge
+)
+
+try {
+    $CurrentExclusions = (Get-MpPreference -ErrorAction SilentlyContinue).ExclusionPath
+} catch {
+    $CurrentExclusions = @()
+}
+
+foreach ($Path in $ExclusionPaths) {
+    if ($Path -notin $CurrentExclusions) {
+        try {
+            Add-MpPreference -ExclusionPath $Path -ErrorAction Stop
+            Write-Step "Defender exclusion added: $Path"
+        } catch {
+            Write-Warning "Nao foi possivel adicionar exclusao Defender para $Path : $_"
+        }
+    } else {
+        Write-Step "Defender exclusion already present: $Path"
+    }
+}
+
+# ---------------------------------------------------------------------------
 # 1) Python do sistema
 # ---------------------------------------------------------------------------
 # O comando 'python' pode resolver o stub 0-byte da Microsoft Store
