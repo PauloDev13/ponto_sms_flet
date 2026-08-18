@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -273,6 +274,16 @@ def _build_edge_options(
     return options
 
 
+def default_edge_profile_dir() -> str:
+    """Perfil separado para o Edge (fallback), isolado do lock do Chrome.
+
+    O Chromium sinaliza singleton pela PASTA do user-data-dir; compartilhar
+    o chrome_profile com o Edge faz o Edge "delegar" e sair imediatamente
+    ("Chrome instance exited") quando o Chrome ainda segura o perfil.
+    """
+    return os.path.join(os.path.dirname(default_profile_dir()), 'edge_profile')
+
+
 def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
     """Encerra Chrome/Edge órfãos presos ao perfil persistente (Windows).
 
@@ -288,11 +299,15 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
         return
     try:
         profile_norm = os.path.normcase(profile_dir).lower()
+        # NOTA: WQL do Get-CimInstance exige 'OR' maiúsculo -- a forma
+        # -Filter "Name='chrome.exe' -or Name='msedge.exe'" retorna
+        # ERROR "Consulta inválida" (RC=1) e nao mata nada. Use Where-Object.
         ps = subprocess.run(
             [
                 'powershell', '-NoProfile', '-Command',
-                "Get-CimInstance Win32_Process -Filter "
-                "\"Name='chrome.exe' -or Name='msedge.exe'\" | "
+                "Get-CimInstance Win32_Process | "
+                "Where-Object { $_.Name -eq 'chrome.exe' -or "
+                "$_.Name -eq 'msedge.exe' } | "
                 "Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress",
             ],
             capture_output=True, text=True, timeout=30, errors='replace',
@@ -337,7 +352,7 @@ def create_driver(
       1) Chrome com o perfil persistente da aplicação (reuso de cookies);
       2) Chrome com o perfil persistente RECRIADO do zero (contorna
          lock/corrupção do perfil - causa do "Chrome instance exited");
-      3) Edge (msedge.exe) - fallback final (Windows sempre tem Edge).
+      3) Edge (msedge.exe) com PERFIL PRÓPRIO isolado - fallback final.
     """
     profile_dir = profile_dir or default_profile_dir()
     os.makedirs(profile_dir, exist_ok=True)
@@ -381,12 +396,27 @@ def create_driver(
     # 2ª tentativa: PERFIL PERSISTENTE RECRIADO DO ZERO. Descarta o diretório
     # corrompido/travado (causa do "Chrome instance exited") e recria a
     # estrutura vazia, mantendo o caminho default (persistência de cookies).
-    # Se houver instância órfã segurando o diretório, a remoção falha e
-    # seguimos para o Edge abaixo.
+    # Se o processo órfão recusar morrer (ex.: WinError 5), a remoção é
+    # tentada em loop até os handles serem liberados; se ainda assim falhar,
+    # seguimos para o Edge (que usa um perfil isolado).
     try:
-        if os.path.isdir(profile_dir):
-            cleanup_orphan_browsers(profile_dir)
-            shutil.rmtree(profile_dir, ignore_errors=False)
+        for attempt in range(2):
+            if os.path.isdir(profile_dir):
+                cleanup_orphan_browsers(profile_dir)
+                time.sleep(1.0)
+                try:
+                    shutil.rmtree(profile_dir, ignore_errors=False)
+                    break
+                except PermissionError:
+                    if attempt == 1:
+                        raise
+                    logger.warning(
+                        'create_driver: perfil ainda travado, matando órfãos '
+                        'e tentando de novo (tentativa %d).', attempt + 2)
+                    cleanup_orphan_browsers(profile_dir)
+                    time.sleep(1.5)
+            else:
+                break
         os.makedirs(profile_dir, exist_ok=True)
         logger.warning(
             'create_driver: perfil persistente recriado do zero (%s).', profile_dir)
@@ -402,10 +432,28 @@ def create_driver(
     except Exception as e:
         logger.warning('create_driver: tentativa 2 (reset do perfil) falhou (%s).', e)
 
-    # 3ª tentativa: Edge como fallback (Windows tem Edge sempre)
+    # 3ª tentativa: Edge como fallback (Windows tem Edge sempre).
+    # Usa um PERFIL ISOLADO (edge_profile): o Chromium sinaliza singleton
+    # pela pasta; compartilhar chrome_profile faria o Edge "delegar" ao
+    # Chrome e sair na hora (mesmo "Chrome instance exited").
     if _edge_binary():
+        edge_profile = default_edge_profile_dir()
+        try:
+            if os.path.isdir(edge_profile):
+                cleanup_orphan_browsers(edge_profile)
+                time.sleep(1.0)
+                try:
+                    shutil.rmtree(edge_profile, ignore_errors=False)
+                except PermissionError:
+                    logger.warning(
+                        'create_driver: edge_profile travado, seguindo com ele '
+                        'mesmo assim (remocao falhou).')
+            os.makedirs(edge_profile, exist_ok=True)
+        except Exception as e:
+            logger.warning('create_driver: preparo do edge_profile falhou (%s).', e)
+
         edge_options = _build_edge_options(
-            profile_dir=profile_dir, headless=headless,
+            profile_dir=edge_profile, headless=headless,
         )
         try:
             from selenium.webdriver.edge.webdriver import WebDriver as EdgeDriver
