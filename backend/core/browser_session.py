@@ -86,9 +86,13 @@ def build_chrome_options(
         # Em convenção de acordo com o reCAPTCHA: manter janela padrão
         options.add_argument('--window-size=1920,1080')
 
-    # Reduz a marcação de automação no navegador
+    # Anti-detecção: remove 'enable-automation' do excludeSwitches.
+    # O flag --enable-automation é NECESSÁRO para que o Chrome sobreviva
+    # em ambientes corporativos com Windows Defender (MsMpEng); sem ele,
+    # o processo Chrome é encerrado imediatamente ao iniciar.
+    # O navigator.webdriver é ocultado via CDP em _apply_stealth() e
+    # _apply_advanced_stealth() para manter a anti-detecção.
     options.add_experimental_option('excludeSwitches', [
-        'enable-automation',
         'enable-blink-features=AutomationControlled',
     ])
     options.add_experimental_option('useAutomationExtension', False)
@@ -272,7 +276,6 @@ def _build_edge_options(
     if headless:
         options.add_argument('--headless=new')
     options.add_experimental_option('excludeSwitches', [
-        'enable-automation',
         'enable-blink-features=AutomationControlled',
     ])
     options.add_experimental_option('useAutomationExtension', False)
