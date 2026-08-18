@@ -37,6 +37,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from backend.core.browser_session import create_driver
 from backend.core.captcha_solver import CaptchaSolver
+from backend.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -282,10 +283,10 @@ def authenticate(
         redirect_timeout: int = 25,
 ) -> Tuple[str, str]:
     """Executa o login no portal e retorna (status, detalhe)."""
-    user = user or os.getenv('USER')
-    password = password or os.getenv('PASSWORD')
-    url_base = url_base or os.getenv('URL_BASE')
-    url_init = url_init or os.getenv('URL_INIT')
+    user = user or settings.user
+    password = password or settings.password
+    url_base = url_base or settings.url_base
+    url_init = url_init or settings.url_init
     wait_fn = on_manual_wait or (lambda seconds: time.sleep(seconds))
 
     driver.get(url_base)

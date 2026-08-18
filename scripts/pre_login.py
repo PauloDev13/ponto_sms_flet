@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 # Garante o working directory na raiz (config_env carrega o .env a partir do CWD)
 os.chdir(ROOT)
 
+from backend.core.settings import settings  # noqa: E402 — carrega .env via load_dotenv
 from backend.core.auth_core import authenticate  # noqa: E402
 from backend.core.browser_session import create_driver  # noqa: E402
 
