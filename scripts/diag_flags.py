@@ -129,6 +129,25 @@ def main():
             '--enable-automation', '--remote-debugging-port=9225',
             '--disable-extensions',
         ], 'O que sobreviveu antes'),
+
+        # Grupo 8: Testes de isolamento (porta fixa vs --enable-automation)
+        ('22_port9225_only', [
+            '--remote-debugging-port=9225',
+        ], 'Só porta fixa, sem mais nada'),
+        ('23_port9225_no_sandbox', [
+            '--no-sandbox', '--remote-debugging-port=9225',
+        ], 'Porta fixa + no-sandbox'),
+        ('24_enable_automation_only', [
+            '--enable-automation',
+        ], 'Só enable-automation, sem porta fixa'),
+        ('25_stability_port9225', [
+            '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+            '--remote-debugging-port=9225',
+        ], 'Estabilidade + porta fixa (SEM enable-automation)'),
+        ('26_stability_port9225_ext', [
+            '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+            '--disable-extensions', '--remote-debugging-port=9225',
+        ], 'Estabilidade + ext + porta fixa'),
     ]
 
     results = []
