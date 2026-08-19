@@ -3,16 +3,15 @@
   Instala o Python 3.12 (a versao do projeto) em uma VM Windows 10/11 nova.
 
 .DESCRIPTION
-  - Fixa Python 3.12.10 (ultimo build 3.12 com instalador binario; releases
-    3.12 posteriores sao "security-fixes only" e so existem em codigo-fonte,
-    sem .exe para Windows).
+  - Detecta Python 3.10+ ja instalado e usa (nao reinstala).
+  - Se nao encontrar, instala Python 3.12.10 (ou versao especificada).
   - Baixa o instalador oficial de python.org e instala em silencio
     (pip + py launcher + PATH).
   - Configura as variaveis de ambiente necessarias:
       * PATH            -> diretorio do Python e de scripts (pip/uvicorn)
       * PYTHONUTF8=1    -> UTF-8 padrao (evita corromper acentos/UTF-8 no
                            portal e nos arquivos gerados em pt-BR)
-  - Idempotente: se ja existir Python 3.12.x no PATH/launcher, apenas
+  - Idempotente: se ja existir Python 3.10+ no PATH/launcher, apenas
     confirma e sai.
   - Sem privilegios de admin, instala so para o usuario (e ajusta so o PATH
     do usuario); com admin, instala para Todos e ajusta o PATH da maquina
@@ -22,7 +21,7 @@
   powershell -ExecutionPolicy Bypass -File scripts\install_python.ps1
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\install_python.ps1 -PythonVersion 3.12.10 -NoCleanup
+  powershell -ExecutionPolicy Bypass -File scripts\install_python.ps1 -PythonVersion 3.13.12 -NoCleanup
 
 .NOTES
   Depois de terminar, abra um NOVO PowerShell para o PATH valer.
@@ -30,7 +29,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$PythonVersion = '3.12.10',
+    [string]$PythonVersion = '',
     [string]$Arch = 'amd64',
     [switch]$InstallForAllUsers,    # forca instalacao para Todos (exige admin)
     [switch]$NoCleanup              # mantem o instalador baixado em %TEMP%
@@ -82,14 +81,21 @@ function Get-RegPythonPath {
 }
 
 # ---------------------------------------------------------------------------
-# 1) deteccao: ja tem Python 3.12?
+# 1) deteccao: ja tem Python 3.10+?
 # ---------------------------------------------------------------------------
-Write-Step "Preparando Python $PythonVersion ($Arch)."
+Write-Step "Preparando Python (amd64)."
 
-$has312 = (Get-PythonVersions) | Where-Object { $_ -match '^Python 3\.12' }
-if ($has312) {
-    Write-Step "Python 3.12 ja disponivel: $($has312 -join ' | '). Nada a fazer."
+$hasModern = (Get-PythonVersions) | Where-Object { $_ -match '^Python 3\.(1[0-9]|[2-9][0-9])' }
+if ($hasModern) {
+    Write-Step "Python moderno ja disponivel: $($hasModern -join ' | '). Nada a fazer."
+    Write-Step "Se preferir reinstalar, use: install_python.ps1 -PythonVersion '3.12.10'"
     exit 0
+}
+
+# Se nenhuma versao especifica foi pedida, usa a mais recente estavel
+if (-not $PythonVersion) {
+    $PythonVersion = '3.12.10'
+    Write-Step "Nenhuma versao especificada. Usando padrao: Python $PythonVersion"
 }
 $regPath = Get-RegPythonPath
 if ($regPath) {
