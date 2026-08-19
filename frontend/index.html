@@ -117,6 +117,14 @@
     .modal h3 { margin: 0 0 12px; font-size: 18px; }
     .modal p { margin: 0 0 20px; font-size: 15px; color: #c9cdd3; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .pass-wrap { position: relative; }
+    .pass-wrap input { padding-right: 42px; }
+    .pass-toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: transparent; border: none; color: #8f97a3; cursor: pointer;
+      padding: 4px; font-size: 18px; line-height: 1; display: flex; align-items: center;
+    }
+    .pass-toggle:hover { color: var(--fg); }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 1100px) {
       .layout { flex-direction: column; }
@@ -136,7 +144,10 @@
       </div>
       <div class="field">
         <label for="loginPass">Senha</label>
-        <input id="loginPass" type="password" autocomplete="current-password" />
+        <div class="pass-wrap">
+          <input id="loginPass" type="password" autocomplete="current-password" />
+          <button type="button" class="pass-toggle" id="togglePass" title="Mostrar/Ocultar senha">&#128065;</button>
+        </div>
       </div>
       <div class="actions" style="margin-top:4px">
         <button type="submit" class="btn btn-primary" id="btnLogin">ENTRAR</button>
@@ -319,6 +330,25 @@
     });
 
     $('btnLogout').addEventListener('click', doLogout);
+
+    // ----------------------------------------------- login: button + Enter + toggle
+    function updateLoginBtn() {
+      $('btnLogin').disabled = !($('loginUser').value.trim() && $('loginPass').value);
+    }
+    $('loginUser').addEventListener('input', updateLoginBtn);
+    $('loginPass').addEventListener('input', updateLoginBtn);
+    updateLoginBtn();
+
+    $('loginUser').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); $('loginPass').focus(); }
+    });
+
+    $('togglePass').addEventListener('click', () => {
+      const inp = $('loginPass');
+      const isPass = inp.type === 'password';
+      inp.type = isPass ? 'text' : 'password';
+      $('togglePass').innerHTML = isPass ? '&#128064;' : '&#128065;';
+    });
 
     function showToast(message, type = 'error') {
       const toast = $('toast');
