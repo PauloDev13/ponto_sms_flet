@@ -75,7 +75,7 @@ if (-not (Test-Path $CookieFile)) {
     Write-Warning "A sessao do portal nao foi criada. O servico vai precisar de login manual (captcha)."
     Write-Warning "Recomendado: cancele o servico, rode pre_login.py com desktop interativo e volte."
 } else {
-    Write-Step "Sessao do portal encontrada ($CookieFile)."
+    Write-Host "==> Sessao do portal encontrada ($CookieFile)." -ForegroundColor Cyan
 }
 
 & $NssmExe start $ServiceName
