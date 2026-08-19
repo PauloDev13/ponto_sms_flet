@@ -55,6 +55,7 @@ from backend.app.ponto_service import (
     run_ponto_flow,
 )
 from backend.app.session_manager import close_driver as _close_browser
+from backend.app.session_manager import start_keepalive, stop_keepalive
 from backend.core.job import Job, JobManager, JobStatus, TERMINAL_STATUSES
 from backend.core.settings import REPO_ROOT, settings
 from backend.core.unidades_service import search_unidades
@@ -126,8 +127,10 @@ async def _cleanup_loop() -> None:
 async def lifespan(_app: FastAPI):
     JOB_MANAGER.cleanup_expired()
     task = asyncio.create_task(_cleanup_loop())
+    start_keepalive()
     yield
     task.cancel()
+    stop_keepalive()
     _close_browser()  # encerramento do servidor: fecha a janela do backend
 
 

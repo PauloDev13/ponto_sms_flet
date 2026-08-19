@@ -298,3 +298,123 @@ class TestCookiePersistence:
 
         assert driver is fake
         assert fake.maximize_calls >= 1  # login necessário: maximizada
+
+
+class TestKeepalive:
+    """Testes do keepalive daemon thread que renova a sessão do portal."""
+
+    def test_start_keepalive_cria_thread_daemon(self, monkeypatch):
+        """start_keepalive cria um thread daemon vivo."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        sm.start_keepalive()
+
+        assert sm._keepalive_thread is not None
+        assert sm._keepalive_thread.is_alive()
+        assert sm._keepalive_thread.daemon is True
+        sm.stop_keepalive()
+
+    def test_stop_keepalive_sinaliza_e_thread_para(self, monkeypatch):
+        """stop_keepalive sinaliza o evento e a thread termina."""
+        sm._keepalive_thread = None
+        sm.start_keepalive()
+        assert sm._keepalive_thread.is_alive()
+
+        sm.stop_keepalive()
+        sm._keepalive_thread.join(timeout=5)
+
+        assert not sm._keepalive_thread.is_alive()
+
+    def test_start_keepalive_idempotente(self, monkeypatch):
+        """Chamar start_keepalive duas vezes não cria thread extra."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        sm.start_keepalive()
+        first = sm._keepalive_thread
+        sm.start_keepalive()
+        second = sm._keepalive_thread
+
+        assert first is second
+        sm.stop_keepalive()
+
+    def test_keepalive_navega_url_init_quando_driver_ativo(self, monkeypatch):
+        """Keepalive acessa URL_INIT para renovar a sessão quando há driver."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        fake = FakeDriver(logged_in=True)
+        monkeypatch.setattr(sm, '_driver', fake)
+
+        # Intervalo curto para teste rápido
+        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
+
+        sm.start_keepalive()
+        import time
+        time.sleep(0.5)  # espera o keepalive rodar
+
+        assert fake.last_get == settings.url_init
+        sm.stop_keepalive()
+        monkeypatch.setattr(sm, '_driver', None)
+
+    def test_keepalive_nao_faz_nada_sem_driver(self, monkeypatch):
+        """Keepalive não navega quando não há driver ativo (_driver is None)."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+        monkeypatch.setattr(sm, '_driver', None)
+
+        navigate_calls = []
+        original_get = FakeDriver.get
+
+        def tracking_get(self, url):
+            navigate_calls.append(url)
+            original_get(self, url)
+
+        monkeypatch.setattr(FakeDriver, 'get', tracking_get)
+
+        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
+        sm.start_keepalive()
+        import time
+        time.sleep(0.5)
+
+        assert len(navigate_calls) == 0
+        sm.stop_keepalive()
+
+    def test_keepalive_detecta_sessao_expirada(self, monkeypatch, caplog):
+        """Keepalive detecta sessão expirada e loga aviso."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        fake = FakeDriver(logged_in=False)
+        monkeypatch.setattr(sm, '_driver', fake)
+        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
+
+        import logging
+        with caplog.at_level(logging.WARNING, logger='backend.app.session_manager'):
+            sm.start_keepalive()
+            import time
+            time.sleep(0.5)
+
+        assert any('sessão do portal expirada' in m.message for m in caplog.records)
+        sm.stop_keepalive()
+        monkeypatch.setattr(sm, '_driver', None)
+
+    def test_keepalive_salva_cookies_na_renovacao(self, monkeypatch):
+        """Keepalive salva cookies após renovação bem-sucedida."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        fake = FakeDriver(logged_in=True)
+        fake._cookies = [{'name': 'PHPSESSID', 'value': 'keepalive', 'domain': '.portal.br'}]
+        monkeypatch.setattr(sm, '_driver', fake)
+        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
+
+        sm.start_keepalive()
+        import time
+        time.sleep(0.5)
+
+        saved = load_saved_cookies()
+        assert any(c['name'] == 'PHPSESSID' for c in saved)
+        sm.stop_keepalive()
+        monkeypatch.setattr(sm, '_driver', None)

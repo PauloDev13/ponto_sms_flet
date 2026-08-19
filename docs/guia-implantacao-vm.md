@@ -169,10 +169,16 @@ Abra o navegador em `http://<ip-da-vm>:8000/`:
 
 ---
 
-## Renovação de sessão (quando expirar)
+## Renovação de sessão (keepalive automático)
 
-Quando a sessão do portal expirar, o próximo job mostrará erro.
-Para renovar:
+O serviço possui um **keepalive automático** que renova a sessão do portal a cada 50 minutos (a sessão do portal dura 60 minutos). O keepalive navega para a página interna do portal (`URL_INIT`) e, ao fazer isso, o timeout da sessão é renovado para mais 60 minutos.
+
+**Fluxo automático:**
+1. Após o `pre_login.py` (ou login automático), a sessão fica ativa
+2. A cada 50 minutos, o keepalive renova a sessão silenciosamente
+3. A sessão nunca expira enquanto o serviço estiver rodando
+
+**Se a sessão expirar** (ex.: serviço reiniciado sem `pre_login.py` anterior):
 
 1. Conecte-se à VM via RDP **como o usuário do serviço**
 2. Execute:
@@ -184,6 +190,11 @@ Para renovar:
 4. O serviço detectará automaticamente a nova sessão no próximo job
 
 **Não é necessário reiniciar o serviço.**
+
+**Logs do keepalive** (visíveis no log do serviço):
+- `Keepalive: sessão do portal renovada (URL_INIT acessada)` — renovação OK
+- `Keepalive: sessão do portal expirada (formulário de login detectado)` — sessão caiu, próximo job irá renovar
+- `Keepalive: nenhum driver ativo, ignorando` — navegador não está aberto
 
 ---
 

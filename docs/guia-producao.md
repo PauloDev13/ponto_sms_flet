@@ -341,7 +341,7 @@ nssm restart PontoSmsWeb
 | `env_ok: false` no `/health` | Faltam `USER/PASSWORD/URL_*` no `.env` |
 | Página não abre | Firewall da porta 8000 / serviço parado (ver 6.3) |
 | Login web falha | Conferir `WEB_USERS` e `SESSION_SECRET` em `.env` |
-| Login do portal falha / sessão caiu | Rodar `scripts\pre_login.py` de novo na sessão do usuário e resolver o captcha |
+| Login do portal falha / sessão caiu | O keepalive automático renova a sessão a cada 50 min. Se expirar (ex.: serviço reiniciado sem pre_login), rodar `scripts\pre_login.py` e resolver o captcha |
 | PDF sem compressão | Ghostscript ausente (log avisa) — instalar e definir `GHOSTSCRIPT_BIN` |
 | `/health` 200 mas sem Chrome | Navegador não instalado ou perfil do Chrome não existe para a conta do serviço |
 | Erro na busca | Ver `C:\ProgramData\PontoSmsWeb\logs\err.log` (ou console/agendador) |
