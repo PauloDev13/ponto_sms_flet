@@ -84,7 +84,15 @@ if ($ServiceUser -and $ServicePassword) {
         $NssmObjectName = ".\$ServiceUser"  # conta local
     }
     & $NssmExe set $ServiceName ObjectName $NssmObjectName $ServicePassword
-    Write-Host "==> Servico configurado para rodar como: $NssmObjectName" -ForegroundColor Cyan
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "FALHA ao configurar ObjectName. Verifique:"
+        Write-Warning "  1. O usuario '$NssmObjectName' existe no AD/local?"
+        Write-Warning "  2. A senha esta correta?"
+        Write-Warning "  3. O usuario tem permissao 'Log on as a service'?"
+        Write-Warning "     (Editor de Diretrizes de Seguranca Local -> Atribuicao de Direitos de Usuario)"
+    } else {
+        Write-Host "==> Servico configurado para rodar como: $NssmObjectName" -ForegroundColor Cyan
+    }
 } else {
     Write-Warning "Nenhuma conta de servico informada (-ServiceUser/-ServicePassword)."
     Write-Warning "O servico rodara como LocalSystem (Session 0, Chrome invisivel)."

@@ -84,6 +84,7 @@ if ($has312) {
     Write-Step "Python 3.12 ja disponivel: $($has312 -join ' | '). Nada a fazer."
     exit 0
 }
+$regPath = Get-RegPythonPath
 if ($regPath) {
     Write-Step "Python 3.12 ja instalado em $regPath (fora do PATH). Reutilizando este diretorio."
     $TargetDir = $regPath
@@ -225,7 +226,8 @@ if (-not $SkipInstall -and -not $NoCleanup) {
 Write-Host ''
 Write-Host 'Proximos passos (NOVO PowerShell, para pegar o PATH):' -ForegroundColor Cyan
 Write-Host "  1. cd $Root"
-Write-Host '  2. scripts\setup_prod.ps1   # cria .venv + instala requirements-web.txt'
-Write-Host '  3. scripts\start.ps1        # sobe o backend (uvicorn :8000)'
+Write-Host '  2. powershell -ExecutionPolicy Bypass -File scripts\setup_prod.ps1'
+Write-Host '  3. Edite o .env com as credenciais do portal'
+Write-Host '  4. powershell -ExecutionPolicy Bypass -File scripts\pre_login.py'
 Write-Host ''
 Write-Host 'Verifique com:  Get-Command python | Select Source ; python --version' -ForegroundColor Cyan
