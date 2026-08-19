@@ -22,6 +22,21 @@ sys.path.insert(0, str(ROOT))
 # Garante o working directory na raiz (config_env carrega o .env a partir do CWD)
 os.chdir(ROOT)
 
+# Verifica se esta rodando do venv (selenium so existe no venv)
+try:
+    import selenium  # noqa: F401
+except ImportError:
+    print('ERRO: Modulo "selenium" nao encontrado.')
+    print('Voce esta rodando com o Python do sistema, nao do venv.')
+    print('')
+    print('Use o Python do venv:')
+    print('  .\\.venv\\Scripts\\python.exe scripts\\pre_login.py --manual-wait 180')
+    print('')
+    print('Ou ative o venv primeiro:')
+    print('  .\\.venv\\Scripts\\Activate.ps1')
+    print('  python scripts\\pre_login.py --manual-wait 180')
+    sys.exit(1)
+
 from backend.core.settings import settings  # noqa: E402 — carrega .env via load_dotenv
 from backend.core.auth_core import authenticate  # noqa: E402
 from backend.core.browser_session import create_driver  # noqa: E402
