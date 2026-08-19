@@ -11,6 +11,7 @@ Uso:
     python scripts/pre_login.py [--manual-wait 180]
 """
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -25,12 +26,29 @@ from backend.core.settings import settings  # noqa: E402 — carrega .env via lo
 from backend.core.auth_core import authenticate  # noqa: E402
 from backend.core.browser_session import create_driver  # noqa: E402
 
+COOKIES_FILE = Path.home() / '.ponto_sms_flet' / 'cookies.json'
+
 STATUS_MESSAGES = {
     'session_active': 'Sessão ativa reutilizada (sem captcha).',
     'success': 'Login realizado com sucesso.',
     'manual_required': 'Captcha não resolvido. Tente novamente e resolva o desafio.',
     'failed': 'Falha no login. Verifique credenciais/URLs no .env.',
 }
+
+
+def _save_cookies(driver) -> None:
+    """Persiste os cookies da sessão para reuso pelo serviço."""
+    try:
+        cookies = driver.get_cookies()
+        if not cookies:
+            print('  Aviso: nenhum cookie para salvar.')
+            return
+        COOKIES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        COOKIES_FILE.write_text(
+            json.dumps(cookies, ensure_ascii=False), encoding='utf-8')
+        print(f'  Cookies salvos: {COOKIES_FILE} ({len(cookies)} cookies)')
+    except Exception as e:
+        print(f'  Aviso: falha ao salvar cookies: {e}')
 
 
 def _print_captcha_progress(seconds_remaining: int) -> None:
@@ -66,11 +84,15 @@ def main() -> int:
     except Exception as e:
         print(f'Erro durante o login: {e}')
         return 1
-    finally:
-        try:
-            driver.quit()
-        except Exception:
-            pass
+
+    # Salvar cookies APÓS login bem-sucedido (antes de fechar o driver)
+    if status in ('session_active', 'success'):
+        _save_cookies(driver)
+
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
     print(f'Status: {status}')
     print(f'Detalhe: {detail}')
