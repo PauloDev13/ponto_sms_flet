@@ -368,6 +368,15 @@ def create_driver(
     profile_dir = profile_dir or default_profile_dir()
     os.makedirs(profile_dir, exist_ok=True)
 
+    # Diagnóstico: verifica se há navegador disponível
+    binary = resolve_browser_binary()
+    if binary:
+        logger.info('Navegador detectado: %s', binary)
+    else:
+        logger.warning(
+            'Nenhum navegador (Chrome/Edge) encontrado nos caminhos padrão. '
+            'O Selenium tentará usar o ChromeDriver padrão.')
+
     # Limpa instâncias órfãs (Chrome/Edge) que estejam segurando o lock do
     # perfil; caso contrário uma nova sessão falha com "session not created:
     # Chrome instance exited".
@@ -390,7 +399,7 @@ def create_driver(
                     drv.quit()
                 except Exception:
                     pass
-            logger.warning('create_driver: %s falhou (%s).', label, e)
+            logger.warning('create_driver: %s falhou (%s: %s).', label, type(e).__name__, e)
             return None
 
 # 1ª tentativa: perfil persistente da aplicação (reuso de sessão/cookies)
@@ -496,6 +505,9 @@ def create_driver(
             driver.maximize_window()
         return driver
     except Exception as e:
+        binary_info = f' (navegador: {binary})' if binary else ''
         raise RuntimeError(
-            'Não foi possível iniciar o navegador (todas as tentativas falharam).'
+            f'Não foi possível iniciar o navegador{binary_info}. '
+            f'Verifique se Chrome/Edge está instalado e se o Windows Defender '
+            f'não está bloqueando o processo.'
         ) from e

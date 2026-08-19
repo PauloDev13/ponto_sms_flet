@@ -12,6 +12,7 @@ Uso:
 """
 import argparse
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -21,6 +22,12 @@ sys.path.insert(0, str(ROOT))
 
 # Garante o working directory na raiz (config_env carrega o .env a partir do CWD)
 os.chdir(ROOT)
+
+# Configura logging visível (warnings do browser_session ficam visíveis)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s',
+)
 
 # Verifica se esta rodando do venv (selenium so existe no venv)
 try:
@@ -39,7 +46,7 @@ except ImportError:
 
 from backend.core.settings import settings  # noqa: E402 — carrega .env via load_dotenv
 from backend.core.auth_core import authenticate  # noqa: E402
-from backend.core.browser_session import create_driver  # noqa: E402
+from backend.core.browser_session import create_driver, resolve_browser_binary  # noqa: E402
 
 COOKIES_FILE = Path.home() / '.ponto_sms_flet' / 'cookies.json'
 
@@ -82,6 +89,14 @@ def main() -> int:
 
     print('Abrindo o navegador e tentando o login...')
     print('Se o reCAPTCHA aparecer, resolva-o na janela do Chrome.')
+
+    # Diagnóstico rápido: verificar se Chrome/Edge está instalado
+    binary = resolve_browser_binary()
+    if binary:
+        print(f'Navegador encontrado: {binary}')
+    else:
+        print('AVISO: Nenhum navegador (Chrome/Edge) encontrado nos caminhos padrão.')
+        print('O Selenium tentará usar o ChromeDriver padrão.')
 
     try:
         driver = create_driver(headless=False)
