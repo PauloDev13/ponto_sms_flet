@@ -18,6 +18,7 @@ forma confiável entre execuções. Estratégia atual:
 """
 import json
 import logging
+import os
 import threading
 from pathlib import Path
 
@@ -37,6 +38,33 @@ COOKIES_FILE = Path(default_profile_dir()).parent / 'cookies.json'
 
 # XPATH do formulário de login: presença => sessão encerrada
 LOGIN_FORM_XPATH = "//*[@id='cpf']"
+
+
+def _is_service_context() -> bool:
+    """Detecta se está rodando como serviço Windows (Session 0, sem desktop).
+
+    Serviços NSSM rodam na Session 0 que não tem desktop interativo.
+    Nesse contexto, o Chrome abre mas a janela é invisível ao usuário.
+    """
+    if os.name != 'nt':
+        return False
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['query', 'session'],
+            capture_output=True, text=True, timeout=5, errors='replace',
+        )
+        # Session 0 é a sessão do serviço;*> 0 é interativa
+        for line in result.stdout.splitlines():
+            if 'Session' in line and ('console' in line.lower() or 'rdp' in line.lower()):
+                parts = line.split()
+                for part in parts:
+                    if part.isdigit() and int(part) > 0:
+                        return False
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def _has_login_form(driver) -> bool:
@@ -210,6 +238,20 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
 
         # 4) Sessão expirada: maximiza para o login + resolução do captcha
         logger.info('Sessão expirada: abrindo janela para novo login/captcha.')
+
+        # Em contexto de serviço (Session 0), o Chrome abre mas a janela é
+        # invisível. Nesse caso, não adianta tentar login manual — o usuário
+        # precisa rodar pre_login.py interativamente.
+        if _is_service_context():
+            _quit(driver)
+            raise RuntimeError(
+                'Sessão do portal expirada e o serviço está rodando sem desktop '
+                'interativo (Session 0). A janela do Chrome é invisível neste '
+                'contexto. Execute manualmente: '
+                '.\\.venv\\Scripts\\python.exe scripts\\pre_login.py --manual-wait 180 '
+                'e reinicie o serviço com: nssm restart PontoSmsWeb'
+            )
+
         _maximize(driver)
         try:
             status, detail = authenticate(
