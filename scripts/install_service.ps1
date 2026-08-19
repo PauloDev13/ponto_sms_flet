@@ -21,7 +21,9 @@
 [CmdletBinding()]
 param(
     [string]$ServiceName = 'PontoSmsWeb',
-    [string]$NssmExe = ''
+    [string]$NssmExe = '',
+    [string]$ServiceUser = '',
+    [string]$ServicePassword = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,9 +69,31 @@ New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 & $NssmExe set $ServiceName AppRestartDelay 5000
 
 # ---------------------------------------------------------------------------
+# Conta do servico: roda como o usuario interativo ( Session 1+ / RDP )
+# ---------------------------------------------------------------------------
+# Quando roda como LocalSystem (padrao), o Chrome abre na Session 0 (invisivel)
+# e Path.home() aponta para systemprofile (cookies nao encontrados).
+# Rodar como o usuario garante: (1) Path.home() = C:\Users\<usuario> e
+# (2) Chrome abre na sessao interativa do usuario (RDP), permitindo captcha.
+if ($ServiceUser -and $ServicePassword) {
+    & $NssmExe set $ServiceName ObjectName ".\$ServiceUser" $ServicePassword
+    Write-Host "==> Servico configurado para rodar como: .\$ServiceUser" -ForegroundColor Cyan
+} else {
+    Write-Warning "Nenhuma conta de servico informada (-ServiceUser/-ServicePassword)."
+    Write-Warning "O servico rodara como LocalSystem (Session 0, Chrome invisivel)."
+    Write-Warning "Para rodar como usuario interativo, use:"
+    Write-Warning "  install_service.ps1 -ServiceUser 'paulo.morais' -ServicePassword 'senha'"
+}
+
+# ---------------------------------------------------------------------------
 # Verificacao pre-start: sessao do portal
 # ---------------------------------------------------------------------------
-$CookieFile = Join-Path $env:USERPROFILE '.ponto_sms_flet\cookies.json'
+# Se o servico roda como usuario especifico, os cookies estao no home dele
+if ($ServiceUser) {
+    $CookieFile = "C:\Users\$ServiceUser\.ponto_sms_flet\cookies.json"
+} else {
+    $CookieFile = Join-Path $env:USERPROFILE '.ponto_sms_flet\cookies.json'
+}
 if (-not (Test-Path $CookieFile)) {
     Write-Warning "cookies.json NAO encontrado em $CookieFile"
     Write-Warning "A sessao do portal nao foi criada. O servico vai precisar de login manual (captcha)."

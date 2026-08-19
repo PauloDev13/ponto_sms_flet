@@ -187,6 +187,9 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
     - Sessão expirada: a janela antiga é encerrada e uma nova abre
       maximizada para login + captcha; após o sucesso, minimizada e
       pré-carregada.
+    - Driver stale (pre_login.py rodou externamente): detecta o driver
+      morto, fecha, cria um novo e recarrega os cookies do disco — sem
+      precisar reiniciar o serviço.
     - O chamador deve manter a janela ao concluir com park_driver().
     """
     global _driver
@@ -202,6 +205,9 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
                     return _driver
             except Exception:
                 pass
+            # Driver stale ou sessão expirada — fecha e tenta recarregar
+            # cookies do disco (pre_login.py pode ter renovado a sessão)
+            logger.info('Driver stale/sessão expirada; recarregando cookies do disco...')
             _quit(_driver)
             _driver = None
 
@@ -240,16 +246,22 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
         logger.info('Sessão expirada: abrindo janela para novo login/captcha.')
 
         # Em contexto de serviço (Session 0), o Chrome abre mas a janela é
-        # invisível. Nesse caso, não adianta tentar login manual — o usuário
+        # invisível ao usuário. Nesse caso, não adianta tentar login manual — o usuário
         # precisa rodar pre_login.py interativamente.
         if _is_service_context():
             _quit(driver)
             raise RuntimeError(
-                'Sessão do portal expirada e o serviço está rodando sem desktop '
-                'interativo (Session 0). A janela do Chrome é invisível neste '
-                'contexto. Execute manualmente: '
-                '.\\.venv\\Scripts\\python.exe scripts\\pre_login.py --manual-wait 180 '
-                'e reinicie o serviço com: nssm restart PontoSmsWeb'
+                'SESSÃO DO PORTAL EXPIRADA. '
+                'O serviço está rodando sem desktop interativo (Session 0) '
+                'e a janela do Chrome é invisível neste contexto.\n\n'
+                'Para renovar a sessão:\n'
+                '1. Conecte-se à VM via RDP\n'
+                '2. Abra um PowerShell como o mesmo usuário do serviço\n'
+                '3. Execute: cd C:\\Apps\\ponto_sms_flet && '
+                '.\\.venv\\Scripts\\python.exe scripts\\pre_login.py --manual-wait 180\n'
+                '4. Resolva o captcha na janela do Chrome\n'
+                '5. O serviço detectará automaticamente a nova sessão '
+                'no próximo job (não é necessário reiniciar o serviço).'
             )
 
         _maximize(driver)

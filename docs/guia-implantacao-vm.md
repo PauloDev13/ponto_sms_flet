@@ -197,9 +197,20 @@ Pré-requisito: `nssm.exe` no PATH da VM.
 
 ### 7.1 Instalar o serviço
 
+**IMPORTANTE:** O serviço DEVE rodar como o usuário interativo (não `LocalSystem`)
+para que o Chrome tenha desktop visível via RDP e os cookies sejam encontrados
+no home do usuário (`C:\Users\<usuario>\.ponto_sms_flet\`).
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1
+# Instalar como o usuário da VM (substitua 'paulo.morais' e 'senha' pelos dados reais)
+powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1 `
+    -ServiceUser 'paulo.morais' `
+    -ServicePassword 'senha-do-usuario'
 ```
+
+> **Por que é necessário?** O Chrome precisa de um desktop interativo para
+> exibir a janela de captcha. Serviços Windows rodam na Session 0 (invisível).
+> Ao rodar como o usuário logado via RDP, o Chrome abre na sessão interativa.
 
 
 # Se der erro, verificar se NSSM já existe na VM. Se não existir, baixar e instalar
@@ -237,20 +248,44 @@ Cria o serviço **`PontoSmsWeb`**:
 - Início automático + **reinício automático em falha** (delay 5s)
 - Logs rotacionados (10 MB) em `C:\ProgramData\PontoSmsWeb\logs\`
 
-### 7.2 Rodar com a conta do usuário (importante)
+### 7.2 Verificar que o usuário está logado via RDP
 
-Para o serviço usar o mesmo perfil/cookies do pass. 6:
+Para o Chrome abrir a janela de captcha, o usuário do serviço DEVE estar
+logado via RDP com sessão ativa. Verifique:
 
 ```powershell
-nssm set PontoSmsWeb ObjectName ".\SUA-CONTA-DA-VM" "senha"
-nssm restart PontoSmsWeb
+# Na VM, execute:
+query session
 ```
 
-> Alternativa ao NSSM (quando o captcha é frequente): Agendador de Tarefas com
-> "Executar apenas quando o usuário estiver conectado" chamando
-> `.venv\Scripts\python.exe -m uvicorn ...` — a janela do Chrome fica visível.
+Esperado:
+```
+ SESSIONNAME       USERNAME                 ID  STATE   TYPE        DEVICE
+ services                                    0  Disc
+ rdp-tcp#0         paulo.morais              1  Active
+```
 
-### 7.3 Verificar
+Se `paulo.morais` estiver com estado `Active`, o serviço pode usar a sessão
+interativa do Chrome.
+
+> **Se o usuário não estiver logado via RDP:** O Chrome abre na Session 0
+> (invisível) e o captcha não pode ser resolvido. Conecte-se à VM via RDP
+> antes de iniciar o serviço.
+
+### 7.3 Rodar como processo normal (alternativa ao serviço)
+
+Se o captcha for muito frequente, uma alternativa é rodar o servidor como
+**processo interativo** em vez de serviço Windows:
+
+```powershell
+# Criar tarefa que roda ao logar (interativa, com desktop visível)
+schtasks /create /tn "PontoSmsWeb" /tr "C:\Apps\ponto_sms_flet\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000" /sc ONLOGON /rl HIGHEST
+```
+
+**Vantagem:** roda como processo do usuário, com desktop visível. Chrome abre
+normalmente para captcha. Não precisa de RDP logado o tempo todo.
+
+### 7.4 Verificar
 
 ```powershell
 Get-Service PontoSmsWeb                 # deve estar Running
@@ -258,7 +293,7 @@ Get-Content C:\ProgramData\PontoSmsWeb\logs\err.log -Tail 50
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-### 7.4 Liberar o acesso remoto (firewall)
+### 7.5 Liberar o acesso remoto (firewall)
 
 ```powershell
 New-NetFirewallRule -DisplayName 'PontoSmsWeb 8000' `
