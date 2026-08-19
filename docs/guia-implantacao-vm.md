@@ -203,9 +203,7 @@ no home do usuário (`C:\Users\<usuario>\.ponto_sms_flet\`).
 
 ```powershell
 # Instalar como o usuário da VM (substitua 'paulo.morais' e 'senha' pelos dados reais)
-powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1 `
-    -ServiceUser 'paulo.morais' `
-    -ServicePassword 'senha-do-usuario'
+powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1 -ServiceUser 'pgmadmin' -ServicePassword 'netpgm00'
 ```
 
 > **Por que é necessário?** O Chrome precisa de um desktop interativo para
