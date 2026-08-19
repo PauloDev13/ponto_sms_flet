@@ -76,8 +76,15 @@ New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 # Rodar como o usuario garante: (1) Path.home() = C:\Users\<usuario> e
 # (2) Chrome abre na sessao interativa do usuario (RDP), permitindo captcha.
 if ($ServiceUser -and $ServicePassword) {
-    & $NssmExe set $ServiceName ObjectName ".\$ServiceUser" $ServicePassword
-    Write-Host "==> Servico configurado para rodar como: .\$ServiceUser" -ForegroundColor Cyan
+    # Conta de dominio (ex: PGM\paulo.morais) nao recebe .\ prefix
+    # Conta local (ex: paulo.morais) recebe .\ prefix
+    if ($ServiceUser -match '\\') {
+        $NssmObjectName = $ServiceUser  # ja tem dominio\usuario
+    } else {
+        $NssmObjectName = ".\$ServiceUser"  # conta local
+    }
+    & $NssmExe set $ServiceName ObjectName $NssmObjectName $ServicePassword
+    Write-Host "==> Servico configurado para rodar como: $NssmObjectName" -ForegroundColor Cyan
 } else {
     Write-Warning "Nenhuma conta de servico informada (-ServiceUser/-ServicePassword)."
     Write-Warning "O servico rodara como LocalSystem (Session 0, Chrome invisivel)."
@@ -88,9 +95,14 @@ if ($ServiceUser -and $ServicePassword) {
 # ---------------------------------------------------------------------------
 # Verificacao pre-start: sessao do portal
 # ---------------------------------------------------------------------------
-# Se o servico roda como usuario especifico, os cookies estao no home dele
+# Para encontrar o diretorio correto do perfil do usuario, usa o caminho
+# do proprio diretorio de profiles do Windows (C:\Users\<username>).
 if ($ServiceUser) {
-    $CookieFile = "C:\Users\$ServiceUser\.ponto_sms_flet\cookies.json"
+    # Extrai apenas o nome do usuario (remove dominio se houver)
+    $Username = ($ServiceUser -split '\\')[-1]
+    # Profile path padrao do Windows
+    $UserProfile = "C:\Users\$Username"
+    $CookieFile = "$UserProfile\.ponto_sms_flet\cookies.json"
 } else {
     $CookieFile = Join-Path $env:USERPROFILE '.ponto_sms_flet\cookies.json'
 }
