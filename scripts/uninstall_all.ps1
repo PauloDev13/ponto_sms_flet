@@ -146,8 +146,15 @@ Write-Step "6/8 - Removendo diretorio do projeto..."
 if (-not $KeepProject) {
     $ProjectDir = 'C:\Apps\ponto_sms_flet'
     if (Test-Path $ProjectDir) {
-        Remove-Item -Path $ProjectDir -Recurse -Force
-        Write-Ok "Projeto removido: $ProjectDir"
+        # Muda para fora do diretorio antes de deletar (o script roda de dentro dele)
+        Set-Location -Path $env:TEMP
+        try {
+            Remove-Item -Path $ProjectDir -Recurse -Force -ErrorAction Stop
+            Write-Ok "Projeto removido: $ProjectDir"
+        } catch {
+            Write-Warning "Falha ao remover: $_"
+            Write-Warning "Tente manualmente apos fechar todos os terminais PowerShell."
+        }
     } else {
         Write-Skip "Diretorio nao encontrado: $ProjectDir"
     }
