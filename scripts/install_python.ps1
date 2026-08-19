@@ -55,8 +55,15 @@ function Test-IsAdmin {
 
 function Get-PythonVersions {
     # Retorna versoes 3.x detectadas via 'python' e 'py' launcher.
+    # Ignora pyenv (intercepta 'python' mas nao e Python real).
     $found = @()
-    try { $v = (& python --version 2>&1 | Out-String).Trim(); if ($v -match '3\.') { $found += $v } } catch { }
+    try {
+        $cmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($cmd -and $cmd.Source -notmatch 'pyenv') {
+            $v = (& python --version 2>&1 | Out-String).Trim()
+            if ($v -match '3\.') { $found += $v }
+        }
+    } catch { }
     try { $v = (& py -3 --version 2>&1 | Out-String).Trim();    if ($v -match '3\.') { $found += $v } } catch { }
     return $found
 }
@@ -79,7 +86,7 @@ function Get-RegPythonPath {
 # ---------------------------------------------------------------------------
 Write-Step "Preparando Python $PythonVersion ($Arch)."
 
-$has312 = (Get-PythonVersions) | Where-Object { $_ -match '3\.12(\.\d+)?' }
+$has312 = (Get-PythonVersions) | Where-Object { $_ -match '^Python 3\.12' }
 if ($has312) {
     Write-Step "Python 3.12 ja disponivel: $($has312 -join ' | '). Nada a fazer."
     exit 0
