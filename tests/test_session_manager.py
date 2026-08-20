@@ -340,9 +340,10 @@ class TestKeepalive:
         sm.stop_keepalive()
 
     def test_keepalive_navega_url_init_quando_driver_ativo(self, monkeypatch):
-        """Keepalive acessa URL_INIT para renovar a sessão quando há driver."""
+        """Keepalive acessa URL_DATA (preload) ou URL_INIT (fallback) para renovar."""
         sm.stop_keepalive()
         sm._keepalive_thread = None
+        sm._last_preload_url = ''  # nenhum job rodou ainda
 
         fake = FakeDriver(logged_in=True)
         monkeypatch.setattr(sm, '_driver', fake)
@@ -354,9 +355,30 @@ class TestKeepalive:
         import time
         time.sleep(0.5)  # espera o keepalive rodar
 
+        # Sem preload: usa URL_INIT como fallback
         assert fake.last_get == settings.url_init
         sm.stop_keepalive()
         monkeypatch.setattr(sm, '_driver', None)
+
+    def test_keepalive_navega_url_data_quando_preload_definido(self, monkeypatch):
+        """Keepalive navega para a última URL_DATA usada no processamento."""
+        sm.stop_keepalive()
+        sm._keepalive_thread = None
+
+        fake = FakeDriver(logged_in=True)
+        monkeypatch.setattr(sm, '_driver', fake)
+        monkeypatch.setattr(sm, '_last_preload_url', PRELOAD_URL)
+
+        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
+
+        sm.start_keepalive()
+        import time
+        time.sleep(0.5)
+
+        assert fake.last_get == PRELOAD_URL
+        sm.stop_keepalive()
+        monkeypatch.setattr(sm, '_driver', None)
+        sm._last_preload_url = ''
 
     def test_keepalive_nao_faz_nada_sem_driver(self, monkeypatch):
         """Keepalive não navega quando não há driver ativo (_driver is None)."""

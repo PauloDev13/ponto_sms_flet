@@ -13,8 +13,9 @@ forma confiável entre execuções. Estratégia atual:
 - A detecção de sessão é feita pela presença do formulário de login na
   página interna (URL_INIT): se a janela cair no login, a sessão expirou
   e a janela abre maximizada apenas para o novo login + captcha;
-- Um keepalive daemon thread navega para URL_INIT a cada 50 minutos,
-  renovando a sessão do portal (duração: 60 min) antes que expire;
+- Um keepalive daemon thread navega para URL_DATA (página de scraping)
+  a cada 50 minutos, renovando a sessão do portal (duração: 60 min)
+  antes que expire; usa a última URL de busca usada no processamento;
 - Ao encerrar o servidor (lifespan), close_driver() fecha a janela de
   fato e o keepalive é sinalizado para parar.
 """
@@ -39,6 +40,7 @@ _driver = None
 _KEEPALIVE_INTERVAL = 50 * 60  # 50 minutos em segundos
 _keepalive_stop = threading.Event()
 _keepalive_thread: threading.Thread | None = None
+_last_preload_url: str = ''  # última URL_DATA usada no processamento
 
 # Cookies de sessão salvos entre janelas (perfil não os persiste sozinho)
 COOKIES_FILE = Path(default_profile_dir()).parent / 'cookies.json'
@@ -189,11 +191,14 @@ def _quit(driver) -> None:
 # ---------------------------------------------------------------------------
 
 def _keepalive_loop() -> None:
-    """Thread daemon que navega para URL_INIT a cada _KEEPALIVE_INTERVAL.
+    """Thread daemon que navega para URL_DATA a cada _KEEPALIVE_INTERVAL.
 
-    A navegação para URL_INIT (página interna do portal) renova o timeout
-    da sessão de 60 minutos. O keepalive é executado a cada 50 minutos,
-    dando uma margem de 10 minutos de segurança.
+    A navegação para URL_DATA (página de scraping com parâmetros) renova
+    o timeout da sessão de 60 minutos. O keepalive é executado a cada
+    50 minutos, dando uma margem de 10 minutos de segurança.
+
+    Usa a última URL de busca (preload_url) armazenada pelo último job.
+    Se nenhum job ainda rodou, usa URL_INIT como fallback.
 
     Só executa quando há um driver ativo (_driver não é None). Se a
     sessão expirar (login form detectado), o keepalive apenas registra
@@ -208,8 +213,9 @@ def _keepalive_loop() -> None:
             if _driver is None:
                 logger.debug('Keepalive: nenhum driver ativo, ignorando.')
                 continue
+            url = _last_preload_url or settings.url_init
             try:
-                _driver.get(settings.url_init)
+                _driver.get(url)
                 if _has_login_form(_driver):
                     logger.warning(
                         'Keepalive: sessão do portal expirada '
@@ -217,9 +223,9 @@ def _keepalive_loop() -> None:
                         'Próximo job irá renovar automaticamente.')
                 else:
                     _save_cookies(_driver)
-                    logger.info('Keepalive: sessão do portal renovada (URL_INIT acessada).')
+                    logger.info('Keepalive: sessão do portal renovada (%s).', url)
             except Exception as e:
-                logger.warning('Keepalive: falha ao acessar URL_INIT: %s', e)
+                logger.warning('Keepalive: falha ao acessar %s: %s', url, e)
 
 
 def start_keepalive() -> None:
@@ -263,9 +269,13 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
       precisar reiniciar o serviço.
     - O chamador deve manter a janela ao concluir com park_driver().
     """
-    global _driver
+    global _driver, _last_preload_url
 
     with _lock:
+        # Armazena a última URL de uso para o keepalive renovar nela
+        if preload_url:
+            _last_preload_url = preload_url
+
         # 1) Reaproveita a janela mantida aberta pelo processamento anterior
         if _driver is not None:
             try:
