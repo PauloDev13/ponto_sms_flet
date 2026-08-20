@@ -304,15 +304,17 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
 
     Aqui matamos apenas processos (chrome.exe/msedge.exe) cuja linha de comando
     referencia o perfil desta aplicação -- o browser do usuário fica intocado.
+
+    Estratégia em duas etapas:
+      1) taskkill /PID para cada processo encontrado pelo PowerShell;
+      2) Se taskkill falhar (permissão, processo em outra sessão), usa
+         ctypes.TerminateProcess como fallback direto via Windows API.
     """
     profile_dir = profile_dir or default_profile_dir()
     if os.name != 'nt':
         return
     try:
         profile_norm = os.path.normcase(profile_dir).lower()
-        # NOTA: WQL do Get-CimInstance exige 'OR' maiúsculo -- a forma
-        # -Filter "Name='chrome.exe' -or Name='msedge.exe'" retorna
-        # ERROR "Consulta inválida" (RC=1) e nao mata nada. Use Where-Object.
         ps = subprocess.run(
             [
                 'powershell', '-NoProfile', '-Command',
@@ -331,6 +333,7 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
         data = json.loads(ps.stdout or '[]')
         if isinstance(data, dict):
             data = [data]
+        killed = 0
         for proc in data:
             cmd = (proc.get('CommandLine') or '') + ''
             if profile_norm in os.path.normcase(cmd).lower():
@@ -339,12 +342,32 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
                     pid = int(pid)
                 except (TypeError, ValueError):
                     continue
-                logger.warning(
-                    'Encerrando Chrome/Edge orfao (PID %s) preso ao perfil %s.', pid, profile_dir)
-                subprocess.run(
+                # Tentativa 1: taskkill
+                result = subprocess.run(
                     ['taskkill', '/PID', str(pid), '/F'],
                     capture_output=True, text=True, timeout=15,
                 )
+                if result.returncode == 0:
+                    killed += 1
+                    continue
+                # Tentativa 2: Windows API direta (fallback)
+                try:
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    PROCESS_TERMINATE = 0x0001
+                    handle = kernel32.OpenProcess(PROCESS_TERMINATE, False, pid)
+                    if handle:
+                        kernel32.TerminateProcess(handle, 1)
+                        kernel32.CloseHandle(handle)
+                        killed += 1
+                        logger.warning(
+                            'Orfao PID %s morto via Windows API (taskkill falhou).', pid)
+                except Exception:
+                    pass
+        if killed:
+            logger.warning(
+                'cleanup_orphan_browsers: %d processo(s) encerrado(s) do perfil %s.',
+                killed, profile_dir)
     except Exception:
         logger.debug('cleanup_orphan_browsers falhou.', exc_info=True)
 
