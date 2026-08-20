@@ -263,7 +263,8 @@ class TestCookiePersistence:
         de sessão (só abre maximizada se a sessão REALMENTE caiu)."""
         import json
         (tmp_path / 'cookies.json').write_text(
-            json.dumps([{'name': 'PHPSESSID', 'value': 'abc', 'domain': '.portal.br'}]),
+            json.dumps([{'name': 'PHPSESSID', 'value': 'abc',
+                         'domain': 'natal.rn.gov.br'}]),
             encoding='utf-8')
 
         fake = FakeDriver(logged_in=True)

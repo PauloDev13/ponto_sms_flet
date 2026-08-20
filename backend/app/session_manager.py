@@ -98,23 +98,40 @@ def _session_alive(driver) -> bool:
 
 
 def _save_cookies(driver) -> None:
-    """Persiste os cookies da sessão para reuso na próxima janela."""
+    """Persiste os cookies da sessão para reuso na próxima janela.
+
+    Deduplica por (name, domain, path): quando o portal emite cookies
+    com o mesmo nome mas domínios levemente diferentes ("natal.rn.gov.br"
+    e ".natal.rn.gov.br"), apenas o mais recente é mantido — evita que
+    `_load_cookies` tente injetar duplicatas que o Selenium rejeita
+    silenciosamente, causando sessão incompleta.
+    """
     try:
-        cookies = driver.get_cookies()
-        if not cookies:
+        raw = driver.get_cookies()
+        if not raw:
             logger.warning('Sem cookies para salvar (sessão não emitida?).')
             return
+        # Deduplica: mantém a última aparição de cada (name, domain, path)
+        seen: dict[tuple, dict] = {}
+        for c in raw:
+            key = (c.get('name'), c.get('domain'), c.get('path'))
+            seen[key] = c
+        cookies = list(seen.values())
         COOKIES_FILE.parent.mkdir(parents=True, exist_ok=True)
         COOKIES_FILE.write_text(
             json.dumps(cookies, ensure_ascii=False), encoding='utf-8')
-        logger.info('Cookies de sessão renovados e salvos (%d) em %s.',
-                    len(cookies), COOKIES_FILE)
+        logger.info('Cookies de sessão renovados e salvos (%d/%d dedup) em %s.',
+                    len(cookies), len(raw), COOKIES_FILE)
     except Exception as e:
         logger.warning('Falha ao salvar cookies de sessão: %s', e)
 
 
 def _load_cookies(driver) -> bool:
     """Injeta os cookies salvos na janela nova (mesma origem do portal).
+
+    Filtra cookies cujo domínio não corresponde ao navegador atual —
+    Selenium rejeita silenciosamente cookies de domínio diferente, o que
+    deixa a sessão incompleta.
 
     Retorna True se injetou cookies e o navegador ficou em URL_INIT
     (chamador pode pular _session_alive — basta checar o formulário
@@ -128,17 +145,26 @@ def _load_cookies(driver) -> bool:
         if not cookies:
             return False
         driver.get(settings.url_init)  # estabelece a origem para add_cookie
+        # Domínio corrente (ex.: "natal.rn.gov.br")
+        current_domain = driver.current_url.split('/')[2].split(':')[0]
         ok = 0
+        skipped = 0
         for cookie in cookies:
+            cookie_domain = (cookie.get('domain') or '').lstrip('.')
+            if cookie_domain and cookie_domain != current_domain:
+                skipped += 1
+                continue
             try:
                 driver.add_cookie(cookie)
                 ok += 1
             except Exception as e:
                 logger.debug('add_cookie rejeitado (%s): %s',
                              cookie.get('name'), str(e)[:200])
-        if ok < len(cookies):
-            logger.warning('Cookies de sessão: %d/%d injetados.',
-                           ok, len(cookies))
+        if skipped:
+            logger.info('Cookies de sessão: %d injetados, %d descartados '
+                        '(domínio não corresponde).', ok, skipped)
+        elif ok < len(cookies):
+            logger.warning('Cookies de sessão: %d/%d injetados.', ok, len(cookies))
         else:
             logger.info('Cookies de sessão injetados (%d).', ok)
         return True  # navegador em URL_INIT; chamador pode checar o formulário
