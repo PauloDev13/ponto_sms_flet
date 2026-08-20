@@ -13,7 +13,6 @@ Convenções herdadas do desktop:
   dados do(s) mês(es) e linha 'TOTAIS'
 """
 from datetime import datetime, timedelta, time
-from typing import Dict
 
 import pandas as pd
 
@@ -131,7 +130,7 @@ def df_total_row(columns) -> pd.DataFrame:  # noqa: ANN001
 
 def generate_dataframe(
         df_table: pd.DataFrame,
-        data_by_year: Dict[int, pd.DataFrame],
+        data_by_year: dict[int, pd.DataFrame],
         cpf: str,
         month_name: str,
         year: int,
@@ -219,6 +218,6 @@ def generate_dataframe(
         ], ignore_index=True)
 
 
-def empty_year_dataframe() -> Dict[int, pd.DataFrame]:
+def empty_year_dataframe() -> dict[int, pd.DataFrame]:
     """Retorna um dicionário vazio de anos para acumular dataframes."""
     return {}

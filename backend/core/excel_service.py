@@ -5,7 +5,6 @@ sem dependências de UI. A senha de proteção da planilha vem de
 backend.core.settings (environment PASSWORD), não de config.config_env.
 """
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 import xlsxwriter
@@ -13,7 +12,7 @@ import xlsxwriter
 from .settings import settings
 
 
-def define_formats(workbook) -> Dict[str, any]:  # noqa: ANN001, ANN401
+def define_formats(workbook) -> dict[str, any]:  # noqa: ANN001, ANN401
     """Dicionário com as formatações das células do arquivo Excel."""
     return {
         'header': workbook.add_format({
@@ -213,7 +212,7 @@ def apply_formatting(worksheet, df_year, formats, password: str | None = None) -
 
 
 def generate_excel_file(
-        data_dic: Dict[int, pd.DataFrame],
+        data_dic: dict[int, pd.DataFrame],
         employee_name: str,
         cpf: str,
         output_path: str | Path,

@@ -7,10 +7,9 @@ retorna dicionários JSON-friendly em vez de manipular controles e snackbars.
 Usado pela API web /api/v1/validate e futuramente pelo frontend.
 """
 from datetime import datetime
-from typing import Dict, Optional
 
 
-def validate_cpf(cpf: str) -> Dict[str, str]:
+def validate_cpf(cpf: str) -> dict[str, str]:
     """Valida um CPF puro (11 dígitos + dígitos verificadores).
 
     Retorna {'ok': 'true'} ou {'ok': 'false', 'message': ...}.
@@ -36,7 +35,7 @@ def validate_cpf(cpf: str) -> Dict[str, str]:
     return {'ok': 'false', 'message': 'CPF inválido!'}
 
 
-def validate_month_year(value: str) -> Optional[datetime]:
+def validate_month_year(value: str) -> datetime | None:
     """Valida formato MM/yyyy. Retorna datetime ou None."""
     try:
         return datetime.strptime((value or '').strip(), '%m/%Y')
@@ -44,7 +43,7 @@ def validate_month_year(value: str) -> Optional[datetime]:
         return None
 
 
-def validate_dates(date_start: str, date_end: str) -> Dict[str, str]:
+def validate_dates(date_start: str, date_end: str) -> dict[str, str]:
     """Valida o intervalo de períodos (MM/yyyy, ano >= 2000, início <= fim)."""
     start = validate_month_year(date_start)
     end = validate_month_year(date_end)
@@ -72,14 +71,14 @@ def validate_dates(date_start: str, date_end: str) -> Dict[str, str]:
     return {'ok': 'true'}
 
 
-def validate_unit(unit: str) -> Dict[str, str]:
+def validate_unit(unit: str) -> dict[str, str]:
     """Valida o código da unidade (obrigatório)."""
     if not (unit or '').strip():
         return {'ok': 'false', 'message': 'Informe o Código da Unidade!'}
     return {'ok': 'true'}
 
 
-def validate_file_types(excel: bool, pdf: bool) -> Dict[str, str]:
+def validate_file_types(excel: bool, pdf: bool) -> dict[str, str]:
     """Valida que ao menos um tipo de arquivo foi selecionado."""
     if not excel and not pdf:
         return {'ok': 'false', 'message': 'Escolha pelo menos um tipo de arquivo a ser gerado!'}
@@ -93,12 +92,12 @@ def validate_form(
         date_end: str,
         excel: bool = False,
         pdf: bool = False,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Valida todas as entradas de uma só vez.
 
     Retorna {'valid': bool, 'errors': {campo: mensagem}, 'fields': {...}}.
     """
-    errors: Dict[str, str] = {}
+    errors: dict[str, str] = {}
 
     cpf_result = validate_cpf(cpf)
     if cpf_result.get('ok') == 'false':

@@ -1,8 +1,18 @@
+import warnings
+
 import flet as ft
 
 from desktop.models.page_manager import PageManager
 from desktop.models.splash_screen import SplashScreen
 from desktop.utils.share_model import window_event, on_key_enter_event
+
+warnings.warn(
+    'O módulo desktop (Flet) está DEPRECIADO. A aplicação principal é a '
+    'versão web (backend/app + frontend). Este executa apenas para '
+    'compatibilidade legada; consulte desktop/README.md.',
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def main(page: ft.Page) -> None:

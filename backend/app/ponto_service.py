@@ -16,9 +16,9 @@ import io
 import logging
 import re
 import zipfile
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from typing import Callable, Dict, List
 
 from backend.app.session_manager import get_driver, park_driver
 from backend.core import excel_service, pdf_service
@@ -96,7 +96,7 @@ def run_ponto_flow(
         out_dir = Path(settings.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        files: List[Path] = []
+        files: list[Path] = []
 
         if excel and result.data_by_year:
             xlsx_path = out_dir / f'{employee_name} - CPF_{cpf_fmt}.xlsx'
@@ -149,12 +149,12 @@ def _month_label(month: int) -> str:
 
 def run_job_flow(
         job_id: str,
-        payload: Dict[str, object],
+        payload: dict[str, object],
         job_dir: Path,
         on_message: Callable[[str], None],
         on_progress: Callable[[int, int], None],
         cancel_check: Callable[[], bool] = lambda: False,
-) -> List[JobFile]:
+) -> list[JobFile]:
     """Executor de um Job (FASE 2/3): login + scraping + geração.
 
     - Escreve os arquivos na pasta exclusiva do job (job_dir), com os
@@ -222,7 +222,7 @@ def run_job_flow(
         employee_name = result.employee_name or 'SERVIDOR'
         cpf_fmt = format_cpf_br(cpf_digits)
         job_dir.mkdir(parents=True, exist_ok=True)
-        files: List[Path] = []
+        files: list[Path] = []
 
         if cancel_check():
             raise JobCancelledError('Processamento cancelado pelo usuário.')

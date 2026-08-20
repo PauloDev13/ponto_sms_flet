@@ -30,7 +30,6 @@ import logging
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict, List
 
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -154,7 +153,7 @@ JOB_MANAGER: JobManager = JobManager(
 
 
 @app.get('/health')
-def health() -> Dict[str, object]:
+def health() -> dict[str, object]:
     """Healthcheck: status da API e presença das variáveis de ambiente."""
     return {
         'status': 'ok',
@@ -196,6 +195,7 @@ def api_login(payload: LoginRequest, request: Request, response: Response) -> ob
         max_age=settings.session_ttl_hours * 3600,
         httponly=True,
         samesite='lax',
+        secure=settings.session_cookie_secure,
         path='/',
     )
     logger.info('Login ok (user=%s, ip=%s)', payload.username, ip)
@@ -203,7 +203,7 @@ def api_login(payload: LoginRequest, request: Request, response: Response) -> ob
 
 
 @app.post('/api/v1/auth/logout')
-def api_logout(response: Response) -> Dict[str, bool]:
+def api_logout(response: Response) -> dict[str, bool]:
     """Encerra a sessão (remove o cookie)."""
     response.delete_cookie(SESSION_COOKIE, path='/')
     return {'ok': True}
@@ -217,7 +217,7 @@ def api_me(request: Request) -> object:
 
 
 @app.post('/api/v1/validate')
-def api_validate(payload: ValidateRequest) -> Dict[str, object]:
+def api_validate(payload: ValidateRequest) -> dict[str, object]:
     """Valida os campos do formulário (espelho do validators do desktop)."""
     return validate_form(
         cpf=payload.cpf,
@@ -233,7 +233,7 @@ def api_validate(payload: ValidateRequest) -> Dict[str, object]:
 def api_unidades(
         q: str = Query(default='', description='Texto de busca (descrição ou código)'),
         limit: int = Query(default=50, le=200),
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Autocomplete de unidades a partir do data/unidades.csv."""
     try:
         results = search_unidades(query=q, limit=limit)
@@ -350,7 +350,7 @@ def api_create_job(payload: PontoRequest, request: Request) -> object:
 def api_list_jobs(
         request: Request,
         limit: int = Query(default=20, ge=1, le=100),
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Histórico navegável do usuário: jobs mais recentes primeiro (últimos N)."""
     user = get_current_user(request)
     jobs = JOB_MANAGER.list(owner=user, limit=limit)
@@ -362,7 +362,7 @@ def api_list_jobs(
 
 
 @app.delete('/api/v1/jobs')
-def api_clear_jobs(request: Request) -> Dict[str, object]:
+def api_clear_jobs(request: Request) -> dict[str, object]:
     """Remove as gerações concluídas/falhas DO USUÁRIO (registro + arquivos em disco).
 
     Jobs na fila ou em execução são preservados.
@@ -437,7 +437,7 @@ def api_get_job(job_id: str, request: Request) -> object:
     return {'ok': True, 'job': job.to_dict()}
 
 
-def _sse(data: Dict[str, object]) -> str:
+def _sse(data: dict[str, object]) -> str:
     """Serializa um evento SSE (campo 'data' com JSON)."""
     return f'data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n'
 
@@ -481,13 +481,13 @@ async def api_job_events(job_id: str, request: Request) -> object:
     )
 
 
-def _job_files_on_disk(job_id: str, fmt: str) -> List[Path]:
+def _job_files_on_disk(job_id: str, fmt: str) -> list[Path]:
     """Caminhos dos arquivos do job filtrados por formato ('xlsx'|'pdf'|'zip'=todos)."""
     job = JOB_MANAGER.get(job_id)
     if job is None:
         raise LookupError('Job não encontrado.')
     selected = [f for f in job.files if fmt == 'zip' or f.format == fmt]
-    paths: List[Path] = []
+    paths: list[Path] = []
     for record in selected:
         path = job.directory / record.name
         if path.exists():
@@ -495,7 +495,7 @@ def _job_files_on_disk(job_id: str, fmt: str) -> List[Path]:
     return paths
 
 
-def _zip_bytes(paths: List[Path]) -> bytes:
+def _zip_bytes(paths: list[Path]) -> bytes:
     """Compacta os arquivos em um ZIP em memória (nomes originais)."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:

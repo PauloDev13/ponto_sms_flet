@@ -44,6 +44,21 @@ class TestValidateCpf:
     def test_cpf_com_digito_verificador_errado(self):
         assert validate_cpf('52998224726')['ok'] == 'false'
 
+    def test_cpf_formatado_com_pontuacao_rejeitado(self):
+        res = validate_cpf('529.982.247-25')
+        assert res['ok'] == 'false'
+        assert res['message'] == 'O CPF deve conter somente números!'
+
+    def test_cpf_com_espacos_internos_rejeitado(self):
+        res = validate_cpf('529 982 247 25')
+        assert res['ok'] == 'false'
+        assert res['message'] == 'O CPF deve conter somente números!'
+
+    def test_cpf_com_caractere_invisivel_rejeitado(self):
+        res = validate_cpf('\u200b' + CPF_VALIDO)
+        assert res['ok'] == 'false'
+        assert res['message'] == 'O CPF deve conter somente números!'
+
 
 class TestValidateMonthYear:
 
@@ -93,6 +108,22 @@ class TestValidateDates:
         res = validate_dates('05/2024', '01/2024')
         assert res['ok'] == 'false'
         assert 'deve ser posterior' in res['message']
+
+    def test_virada_de_ano_valida(self):
+        res = validate_dates('11/2024', '02/2025')
+        assert res == {'ok': 'true'}
+
+    def test_virada_de_ano_invertida_rejeitada(self):
+        res = validate_dates('01/2025', '12/2024')
+        assert res['ok'] == 'false'
+        assert 'deve ser posterior' in res['message']
+
+    def test_ano_bissexto_fevereiro_aceito(self):
+        assert validate_month_year('02/2024') is not None
+        assert validate_month_year('02/2024').year == 2024
+
+    def test_ano_nao_bissexto_tambem_aceito(self):
+        assert validate_month_year('02/2023') is not None
 
 
 class TestValidateUnit:

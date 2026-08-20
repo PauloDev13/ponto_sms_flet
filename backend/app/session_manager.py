@@ -83,13 +83,38 @@ def _has_login_form(driver) -> bool:
         return True
 
 
+def _driver_proc_alive(driver) -> bool:
+    """Ping rápido ao WebDriver para detectar processo morto (sem navegar).
+
+    Chrome/ChromeDriver encerrados ou travados respondem de imediato com
+    exceção, em vez de aguardar o timeout de página — evita que um job
+    preso fique enfileirado esperando uma sessão inexistente. Prefere
+    service.is_connectable() quando disponível (comando enxuto ao servidor
+    do driver) e recai para um comando leve (current_window_handle) caso
+    contrário.
+    """
+    try:
+        service = getattr(driver, 'service', None)
+        if service is not None and hasattr(service, 'is_connectable'):
+            return bool(service.is_connectable())
+        driver.current_window_handle
+        return True
+    except Exception:
+        return False
+
+
 def _session_alive(driver) -> bool:
     """Verifica a sessão navegando para a página INTERNA (URL_INIT).
 
-    Sessão viva: o portal mantém a página interna (sem formulário de
-    login). Sessão expirada: o portal redireciona para o login (formulário
-    presente). Baseado na presença do formulário (robusto a redirects).
+    Antes da navegação, faz um "ping" rápido ao WebDriver
+    (_driver_proc_alive) para detectar processo morto sem depender do
+    timeout de página. Sessão viva: o portal mantém a página interna (sem
+    formulário de login). Sessão expirada: o portal redireciona para o
+    login (formulário presente). Baseado na presença do formulário
+    (robusto a redirects).
     """
+    if not _driver_proc_alive(driver):
+        return False
     try:
         driver.get(settings.url_init)
         return not _has_login_form(driver)

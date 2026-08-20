@@ -14,8 +14,9 @@ import hmac
 import json
 import logging
 import os
+import secrets
+import threading
 import time
-from typing import Dict, List, Optional
 
 from fastapi import HTTPException, Request, status
 
@@ -27,17 +28,29 @@ SESSION_COOKIE = 'ponto_session'
 
 PBKDF2_ITERATIONS = 200_000
 
+# Segredo criptográfico efêmero usado quando SESSION_SECRET não está no .env.
+# Gerado na inicialização do processo: impede qualquer falsificação
+# determinística de token e invalida sessões antigas a cada reinício.
+_EPHEMERAL_SECRET = secrets.token_bytes(32)
+_warned_ephemeral = False
+
 # Rate-limit do login: ip -> [início da janela, tentativas]
-_LOGIN_ATTEMPTS: Dict[str, List[float]] = {}
+_LOGIN_ATTEMPTS: dict[str, list[float]] = {}
 _LOGIN_LIMIT = 8
 _LOGIN_WINDOW_SECONDS = 60
 
 # Rate-limit da criação de jobs: "usuário|ip" -> [início da janela, criações]
-_JOB_CREATIONS: Dict[str, List[float]] = {}
+_JOB_CREATIONS: dict[str, list[float]] = {}
 _JOB_CREATE_LIMIT = 10
 _JOB_CREATE_WINDOW_SECONDS = 60
 # Quantos jobs ativos (fila + execução) cada usuário pode ter simultaneamente
 JOB_MAX_ACTIVE = 3
+
+# Sincronização das mutações dos dicionários de rate-limit e limiar de quitação:
+# quando o volume de chaves ultrapassa _RATE_PURGE_THRESHOLD, registros com
+# timestamp fora da janela são expurgados — evita vazamento gradual de RAM.
+_RATE_LOCK = threading.Lock()
+_RATE_PURGE_THRESHOLD = 500
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +78,7 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def _users() -> Dict[str, str]:
+def _users() -> dict[str, str]:
     """dict nome -> hash da senha (materializado a cada chamada, testável)."""
     return {name: hash_password(pwd) for name, pwd in settings.web_users.items()}
 
@@ -82,9 +95,27 @@ def authenticate_user(username: str, password: str) -> bool:
 
 
 def _secret() -> bytes:
-    """Segredo de assinatura. Deriva do segredo explícito (SESSION_SECRET)
-    ou, na ausência dele, de credenciais estáveis da instalação."""
-    secret = settings.session_secret or (settings.user + '|' + settings.url_base)
+    """Segredo de assinatura do cookie de sessão (HMAC-SHA256).
+
+    Usa SESSION_SECRET do .env quando presente. NUNCA recorre a um fallback
+    determinístico (ex.: USER/URL_BASE) — se a variável estiver vazia, gera
+    um segredo criptográfico EFÊMERO em memória (secrets.token_bytes(32)) e
+    registra aviso explícito no log. Sessões assinadas com o segredo efêmero
+    são invalidadas na reinicialização do processo, o que impede a
+    falsificação determinística de tokens por quem conheça o ambiente.
+    """
+    global _warned_ephemeral
+    secret = (settings.session_secret or '').strip()
+    if not secret:
+        if not _warned_ephemeral:
+            logger.warning(
+                'SESSION_SECRET não configurado no .env! '
+                'Utilizando segredo efêmero em memória — sessões serão '
+                'invalidadas a cada reinício do serviço. '
+                'Gere uma chave fixa: python -c "import secrets; '
+                'print(secrets.token_urlsafe(32))"')
+            _warned_ephemeral = True
+        return _EPHEMERAL_SECRET
     return hashlib.sha256(secret.encode()).digest()
 
 
@@ -100,7 +131,7 @@ def make_session_token(username: str) -> str:
     return f'{body}.{sig}'
 
 
-def read_session_token(raw: str) -> Optional[str]:
+def read_session_token(raw: str) -> str | None:
     """Valida a assinatura/expiração e devolve o nome do usuário (ou None)."""
     if not raw:
         return None
@@ -142,20 +173,41 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else 'unknown'
 
 
+def _purge_expired_records(
+        records: dict[str, list[float]], window_seconds: float, now: float) -> int:
+    """Remove registros fora da janela temporal (previne vazamento de memória).
+
+    Deve ser chamada sob _RATE_LOCK quando o volume de entradas ultrapassar o
+    limiar (ou diretamente em testes). Retorna a quantidade de registros
+    removidos.
+    """
+    expired = [
+        key for key, (started, _count) in records.items()
+        if now - started > window_seconds
+    ]
+    for key in expired:
+        del records[key]
+    return len(expired)
+
+
 def login_allowed(ip: str) -> bool:
     """True se o IP ainda pode tentar novo login (janela de tentativas)."""
     now = time.time()
-    record = _LOGIN_ATTEMPTS.get(ip)
-    if record is None or now - record[0] > _LOGIN_WINDOW_SECONDS:
-        _LOGIN_ATTEMPTS[ip] = [now, 1]
-    else:
-        record[1] += 1
-    return _LOGIN_ATTEMPTS[ip][1] <= _LOGIN_LIMIT
+    with _RATE_LOCK:
+        if len(_LOGIN_ATTEMPTS) >= _RATE_PURGE_THRESHOLD:
+            _purge_expired_records(_LOGIN_ATTEMPTS, _LOGIN_WINDOW_SECONDS, now)
+        record = _LOGIN_ATTEMPTS.get(ip)
+        if record is None or now - record[0] > _LOGIN_WINDOW_SECONDS:
+            _LOGIN_ATTEMPTS[ip] = [now, 1]
+        else:
+            record[1] += 1
+        return _LOGIN_ATTEMPTS[ip][1] <= _LOGIN_LIMIT
 
 
 def reset_rate_limit() -> None:
     """Zera as contagens de tentativas (usado em testes)."""
-    _LOGIN_ATTEMPTS.clear()
+    with _RATE_LOCK:
+        _LOGIN_ATTEMPTS.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -167,14 +219,18 @@ def job_creation_allowed(ip: str, username: str) -> bool:
     """True se usuário+IP ainda pode criar jobs na janela (N por minuto)."""
     key = f'{username}|{ip}'
     now = time.time()
-    record = _JOB_CREATIONS.get(key)
-    if record is None or now - record[0] > _JOB_CREATE_WINDOW_SECONDS:
-        _JOB_CREATIONS[key] = [now, 1]
-    else:
-        record[1] += 1
-    return _JOB_CREATIONS[key][1] <= _JOB_CREATE_LIMIT
+    with _RATE_LOCK:
+        if len(_JOB_CREATIONS) >= _RATE_PURGE_THRESHOLD:
+            _purge_expired_records(_JOB_CREATIONS, _JOB_CREATE_WINDOW_SECONDS, now)
+        record = _JOB_CREATIONS.get(key)
+        if record is None or now - record[0] > _JOB_CREATE_WINDOW_SECONDS:
+            _JOB_CREATIONS[key] = [now, 1]
+        else:
+            record[1] += 1
+        return _JOB_CREATIONS[key][1] <= _JOB_CREATE_LIMIT
 
 
 def reset_job_rate_limit() -> None:
     """Zera as contagens de criação de jobs (usado em testes)."""
-    _JOB_CREATIONS.clear()
+    with _RATE_LOCK:
+        _JOB_CREATIONS.clear()

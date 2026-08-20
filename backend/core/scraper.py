@@ -12,7 +12,6 @@ import re
 import time
 from dataclasses import dataclass, field
 from io import StringIO
-from typing import Dict, List, Optional
 
 import pandas as pd
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -59,8 +58,8 @@ LEGACY_NAME_XPATH: str = '/html/body/div[2]/div/div[2]/div[2]/div[4]/div/span/fo
 class ScrapeResult:
     """Resultado da coleta de um período."""
 
-    data_by_year: Dict[int, pd.DataFrame] = field(default_factory=dict)
-    pdf_bytes_list: List[bytes] = field(default_factory=list)
+    data_by_year: dict[int, pd.DataFrame] = field(default_factory=dict)
+    pdf_bytes_list: list[bytes] = field(default_factory=list)
     employee_name: str = ''
     months_processed: int = 0
     months_failed: int = 0
@@ -107,8 +106,8 @@ def find_employee_name(driver) -> str:
 
 
 def fetch_month_table(driver, url: str,
-                      retries: Optional[int] = None,
-                      backoff: Optional[float] = None) -> Optional[pd.DataFrame]:
+                      retries: int | None = None,
+                      backoff: float | None = None) -> pd.DataFrame | None:
     """Navega até a URL e obtém a tabela HTML do mês como DataFrame.
 
     O desktop aguarda o bloco com o nome do funcionário antes da tabela;

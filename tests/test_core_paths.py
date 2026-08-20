@@ -55,3 +55,26 @@ def test_sanitize_filename():
 
     assert sanitize_filename('a<b>c:"d/e\\f|g?h*i') == 'a_b_c__d_e_f_g_h_i'
     assert sanitize_filename('   ') == 'sem_nome'
+
+
+def test_sanitize_filename_remove_whitespace_and_forbidden():
+    from backend.core.paths import sanitize_filename
+
+    cleaned = sanitize_filename('  arquivo:teste?*.xlsx  ')
+    assert cleaned == 'arquivo_teste__.xlsx'
+
+
+def test_build_excel_path_acentos_espacos(tmp_path, monkeypatch):
+    from backend.core import paths
+    from backend.core.settings import Settings
+
+    monkeypatch.setenv('OUTPUT_DIR', str(tmp_path))
+    monkeypatch.setenv('NAME_FOLDER', 'TESTE_SMS')
+
+    s = Settings()
+    paths.settings = s
+
+    excel = paths.build_excel_path('MARIA SOUZA Ç Ã Ê é', '12345678901')
+    assert excel.parent == tmp_path / 'TESTE_SMS'
+    assert excel.name == 'MARIA SOUZA Ç Ã Ê é_12345678901.xlsx'
+    assert excel.parent.exists()

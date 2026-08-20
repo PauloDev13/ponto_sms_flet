@@ -29,7 +29,7 @@ import logging
 import os
 import re
 import time
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
@@ -150,7 +150,7 @@ _LOGIN_ERROR_PATTERNS = [
 ]
 
 
-def mask_cpf(value: Optional[str]) -> str:
+def mask_cpf(value: str | None) -> str:
     r"""Mascara o CPF (###.###.###-##) conforme exigido pelo portal.
 
     A página de login NÃO aplica máscara automática no campo (o script
@@ -214,7 +214,7 @@ def _read_recaptcha_token(driver) -> str:
 
 
 def _finish_login(driver, url_init: str, redirect_timeout: int, via: str,
-                  max_retries: int = 3) -> Tuple[str, str]:
+                  max_retries: int = 3) -> tuple[str, str]:
     """Conclui o login: aguarda o redirect e garante a URL_INIT aberta.
 
     Após o fetch de login bem-sucedido, a sessão está no cookie jar.
@@ -251,7 +251,7 @@ def _finish_login(driver, url_init: str, redirect_timeout: int, via: str,
                       f'após {max_retries} tentativas em {url_init}')
 
 
-def _submit_login_via_fetch(driver) -> Optional[dict]:
+def _submit_login_via_fetch(driver) -> dict | None:
     """Dispara o login via fetch() dentro da página (UMA única vez).
 
     Retorna o estado da submissão ou None se o script não pôde executar.
@@ -272,7 +272,7 @@ def _read_login_submission(driver) -> dict:
         return {}
 
 
-def _detect_login_error(body_head: str) -> Optional[str]:
+def _detect_login_error(body_head: str) -> str | None:
     """Procura indícios de rejeição na resposta do autentica.php."""
     lower = (body_head or '').lower()
     for pattern in _LOGIN_ERROR_PATTERNS:
@@ -282,7 +282,7 @@ def _detect_login_error(body_head: str) -> Optional[str]:
 
 
 def _submit_native_fallback(driver, url_init: str, submit_timeout: int,
-                            redirect_timeout: int) -> Tuple[str, str]:
+                            redirect_timeout: int) -> tuple[str, str]:
     """Falha de segurança: submite nativo (botão) e aguarda o redirect."""
     try:
         button = WebDriverWait(driver, submit_timeout).until(
@@ -296,16 +296,16 @@ def _submit_native_fallback(driver, url_init: str, submit_timeout: int,
 
 def authenticate(
         driver,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        url_base: Optional[str] = None,
-        url_init: Optional[str] = None,
+        user: str | None = None,
+        password: str | None = None,
+        url_base: str | None = None,
+        url_init: str | None = None,
         manual_solve_wait: int = 30,
-        on_manual_wait: Optional[Callable[[int], None]] = None,
+        on_manual_wait: Callable[[int], None] | None = None,
         field_timeout: int = 20,
         submit_timeout: int = 10,
         redirect_timeout: int = 25,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """Executa o login no portal e retorna (status, detalhe)."""
     user = user or settings.user
     password = password or settings.password
@@ -364,7 +364,7 @@ def authenticate(
     # checkbox_pass / manual_required: espera o token do captcha e submete
     # o login via fetch() (um único POST, sem reload nativo da tela).
     deadline = time.time() + manual_solve_wait
-    submitted_at: Optional[float] = None
+    submitted_at: float | None = None
     while time.time() < deadline:
         if is_session_active(driver):
             return 'session_active', driver.current_url or ''
@@ -409,17 +409,17 @@ def authenticate(
 
 
 def login_service(
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        url_base: Optional[str] = None,
-        url_init: Optional[str] = None,
+        user: str | None = None,
+        password: str | None = None,
+        url_base: str | None = None,
+        url_init: str | None = None,
         manual_solve_wait: int = 30,
-        on_manual_wait: Optional[Callable[[int], None]] = None,
+        on_manual_wait: Callable[[int], None] | None = None,
         headless: bool = False,
         field_timeout: int = 20,
         submit_timeout: int = 10,
         redirect_timeout: int = 25,
-) -> Tuple[str, object]:
+) -> tuple[str, object]:
     """Cria o driver e executa o login (versão sem dependência de Flet).
 
     Retorna (status, driver_or_none).
@@ -444,5 +444,5 @@ def login_service(
         )
         return status, driver
     except Exception as e:
-        print(f'Erro no login: {e}')
+        logger.error('Erro no login: %s', e)
         return 'failed', None

@@ -14,7 +14,6 @@ reiniciar o servidor.
 import os
 import threading
 from pathlib import Path
-from typing import Dict
 
 from dotenv import load_dotenv
 
@@ -149,14 +148,27 @@ class Settings:
         return int(_env('SESSION_TTL_HOURS', '12'))
 
     @property
-    def web_users(self) -> Dict[str, str]:
+    def session_cookie_secure(self) -> bool:
+        """Atributo 'Secure' do cookie de sessão (enviado só sobre HTTPS).
+
+        Lido de SESSION_COOKIE_SECURE ('true'/'1'/'yes'/'on' ativam).
+        Padrão False: a VM atualmente expõe a aplicação via HTTP puro
+        (http://<ip>:8000) sem terminação SSL — ativar Secure nesse cenário
+        faria o navegador descartar o cookie e quebraria o login. Defina como
+        true somente quando estiver atrás de um proxy reverso com HTTPS.
+        """
+        return _env('SESSION_COOKIE_SECURE', 'false').strip().lower() \
+            in ('1', 'true', 'yes', 'on')
+
+    @property
+    def web_users(self) -> dict[str, str]:
         """Contas locais da aplicação web: 'user1:senha1,user2:senha2'.
 
         Lidas do ambiente a cada acesso (testável). Nunca expostas via
         API/frontend; apenas conferidas no login.
         """
         raw = _env('WEB_USERS', '')
-        users: Dict[str, str] = {}
+        users: dict[str, str] = {}
         for entry in raw.split(','):
             entry = entry.strip()
             if not entry:

@@ -3,13 +3,12 @@
 Permitem que a camada de apresentação (desktop Flet ou API web) trate os
 erros de forma estruturada, sem depender de mensagens de texto soltas.
 """
-from typing import Optional
 
 
 class CoreError(Exception):
     """Erro base do núcleo."""
 
-    def __init__(self, message: str, cause: Optional[Exception] = None):
+    def __init__(self, message: str, cause: Exception | None = None):
         super().__init__(message)
         self.message = message
         self.cause = cause

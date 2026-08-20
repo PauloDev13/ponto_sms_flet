@@ -17,7 +17,6 @@ import subprocess
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional
 
 from pypdf import PdfReader, PdfWriter
 
@@ -65,7 +64,7 @@ def capture_pdf_bytes(driver, url_search: str) -> bytes:
     return base64.b64decode(result['data'])
 
 
-def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str | Path) -> Path:
+def combine_pdfs(pdf_bytes_list: list[bytes], output_path: str | Path) -> Path:
     """Combina os PDFs individuais num único arquivo.
 
     Retorna o caminho do arquivo combinado (sem compressão/divisão, que
@@ -89,7 +88,7 @@ def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str | Path) -> Path:
         raise FileGenerationError(f'Erro ao combinar PDFs: {e}', cause=e) from e
 
 
-def find_ghostscript() -> Optional[str]:
+def find_ghostscript() -> str | None:
     """Localiza o executável do Ghostscript (env, PATH ou path padrão)."""
     if settings.ghostscript_binary and Path(settings.ghostscript_binary).exists():
         return settings.ghostscript_binary
@@ -104,7 +103,7 @@ def compress_pdf_with_ghostscript(
         input_pdf: str | Path,
         output_pdf: str | Path,
         quality: str = 'screen',
-        binary: Optional[str] = None,
+        binary: str | None = None,
 ) -> Path:
     """Compacta (e converte para grayscale) o PDF usando Ghostscript."""
     gs = binary or find_ghostscript()
@@ -155,13 +154,13 @@ def divide_pdf_by_size(
         input_pdf: str | Path,
         max_size_mb: float,
         output_prefix: str | Path,
-) -> List[Path]:
+) -> list[Path]:
     """Divide o PDF em partes de até max_size_mb, retornando os caminhos criados."""
     max_size_bytes = max_size_mb * 1024 * 1024
     reader = PdfReader(str(input_pdf))
     total_pages = len(reader.pages)
 
-    created: List[Path] = []
+    created: list[Path] = []
     prefix = Path(output_prefix)
     # prefix.name (e não prefix.stem): o stem interpretaria os pontos do
     # CPF (ex.: 'CPF_026.930.289-14') como extensões e cortaria o nome.
@@ -201,12 +200,12 @@ def divide_pdf_by_size(
 
 
 def process_pdf_artifact(
-        pdf_bytes_list: List[bytes],
+        pdf_bytes_list: list[bytes],
         output_path: str | Path,
         max_size_mb: float = 6.5,
         compress: bool = True,
-        binary: Optional[str] = None,
-) -> List[Path]:
+        binary: str | None = None,
+) -> list[Path]:
     """Pipeline completo do artefato PDF (combina + compacta + divide).
 
     Retorna a lista dos arquivos finais gerados. Se a compressão com

@@ -19,6 +19,8 @@ PRELOAD_URL = 'http://portal/busca?cpf=111.222.333-44&mes=01&ano=2024&unidade=7'
 class FakeDriver:
     """Driver fake: 'get' simula o redirect do portal conforme a sessão."""
 
+    current_window_handle = 'window-1'
+
     def __init__(self, logged_in: bool = True):
         self.logged_in = logged_in
         self.current_url = 'about:blank'
@@ -54,6 +56,14 @@ class FakeDriver:
 
     def quit(self):
         self.quit_called = True
+
+
+class DeadDriver(FakeDriver):
+    """Driver com o processo do Chrome/ChromeDriver morto (ping falha)."""
+
+    @property
+    def current_window_handle(self):
+        raise RuntimeError('chrome process dead: connection refused')
 
 
 @pytest.fixture(autouse=True)
@@ -441,3 +451,50 @@ class TestKeepalive:
         assert any(c['name'] == 'PHPSESSID' for c in saved)
         sm.stop_keepalive()
         monkeypatch.setattr(sm, '_driver', None)
+
+
+class TestProcWatchdog:
+    """MEL-06: watchdog do WebDriver — processo morto é detectado e o
+    navegador é recriado de forma limpa no próximo job."""
+
+    def test_driver_proc_alive_ping_ok_sem_service(self):
+        class D:
+            current_window_handle = 'w'
+        assert sm._driver_proc_alive(D()) is True
+
+    def test_driver_proc_alive_service_nao_conectavel(self):
+        class Svc:
+            def is_connectable(self):
+                return False
+        class D:
+            service = Svc()
+            current_window_handle = 'w'
+        assert sm._driver_proc_alive(D()) is False
+
+    def test_driver_proc_alive_service_conectavel(self):
+        class Svc:
+            def is_connectable(self):
+                return True
+        class D:
+            service = Svc()
+            current_window_handle = 'w'
+        assert sm._driver_proc_alive(D()) is True
+
+    def test_driver_proc_alive_processo_morto_retorna_falso(self):
+        assert sm._driver_proc_alive(DeadDriver()) is False
+
+    def test_processo_morto_durante_reuso_recria_navegador(self, monkeypatch):
+        """Driver com o processo morto durante o reaproveitamento é encerrado
+        e uma janela nova minimizada é aberta (sem exigir reinício do serviço)."""
+        dead = DeadDriver(logged_in=True)
+        fresh = FakeDriver(logged_in=True)
+        created = iter([fresh])
+        monkeypatch.setattr(sm, 'create_driver', lambda **k: next(created))
+        monkeypatch.setattr(sm, '_driver', dead)
+
+        driver = sm.get_driver(preload_url=PRELOAD_URL)
+
+        assert driver is fresh
+        assert dead.quit_called
+        assert fresh.minimize_calls >= 1
+        assert fresh.maximize_calls == 0

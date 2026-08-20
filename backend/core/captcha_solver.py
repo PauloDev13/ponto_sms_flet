@@ -16,7 +16,6 @@ Configuração opcional no .env:
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
@@ -35,8 +34,8 @@ class CaptchaSolveResult:
     success: bool = False
     strategy: str = 'none'  # none | checkbox_click | checkbox_pass | api | manual_required
     reason: str = ''
-    token: Optional[str] = None
-    sitekey: Optional[str] = None
+    token: str | None = None
+    sitekey: str | None = None
     diagnostics: dict = field(default_factory=dict)
 
 
@@ -44,10 +43,10 @@ class CaptchaSolver:
     """Resolve reCAPTCHA v2 presente na página de login do portal."""
 
     def __init__(self, driver, page_url: str,
-                 provider: Optional[str] = None,
-                 api_key: Optional[str] = None,
+                 provider: str | None = None,
+                 api_key: str | None = None,
                  api_timeout: int = 180,
-                 sitekey: Optional[str] = None):
+                 sitekey: str | None = None):
         self.driver = driver
         self.page_url = page_url
         self.provider = (provider or os.getenv('CAPTCHA_PROVIDER') or '').strip().lower()
@@ -66,7 +65,7 @@ class CaptchaSolver:
         except Exception:
             return False
 
-    def detect_sitekey(self) -> Optional[str]:
+    def detect_sitekey(self) -> str | None:
         """Tenta detectar a sitekey do reCAPTCHA no DOM (data-sitekey)."""
         if self.sitekey:
             return self.sitekey
@@ -127,7 +126,7 @@ class CaptchaSolver:
     def api_configured(self) -> bool:
         return bool(self.provider and self.api_key)
 
-    def solve_via_api(self) -> Optional[str]:
+    def solve_via_api(self) -> str | None:
         """Resolve via API paga e retorna o token g-recaptcha-response."""
         if not self.api_configured():
             return None

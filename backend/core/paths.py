@@ -4,9 +4,9 @@ A única fonte de verdade do destino é settings.output_dir (definido por
 environment OUTPUT_DIR ou ~/Documents/<NAME_FOLDER>). Nenhum serviço do
 núcleo deve derivar caminhos com os.path.expanduser('~') por conta própria.
 """
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List
 
 from .settings import settings
 
@@ -54,10 +54,10 @@ def build_month_pdf_path(employee_name: str, cpf: str, year: int, month: int) ->
     return folder / f'{base}_{year}_{month:02d}.pdf'
 
 
-def list_output_files(patterns: Iterable[str]) -> List[Path]:
+def list_output_files(patterns: Iterable[str]) -> list[Path]:
     """Lista arquivos/artefatos temporários gerados na pasta de saída."""
     out = output_dir()
-    files: List[Path] = []
+    files: list[Path] = []
     for pattern in patterns:
         files.extend(out.glob(pattern))
         months = out / f'{settings.name_folder.upper()}_months'

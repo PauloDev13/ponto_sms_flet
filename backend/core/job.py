@@ -15,12 +15,12 @@ import logging
 import shutil
 import threading
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
 
 from .exceptions import JobCancelledError
 from .settings import settings
@@ -54,20 +54,20 @@ class Job:
     """Registro de um job de geração de arquivos."""
 
     id: str
-    payload: Dict[str, object] = field(default_factory=dict)
+    payload: dict[str, object] = field(default_factory=dict)
     owner: str = ''
     status: JobStatus = JobStatus.QUEUED
     created_at: datetime = field(default_factory=datetime.now)
-    started_at: Optional[datetime] = None
-    done_at: Optional[datetime] = None
-    progress: Dict[str, object] = field(default_factory=lambda: {
+    started_at: datetime | None = None
+    done_at: datetime | None = None
+    progress: dict[str, object] = field(default_factory=lambda: {
         'months_ok': 0,
         'months_total': 0,
         'percent': 0,
         'message': 'Na fila...',
     })
-    logs: List[str] = field(default_factory=list)
-    files: List[JobFile] = field(default_factory=list)
+    logs: list[str] = field(default_factory=list)
+    files: list[JobFile] = field(default_factory=list)
     error: str = ''
     # Sinal de cancelamento (set() interrompe a execução em andamento).
     _cancelled: threading.Event = field(default_factory=threading.Event, repr=False)
@@ -87,9 +87,9 @@ class Job:
     def is_cancelled(self) -> bool:
         return self._cancelled.is_set()
 
-    def to_dict(self, with_payload: bool = True) -> Dict[str, object]:
+    def to_dict(self, with_payload: bool = True) -> dict[str, object]:
         """Representação JSON-friendly do job (sem credenciais)."""
-        data: Dict[str, object] = {
+        data: dict[str, object] = {
             'id': self.id,
             'owner': self.owner,
             'status': self.status.value,
@@ -108,15 +108,15 @@ class Job:
         return data
 
 
-JobRunner = Callable[[str, Dict[str, object], Path, Callable[[str], None],
+JobRunner = Callable[[str, dict[str, object], Path, Callable[[str], None],
                       Callable[[int, int], None], Callable[[], bool]],
-                     List[JobFile]]
+                     list[JobFile]]
 
 
 class JobManager:
     """Gerencia criação, execução, histórico e expiração de jobs.
 
-    - run_fn(job_id, payload, job_dir, on_message, on_progress) -> List[JobFile]
+    - run_fn(job_id, payload, job_dir, on_message, on_progress) -> list[JobFile]
       é o fluxo real (login + scraping + geração de arquivos).
     - A execução é serializada (max_workers=1) para reutilizar com
       segurança o driver único do Chrome.
@@ -132,14 +132,14 @@ class JobManager:
         self._run_fn = run_fn
         self.ttl_hours = ttl_hours
         self.history_limit = max(history_limit, 1)
-        self._jobs: Dict[str, Job] = {}
+        self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers, thread_name_prefix='job')
 
     # ----------------------------- criação -----------------------------
 
-    def create(self, payload: Dict[str, object], owner: str = '') -> Job:
+    def create(self, payload: dict[str, object], owner: str = '') -> Job:
         """Enfileira um novo job e retorna o registro (status QUEUED)."""
         job = Job(id=uuid.uuid4().hex[:12], payload=dict(payload), owner=owner)
         with self._lock:
@@ -151,12 +151,12 @@ class JobManager:
 
     # --------------------------- consulta ------------------------------
 
-    def get(self, job_id: str) -> Optional[Job]:
+    def get(self, job_id: str) -> Job | None:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def list(self, owner: Optional[str] = None,
-             limit: Optional[int] = None) -> List[Job]:
+    def list(self, owner: str | None = None,
+             limit: int | None = None) -> list[Job]:
         """Histórico: jobs mais recentes primeiro, limitado por history_limit.
 
         Se owner for informado, retorna apenas os jobs daquele usuário.
@@ -173,14 +173,14 @@ class JobManager:
             )
             return ordered[:limit]
 
-    def count(self, owner: Optional[str] = None) -> int:
+    def count(self, owner: str | None = None) -> int:
         with self._lock:
             values = self._jobs.values()
             if owner is not None:
                 values = [j for j in values if j.owner == owner]
             return len(values)
 
-    def count_active(self, owner: Optional[str] = None) -> int:
+    def count_active(self, owner: str | None = None) -> int:
         """Jobs em QUEUED ou RUNNING (fila + execução) de um usuário.
 
         Usado pelo rate-limit da API: impede que um usuário entupa a fila
@@ -316,7 +316,7 @@ class JobManager:
 
     # --------------------------- limpeza -------------------------------
 
-    def cleanup_expired(self, ttl_hours: Optional[float] = None) -> int:
+    def cleanup_expired(self, ttl_hours: float | None = None) -> int:
         """Remove jobs terminais mais antigos que o TTL (pastas inclusas).
 
         Também enxuga a memória mantendo no máximo history_limit jobs
@@ -335,7 +335,7 @@ class JobManager:
                     removed += 1
 
             # Limite do histórico por usuário (não interfere na execução)
-            by_owner: Dict[str, List[Job]] = {}
+            by_owner: dict[str, list[Job]] = {}
             for job in self._jobs.values():
                 by_owner.setdefault(job.owner, []).append(job)
 
@@ -362,7 +362,7 @@ class JobManager:
         except Exception:  # noqa: BLE001
             logger.warning('Não foi possível remover a pasta %s', path)
 
-    def clear(self, owner: Optional[str] = None) -> int:
+    def clear(self, owner: str | None = None) -> int:
         """Remove jobs terminais (registro + pasta em disco).
 
         Jobs na fila ou em execução são preservados. Se owner for
