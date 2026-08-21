@@ -13,9 +13,8 @@ forma confiável entre execuções. Estratégia atual:
 - A detecção de sessão é feita pela presença do formulário de login na
   página interna (URL_INIT): se a janela cair no login, a sessão expirou
   e a janela abre maximizada apenas para o novo login + captcha;
-- Um keepalive daemon thread navega para URL_DATA (página de scraping)
-  a cada 50 minutos, renovando a sessão do portal (duração: 60 min)
-  antes que expire; usa a última URL de busca usada no processamento;
+- Um keepalive daemon thread navega para URL_DATA a cada 5 minutos,
+  renovando a sessão do portal (duração: 60 min) antes que expire;
 - Ao encerrar o servidor (lifespan), close_driver() fecha a janela de
   fato e o keepalive é sinalizado para parar.
 """
@@ -36,11 +35,10 @@ logger = logging.getLogger(__name__)
 _lock = threading.Lock()
 _driver = None
 
-# --- Keepalive: renova sessão do portal a cada 50 min (sessão dura 60 min) ---
-_KEEPALIVE_INTERVAL = 50 * 60  # 50 minutos em segundos
+# --- Keepalive: renova sessão do portal periodicamente (sessão dura 60 min) ---
+_KEEPALIVE_INTERVAL = 5 * 60  # 5 minutos (temporário para testes)
 _keepalive_stop = threading.Event()
 _keepalive_thread: threading.Thread | None = None
-_last_preload_url: str = ''  # última URL_DATA usada no processamento
 
 # Cookies de sessão salvos entre janelas (perfil não os persiste sozinho)
 COOKIES_FILE = Path(default_profile_dir()).parent / 'cookies.json'
@@ -244,16 +242,11 @@ def _quit(driver) -> None:
 def _keepalive_loop() -> None:
     """Thread daemon que navega para URL_DATA a cada _KEEPALIVE_INTERVAL.
 
-    A navegação para URL_DATA (página de scraping com parâmetros) renova
-    o timeout da sessão de 60 minutos. O keepalive é executado a cada
-    50 minutos, dando uma margem de 10 minutos de segurança.
+    A simples navegação para URL_DATA renova o timeout da sessão do portal
+    (60 minutos). Cookies são salvos em disco após cada renovação para
+    manter o backup sincronizado.
 
-    Usa a última URL de busca (preload_url) armazenada pelo último job.
-    Se nenhum job ainda rodou, usa URL_INIT como fallback.
-
-    Só executa quando há um driver ativo (_driver não é None). Se a
-    sessão expirar (login form detectado), o keepalive apenas registra
-    — a renovação será feita pelo próximo job via get_driver() → authenticate().
+    Só executa quando há um driver ativo (_driver não é None).
     """
     while not _keepalive_stop.is_set():
         _keepalive_stop.wait(_KEEPALIVE_INTERVAL)
@@ -264,19 +257,12 @@ def _keepalive_loop() -> None:
             if _driver is None:
                 logger.debug('Keepalive: nenhum driver ativo, ignorando.')
                 continue
-            url = _last_preload_url or settings.url_init
             try:
-                _driver.get(url)
-                if _has_login_form(_driver):
-                    logger.warning(
-                        'Keepalive: sessão do portal expirada '
-                        '(formulário de login detectado). '
-                        'Próximo job irá renovar automaticamente.')
-                else:
-                    _save_cookies(_driver)
-                    logger.info('Keepalive: sessão do portal renovada (%s).', url)
+                _driver.get(settings.url_data)
+                _save_cookies(_driver)
+                logger.info('Keepalive: sessão renovada via URL_DATA.')
             except Exception as e:
-                logger.warning('Keepalive: falha ao acessar %s: %s', url, e)
+                logger.warning('Keepalive: falha ao acessar URL_DATA: %s', e)
 
 
 def start_keepalive() -> None:
@@ -320,13 +306,9 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
       precisar reiniciar o serviço.
     - O chamador deve manter a janela ao concluir com park_driver().
     """
-    global _driver, _last_preload_url
+    global _driver
 
     with _lock:
-        # Armazena a última URL de uso para o keepalive renovar nela
-        if preload_url:
-            _last_preload_url = preload_url
-
         # 1) Reaproveita a janela mantida aberta pelo processamento anterior
         if _driver is not None:
             try:

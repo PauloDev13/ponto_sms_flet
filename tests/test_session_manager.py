@@ -350,46 +350,22 @@ class TestKeepalive:
         assert first is second
         sm.stop_keepalive()
 
-    def test_keepalive_navega_url_init_quando_driver_ativo(self, monkeypatch):
-        """Keepalive acessa URL_DATA (preload) ou URL_INIT (fallback) para renovar."""
-        sm.stop_keepalive()
-        sm._keepalive_thread = None
-        sm._last_preload_url = ''  # nenhum job rodou ainda
-
-        fake = FakeDriver(logged_in=True)
-        monkeypatch.setattr(sm, '_driver', fake)
-
-        # Intervalo curto para teste rápido
-        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
-
-        sm.start_keepalive()
-        import time
-        time.sleep(0.5)  # espera o keepalive rodar
-
-        # Sem preload: usa URL_INIT como fallback
-        assert fake.last_get == settings.url_init
-        sm.stop_keepalive()
-        monkeypatch.setattr(sm, '_driver', None)
-
-    def test_keepalive_navega_url_data_quando_preload_definido(self, monkeypatch):
-        """Keepalive navega para a última URL_DATA usada no processamento."""
+    def test_keepalive_navega_url_data(self, monkeypatch):
+        """Keepalive navega para URL_DATA para renovar a sessão."""
         sm.stop_keepalive()
         sm._keepalive_thread = None
 
         fake = FakeDriver(logged_in=True)
         monkeypatch.setattr(sm, '_driver', fake)
-        monkeypatch.setattr(sm, '_last_preload_url', PRELOAD_URL)
-
         monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
 
         sm.start_keepalive()
         import time
         time.sleep(0.5)
 
-        assert fake.last_get == PRELOAD_URL
+        assert fake.last_get == settings.url_data
         sm.stop_keepalive()
         monkeypatch.setattr(sm, '_driver', None)
-        sm._last_preload_url = ''
 
     def test_keepalive_nao_faz_nada_sem_driver(self, monkeypatch):
         """Keepalive não navega quando não há driver ativo (_driver is None)."""
@@ -413,25 +389,6 @@ class TestKeepalive:
 
         assert len(navigate_calls) == 0
         sm.stop_keepalive()
-
-    def test_keepalive_detecta_sessao_expirada(self, monkeypatch, caplog):
-        """Keepalive detecta sessão expirada e loga aviso."""
-        sm.stop_keepalive()
-        sm._keepalive_thread = None
-
-        fake = FakeDriver(logged_in=False)
-        monkeypatch.setattr(sm, '_driver', fake)
-        monkeypatch.setattr(sm, '_KEEPALIVE_INTERVAL', 0.1)
-
-        import logging
-        with caplog.at_level(logging.WARNING, logger='backend.app.session_manager'):
-            sm.start_keepalive()
-            import time
-            time.sleep(0.5)
-
-        assert any('sessão do portal expirada' in m.message for m in caplog.records)
-        sm.stop_keepalive()
-        monkeypatch.setattr(sm, '_driver', None)
 
     def test_keepalive_salva_cookies_na_renovacao(self, monkeypatch):
         """Keepalive salva cookies após renovação bem-sucedida."""
