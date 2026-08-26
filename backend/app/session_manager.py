@@ -36,7 +36,7 @@ _lock = threading.Lock()
 _driver = None
 
 # --- Keepalive: renova sessão do portal periodicamente (sessão dura 60 min) ---
-_KEEPALIVE_INTERVAL = 5 * 60  # 5 minutos (temporário para testes)
+_KEEPALIVE_INTERVAL = 30 * 60  # 5 minutos (temporário para testes)
 _keepalive_stop = threading.Event()
 _keepalive_thread: threading.Thread | None = None
 
@@ -410,17 +410,8 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
         if _is_service_context():
             _quit(driver)
             raise RuntimeError(
-                'SESSÃO DO PORTAL EXPIRADA. '
-                'O serviço está rodando sem desktop interativo (Session 0) '
-                'e a janela do Chrome é invisível neste contexto.\n\n'
-                'Para renovar a sessão:\n'
-                '1. Conecte-se à VM via RDP\n'
-                '2. Abra um PowerShell como o mesmo usuário do serviço\n'
-                '3. Execute: cd C:\\Apps\\ponto_sms_flet && '
-                '.\\.venv\\Scripts\\python.exe scripts\\pre_login.py --manual-wait 180\n'
-                '4. Resolva o captcha na janela do Chrome\n'
-                '5. O serviço detectará automaticamente a nova sessão '
-                'no próximo job (não é necessário reiniciar o serviço).'
+                'SESSÃO DO PORTAL EXPIRADA.\n'
+                'Entre em contato com o Departamento de T.I.'
             )
 
         _maximize(driver)
