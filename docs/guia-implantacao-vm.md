@@ -25,7 +25,7 @@ New-Item -ItemType Directory -Path C:\Apps -Force | Out-Null
 cd C:\Apps
 git clone <url-do-repositorio> ponto_sms_flet
 cd ponto_sms_flet
-git checkout PontoSmsWeb
+git checkout PontoSmsWeb-v1.1.0
 ```
 
 ---
@@ -120,8 +120,18 @@ nssm --version
 ## Passo 7 — Instalar o serviço NSSM
 
 > **CRÍTICO:** O serviço DEVE rodar como o **mesmo usuário** do passo 5.
-> Senão, os cookies serão encontrados em local errado e o Chrome não
-> terá desktop interativo.
+> Senão, os cookies serão encontrados em local errado.
+
+Quando `-ServiceUser` é informado, o script configura automaticamente as
+variáveis de ambiente `HOME`, `USERPROFILE` e `PYTHONUTF8` para que
+`Path.home()` resolva para o diretório correto do usuário (necessário
+para localizar `~/.ponto_sms_flet/cookies.json`).
+
+> **Comportamento em Session 0:** O serviço roda na Session 0 (sem desktop
+> interativo). O Chrome é aberto em modo **headless** (invisível). O
+> captcha é resolvido manualmente via `pre_login.py` antes do serviço
+> iniciar. Após o login, o keepalive mantém a sessão renovada
+> automaticamente a cada 5 minutos.
 
 ### 7.1 Conta de domínio (ex: `PGM\paulo.morais`)
 
@@ -171,11 +181,11 @@ Abra o navegador em `http://<ip-da-vm>:8000/`:
 
 ## Renovação de sessão (keepalive automático)
 
-O serviço possui um **keepalive automático** que renova a sessão do portal a cada 50 minutos (a sessão do portal dura 60 minutos). O keepalive navega para a página interna do portal (`URL_INIT`) e, ao fazer isso, o timeout da sessão é renovado para mais 60 minutos.
+O serviço possui um **keepalive automático** que renova a sessão do portal a cada 5 minutos (a sessão do portal dura 60 minutos). O keepalive navega para a página de dados do portal (`URL_DATA`) e, ao fazer isso, o timeout da sessão é renovado para mais 60 minutos.
 
 **Fluxo automático:**
 1. Após o `pre_login.py` (ou login automático), a sessão fica ativa
-2. A cada 50 minutos, o keepalive renova a sessão silenciosamente
+2. A cada 5 minutos, o keepalive renova a sessão silenciosamente
 3. A sessão nunca expira enquanto o serviço estiver rodando
 
 **Se a sessão expirar** (ex.: serviço reiniciado sem `pre_login.py` anterior):
@@ -191,10 +201,11 @@ O serviço possui um **keepalive automático** que renova a sessão do portal a 
 
 **Não é necessário reiniciar o serviço.**
 
-**Logs do keepalive** (visíveis no log do serviço):
-- `Keepalive: sessão do portal renovada (URL_INIT acessada)` — renovação OK
-- `Keepalive: sessão do portal expirada (formulário de login detectado)` — sessão caiu, próximo job irá renovar
-- `Keepalive: nenhum driver ativo, ignorando` — navegador não está aberto
+**Logs do keepalive** (visíveis no `err.log` do serviço):
+- `Keepalive: sessão renovada via URL_DATA.` — renovação OK
+- `Keepalive: driver morto; referência limpa.` — Chrome crashou, será recriado no próximo job
+- `Keepalive: falha ao acessar URL_DATA: <erro>` — falha de conexão, será retentado
+- `Keepalive: nenhum driver ativo, ignorando.` — navegador não está aberto ( nível DEBUG)
 
 ---
 
@@ -202,7 +213,7 @@ O serviço possui um **keepalive automático** que renova a sessão do portal a 
 
 ```powershell
 cd C:\Apps\ponto_sms_flet
-git pull origin PontoSmsWeb
+git pull origin PontoSmsWeb-v1.1.0
 powershell -ExecutionPolicy Bypass -File scripts\setup_prod.ps1
 nssm restart PontoSmsWeb
 ```
@@ -212,7 +223,7 @@ nssm restart PontoSmsWeb
 ## Checklist
 
 - [ ] Python 3.12 instalado (`python --version`)
-- [ ] Clone da branch `PontoSmsWeb` em `C:\Apps\ponto_sms_flet`
+- [ ] Clone da branch `PontoSmsWeb-v1.1.0` em `C:\Apps\ponto_sms_flet`
 - [ ] `setup_prod.ps1` executado (venv + deps + `.env`)
 - [ ] `.env` preenchido (USER, PASSWORD, URL_*, WEB_USERS)
 - [ ] `pre_login.py` concluído com sucesso (cookies salvos)
