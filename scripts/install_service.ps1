@@ -69,6 +69,23 @@ New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 & $NssmExe set $ServiceName AppRestartDelay 5000
 
 # ---------------------------------------------------------------------------
+# Variaveis de ambiente do servico (HOME / USERPROFILE / PYTHONUTF8)
+# ---------------------------------------------------------------------------
+# Garante que Path.home() resolva para o diretorio correto do usuario,
+# necessario para que ~/.ponto_sms_flet/cookies.json e chrome_profile
+# sejam encontrados pelo servico. Sem isto, LocalSystem usa
+# C:\Windows\system32\config\systemprofile\ como HOME.
+if ($ServiceUser) {
+    $Username = ($ServiceUser -split '\\')[-1]
+    $UserProfile = "C:\Users\$Username"
+    & $NssmExe set $ServiceName AppEnvironmentExtra `
+        "HOME=$UserProfile" `
+        "USERPROFILE=$UserProfile" `
+        "PYTHONUTF8=1"
+    Write-Host "==> Variaveis de ambiente: HOME=$UserProfile, PYTHONUTF8=1" -ForegroundColor Cyan
+}
+
+# ---------------------------------------------------------------------------
 # Conta do servico: roda como o usuario interativo ( Session 1+ / RDP )
 # ---------------------------------------------------------------------------
 # Quando roda como LocalSystem (padrao), o Chrome abre na Session 0 (invisivel)

@@ -74,6 +74,14 @@ def _is_service_context() -> bool:
     return False
 
 
+# Flag global: True quando rodando como serviço Windows (Session 0, sem desktop).
+# Usada para forçar Chrome headless e pular operações de GUI (maximize/minimize).
+_SERVICE_CONTEXT: bool = _is_service_context()
+if _SERVICE_CONTEXT:
+    logger.info('Contexto de serviço detectado (Session 0). '
+                'Chrome será aberto em modo headless.')
+
+
 def _has_login_form(driver) -> bool:
     try:
         return len(driver.find_elements(By.XPATH, LOGIN_FORM_XPATH)) > 0
@@ -248,6 +256,7 @@ def _keepalive_loop() -> None:
 
     Só executa quando há um driver ativo (_driver não é None).
     """
+    global _driver
     while not _keepalive_stop.is_set():
         _keepalive_stop.wait(_KEEPALIVE_INTERVAL)
         if _keepalive_stop.is_set():
@@ -258,11 +267,16 @@ def _keepalive_loop() -> None:
                 logger.debug('Keepalive: nenhum driver ativo, ignorando.')
                 continue
             try:
+                if not _driver_proc_alive(_driver):
+                    logger.warning('Keepalive: driver morto; referência limpa.')
+                    _driver = None
+                    continue
                 _driver.get(settings.url_data)
                 _save_cookies(_driver)
                 logger.info('Keepalive: sessão renovada via URL_DATA.')
             except Exception as e:
                 logger.warning('Keepalive: falha ao acessar URL_DATA: %s', e)
+                _driver = None
 
 
 def start_keepalive() -> None:
@@ -327,11 +341,13 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
 
         # 2) Abre uma NOVA janela, já maximizada (evita flicker minimize→maximize),
         #    e injeta a sessão salva.
+        # Em contexto de serviço (Session 0), abre em headless (sem janela visível)
+        # e pula maximize (não há desktop para exibir a janela).
         try:
             driver = create_driver(
-                headless=False,
+                headless=_SERVICE_CONTEXT,
                 print_to_pdf=False,
-                maximize_window=True,
+                maximize_window=not _SERVICE_CONTEXT,
                 start_minimized=False,
             )
         except Exception as e:
@@ -419,8 +435,10 @@ def park_driver() -> None:
         if _driver is None:
             return
         _save_cookies(_driver)
-        _minimize(_driver)
-        logger.info('Janela do navegador do backend mantida aberta (minimizada).')
+        if not _SERVICE_CONTEXT:
+            _minimize(_driver)
+        logger.info('Janela do navegador do backend mantida aberta (%s).',
+                    'headless' if _SERVICE_CONTEXT else 'minimizada')
 
 
 def close_driver() -> None:
