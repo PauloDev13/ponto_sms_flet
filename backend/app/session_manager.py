@@ -52,26 +52,55 @@ def _is_service_context() -> bool:
 
     Serviços NSSM rodam na Session 0 que não tem desktop interativo.
     Nesse contexto, o Chrome abre mas a janela é invisível ao usuário.
+
+    Método atual: consulta a API do Windows ProcessIdToSessionId.
+    Retorna True quando o processo atual pertence à Session 0.
     """
     if os.name != 'nt':
         return False
     try:
-        import subprocess
-        result = subprocess.run(
-            ['query', 'session'],
-            capture_output=True, text=True, timeout=5, errors='replace',
-        )
-        # Session 0 é a sessão do serviço;*> 0 é interativa
-        for line in result.stdout.splitlines():
-            if 'Session' in line and ('console' in line.lower() or 'rdp' in line.lower()):
-                parts = line.split()
-                for part in parts:
-                    if part.isdigit() and int(part) > 0:
-                        return False
-                return True
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        pid = kernel32.GetCurrentProcessId()
+        session_id = ctypes.c_ulong()
+        if kernel32.ProcessIdToSessionId(pid, ctypes.byref(session_id)):
+            return session_id.value == 0
     except Exception:
         pass
     return False
+
+    # --- MÉTODO 2 (comentado — SESSIONNAME: unreliable em serviços NSSM) ---
+    # A variável de ambiente SESSIONNAME não é definida de forma consistente
+    # para processos de serviço. O NSSM pode herdar o valor do shell que
+    # instalou o serviço, resultando em False incorreto.
+    # session = os.environ.get('SESSIONNAME', '')
+    # return session == 'Services'
+
+    # --- MÉTODO 1 (comentado — query session: falha com RDP ativo) ---
+    # Problema: `query session` mostra TODAS as sessões do sistema.
+    # Quando o serviço roda como -ServiceUser e o usuário tem sessão RDP
+    # ativa (ID > 0), a função encontrava essa sessão e retornava False
+    # incorretamente, causando:
+    #   - Mensagem errada ("Captcha não resolvido" em vez de "SESSÃO EXPIRADA")
+    #   - Timeout de 5 min tentando login interativo em Chrome invisível
+    # if os.name != 'nt':
+    #     return False
+    # try:
+    #     import subprocess
+    #     result = subprocess.run(
+    #         ['query', 'session'],
+    #         capture_output=True, text=True, timeout=5, errors='replace',
+    #     )
+    #     for line in result.stdout.splitlines():
+    #         if 'Session' in line and ('console' in line.lower() or 'rdp' in line.lower()):
+    #             parts = line.split()
+    #             for part in parts:
+    #                 if part.isdigit() and int(part) > 0:
+    #                     return False
+    #             return True
+    # except Exception:
+    #     pass
+    # return False
 
 
 # Flag global: True quando rodando como serviço Windows (Session 0, sem desktop).
