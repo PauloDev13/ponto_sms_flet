@@ -92,6 +92,7 @@ def run_ponto_flow(
 
         employee_name = result.employee_name or 'SERVIDOR'
         cpf_fmt = format_cpf_br(cpf)
+        period = f'{start.strftime("%m.%Y")} a {end.strftime("%m.%Y")}'
 
         out_dir = Path(settings.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -99,7 +100,7 @@ def run_ponto_flow(
         files: list[Path] = []
 
         if excel and result.data_by_year:
-            xlsx_path = out_dir / f'{employee_name} - CPF_{cpf_fmt}.xlsx'
+            xlsx_path = out_dir / f'{employee_name} - {period}.xlsx'
             files.append(excel_service.generate_excel_file(
                 data_dic=result.data_by_year,
                 employee_name=employee_name,
@@ -110,7 +111,7 @@ def run_ponto_flow(
         if pdf and result.pdf_bytes_list:
             pdf_parts = pdf_service.process_pdf_artifact(
                 pdf_bytes_list=list(result.pdf_bytes_list),
-                output_path=out_dir / f'{employee_name} - CPF_{cpf_fmt}.pdf',
+                output_path=out_dir / f'{employee_name} - {period}.pdf',
                 max_size_mb=6.5,
             )
             files.extend(pdf_parts)
@@ -158,7 +159,7 @@ def run_job_flow(
     """Executor de um Job (FASE 2/3): login + scraping + geração.
 
     - Escreve os arquivos na pasta exclusiva do job (job_dir), com os
-      mesmos nomes do desktop ({nome} - CPF_{cpf}.xlsx / _partN.pdf).
+      nomes LGPD ({nome} - {periodo}.xlsx / _partN.pdf, sem CPF).
     - Reporta progresso por mês via on_progress(months_ok, months_total)
       e mensagens de status via on_message.
     - Levanta PontoRequestError/ScrapeError com mensagens amigáveis
@@ -221,6 +222,7 @@ def run_job_flow(
 
         employee_name = result.employee_name or 'SERVIDOR'
         cpf_fmt = format_cpf_br(cpf_digits)
+        period = f'{start.strftime("%m.%Y")} a {end.strftime("%m.%Y")}'
         job_dir.mkdir(parents=True, exist_ok=True)
         files: list[Path] = []
 
@@ -229,7 +231,7 @@ def run_job_flow(
 
         if excel and result.data_by_year:
             on_message(f'Gerando planilha Excel de {employee_name}...')
-            xlsx_path = job_dir / f'{employee_name} - CPF_{cpf_fmt}.xlsx'
+            xlsx_path = job_dir / f'{employee_name} - {period}.xlsx'
             files.append(excel_service.generate_excel_file(
                 data_dic=result.data_by_year,
                 employee_name=employee_name,
@@ -241,7 +243,7 @@ def run_job_flow(
             on_message('Gerando arquivos PDF (compressão e partes)...')
             files.extend(pdf_service.process_pdf_artifact(
                 pdf_bytes_list=list(result.pdf_bytes_list),
-                output_path=job_dir / f'{employee_name} - CPF_{cpf_fmt}.pdf',
+                output_path=job_dir / f'{employee_name} - {period}.pdf',
                 max_size_mb=6.5,
             ))
 
