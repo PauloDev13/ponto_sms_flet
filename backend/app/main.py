@@ -32,6 +32,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -138,6 +139,17 @@ app = FastAPI(
     title='Consulta Ponto Eletrônico - API',
     version='0.1.0',
     description='Backend web do sistema de consulta de ponto eletrônico da SMS.',
+)
+
+# CORS: permite requests cross-origin do frontend Angular (Nginx)
+# O frontend Python continua funcionando pois requests same-origin não são afetados
+FRONTEND_ORIGINS = [u.strip() for u in settings.frontend_urls.split(',') if u.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 JOB_MANAGER: JobManager = JobManager(

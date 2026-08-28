@@ -161,6 +161,16 @@ class Settings:
             in ('1', 'true', 'yes', 'on')
 
     @property
+    def frontend_urls(self) -> str:
+        """Origens permitidas pelo CORS para o frontend Angular.
+
+        Lista separada por vírgulas (ex: 'http://localhost,http://localhost:8080').
+        Usada pelo CORSMiddleware para permitir requests cross-origin do
+        frontend Angular (Nginx) ao backend Python (FastAPI).
+        """
+        return _env('FRONTEND_URLS', 'http://localhost,http://localhost:8080')
+
+    @property
     def web_users(self) -> dict[str, str]:
         """Contas locais da aplicação web: 'user1:senha1,user2:senha2'.
 
