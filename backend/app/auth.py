@@ -6,6 +6,9 @@
 - Sessão por cookie assinado (HMAC-SHA256) com flag HttpOnly/SameSite=Lax.
   O SSE (EventSource) não envia header Authorization, mas envia cookies —
   por isso o cookie é o mecanismo de transporte da sessão.
+- JWT Bearer via JWKS (Spring Boot): mecanismo alternativo para auth
+  federada via Angular. Valida assinatura RSA/EC contra chave pública
+  obtida do endpoint JWKS do Spring Boot.
 - Rate-limit simples por IP nas tentativas de login.
 """
 import base64
@@ -149,15 +152,109 @@ def read_session_token(raw: str) -> str | None:
         return None
 
 
-def get_current_user(request: Request) -> str:
-    """Usuário autenticado da request; 401 se não houver sessão válida."""
-    user = read_session_token(request.cookies.get(SESSION_COOKIE, ''))
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Sessão inválida ou expirada.',
+# ---------------------------------------------------------------------------
+# JWT Spring Boot (chave pública via JWKS)
+# ---------------------------------------------------------------------------
+
+import jwt as _jwt
+from jwt import PyJWKClient
+
+# Cache do PyJWKClient: {client: PyJWKClient, url: str}
+_jwk_client_cache: dict[str, object] = {'client': None, 'url': ''}
+_JWKS_CACHE_TTL = 3600  # 1 hora
+
+
+def _get_jwk_client() -> PyJWKClient | None:
+    """Retorna PyJWKClient com cache. None se SPRING_JWKS_URL não configurada."""
+    url = settings.spring_jwks_url
+    if not url:
+        return None
+
+    cached_client = _jwk_client_cache.get('client')
+    cached_url = _jwk_client_cache.get('url')
+
+    if cached_client and cached_url == url:
+        return cached_client  # type: ignore[return-value]
+
+    try:
+        client = PyJWKClient(url, cache_keys=True)
+        _jwk_client_cache['client'] = client
+        _jwk_client_cache['url'] = url
+        return client
+    except Exception:
+        logger.warning('Falha ao criar PyJWKClient para %s', url, exc_info=True)
+        return None
+
+
+def validate_spring_jwt(token: str) -> str | None:
+    """Valida JWT emitido pelo Spring Boot via JWKS.
+
+    Retorna o username (claim 'sub') se o token for válido, ou None
+    caso contrário. Validações aplicadas:
+    - Assinatura RSA/EC contra chave pública do JWKS
+    - Expiração (exp)
+    - Issuer (se SPRING_JWT_ISSUER configurado)
+
+    Cadeia de chamada defensiva: qualquer exceção resulta em None.
+    """
+    if not token:
+        return None
+
+    client = _get_jwk_client()
+    if client is None:
+        return None
+
+    try:
+        signing_key = client.get_signing_key_from_jwt(token)
+        issuer = settings.spring_jwt_issuer or None
+
+        payload = _jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'],
+            issuer=issuer,
         )
-    return user
+        return payload.get('sub')
+
+    except _jwt.ExpiredSignatureError:
+        logger.debug('JWT Spring Boot expirado')
+        return None
+    except _jwt.InvalidSignatureError:
+        logger.warning('JWT Spring Boot com assinatura inválida')
+        return None
+    except _jwt.InvalidTokenError:
+        logger.debug('JWT Spring Boot inválido')
+        return None
+    except Exception:
+        logger.debug('Erro inesperado validando JWT Spring Boot', exc_info=True)
+        return None
+
+
+def get_current_user(request: Request) -> str:
+    """Usuário autenticado da request; 401 se não houver sessão válida.
+
+    Mecanismos suportados (em ordem de precedência):
+    1. JWT Bearer no header Authorization (Angular via Spring Boot)
+    2. Cookie de sessão ponto_session (Python frontend)
+    """
+    # 1. Tenta JWT Bearer (Angular via Spring Boot)
+    auth_header = request.headers.get('authorization', '')
+    if auth_header.lower().startswith('bearer '):
+        jwt_token = auth_header[7:]
+        username = validate_spring_jwt(jwt_token)
+        if username:
+            return username
+
+    # 2. Fallback para cookie (Python frontend)
+    user = read_session_token(request.cookies.get(SESSION_COOKIE, ''))
+    if user:
+        return user
+
+    # 3. Nenhum mecanismo válido
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Sessão inválida ou expirada.',
+    )
 
 
 # ---------------------------------------------------------------------------
