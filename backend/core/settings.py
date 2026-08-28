@@ -160,6 +160,25 @@ class Settings:
         return _env('SESSION_COOKIE_SECURE', 'false').strip().lower() \
             in ('1', 'true', 'yes', 'on')
 
+    # -------------------- JWT Spring Boot (FASE 4+) -----------------------
+    @property
+    def spring_jwks_url(self) -> str:
+        """URL do JWKS endpoint do Spring Boot para validação de JWT.
+
+        Quando configurada, o backend Python aceita tokens JWT emitidos
+        pelo Spring Boot como mecanismo de autenticação alternativo ao
+        cookie de sessão (permite auth federada via Angular).
+        """
+        return _env('SPRING_JWKS_URL', '')
+
+    @property
+    def spring_jwt_issuer(self) -> str:
+        """Issuer esperado nos tokens JWT do Spring Boot (claim 'iss').
+
+        Se vazio, o campo 'iss' não é validado — aceita qualquer emissor.
+        """
+        return _env('SPRING_JWT_ISSUER', '')
+
     @property
     def frontend_urls(self) -> str:
         """Origens permitidas pelo CORS para o frontend Angular.
