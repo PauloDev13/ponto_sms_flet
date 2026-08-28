@@ -173,14 +173,17 @@ def validate_spring_jwt(token: str) -> str | None:
     if not token:
         return None
 
-    secret = settings.jwt_secret
+    secret = (settings.jwt_secret or '').strip()
     if not secret:
         return None
+
+    # Java faz SHA-256(secret) antes do HMAC — replicar derivação (TokenService.java:63-71)
+    key = hashlib.sha256(secret.encode()).digest()
 
     try:
         payload = _jwt.decode(
             token,
-            secret,
+            key,
             algorithms=['HS256'],
             issuer='API Cad PGM',
         )

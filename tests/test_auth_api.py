@@ -213,20 +213,25 @@ JWT_TEST_SECRET = 'test-hmac-secret-key-for-unit-tests'
 
 def _make_jwt_tokens(secret: str = JWT_TEST_SECRET):
     """Gera tokens JWT HMAC para testes (sem servidor HTTP, sem RSA)."""
+    import hashlib
     import jwt as pyjwt
+
+    # Replica derivação Java: SHA-256(secret) antes do HMAC (TokenService.java:63-71)
+    def _hmac_key(s: str) -> bytes:
+        return hashlib.sha256(s.encode()).digest()
 
     now = int(time.time())
     token = pyjwt.encode(
         {'sub': 'admin', 'exp': now + 3600, 'iss': 'API Cad PGM'},
-        secret, algorithm='HS256',
+        _hmac_key(secret), algorithm='HS256',
     )
     token_expired = pyjwt.encode(
         {'sub': 'admin', 'exp': now - 1, 'iss': 'API Cad PGM'},
-        secret, algorithm='HS256',
+        _hmac_key(secret), algorithm='HS256',
     )
     token_bad_sig = pyjwt.encode(
         {'sub': 'hacker', 'exp': now + 3600, 'iss': 'API Cad PGM'},
-        'wrong-secret', algorithm='HS256',
+        _hmac_key('wrong-secret'), algorithm='HS256',
     )
     return {
         'token': token,
