@@ -162,22 +162,15 @@ class Settings:
 
     # -------------------- JWT Spring Boot (FASE 4+) -----------------------
     @property
-    def spring_jwks_url(self) -> str:
-        """URL do JWKS endpoint do Spring Boot para validação de JWT.
+    def jwt_secret(self) -> str:
+        """Segredo HMAC para validar tokens JWT do Spring Boot.
 
-        Quando configurada, o backend Python aceita tokens JWT emitidos
-        pelo Spring Boot como mecanismo de autenticação alternativo ao
-        cookie de sessão (permite auth federada via Angular).
+        Deve ser o mesmo valor de JWT_SECRET configurado no .env do backend
+        Java Spring. Quando configurado, o backend Python aceita tokens JWT
+        HMAC256 emitidos pelo Spring Boot como mecanismo de autenticação
+        alternativo ao cookie de sessão (permite auth federada via Angular).
         """
-        return _env('SPRING_JWKS_URL', '')
-
-    @property
-    def spring_jwt_issuer(self) -> str:
-        """Issuer esperado nos tokens JWT do Spring Boot (claim 'iss').
-
-        Se vazio, o campo 'iss' não é validado — aceita qualquer emissor.
-        """
-        return _env('SPRING_JWT_ISSUER', '')
+        return _env('JWT_SECRET', '')
 
     @property
     def frontend_urls(self) -> str:

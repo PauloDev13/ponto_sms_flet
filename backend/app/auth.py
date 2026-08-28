@@ -6,9 +6,9 @@
 - Sessão por cookie assinado (HMAC-SHA256) com flag HttpOnly/SameSite=Lax.
   O SSE (EventSource) não envia header Authorization, mas envia cookies —
   por isso o cookie é o mecanismo de transporte da sessão.
-- JWT Bearer via JWKS (Spring Boot): mecanismo alternativo para auth
-  federada via Angular. Valida assinatura RSA/EC contra chave pública
-  obtida do endpoint JWKS do Spring Boot.
+- JWT Bearer via HMAC256 (Spring Boot): mecanismo alternativo para auth
+  federada via Angular. Valida assinatura HMAC contra JWT_SECRET
+  compartilhado entre Python e Java backends.
 - Rate-limit simples por IP nas tentativas de login.
 """
 import base64
@@ -153,66 +153,36 @@ def read_session_token(raw: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# JWT Spring Boot (chave pública via JWKS)
+# JWT Spring Boot (HMAC256, segredo compartilhado)
 # ---------------------------------------------------------------------------
 
 import jwt as _jwt
-from jwt import PyJWKClient
-
-# Cache do PyJWKClient: {client: PyJWKClient, url: str}
-_jwk_client_cache: dict[str, object] = {'client': None, 'url': ''}
-_JWKS_CACHE_TTL = 3600  # 1 hora
-
-
-def _get_jwk_client() -> PyJWKClient | None:
-    """Retorna PyJWKClient com cache. None se SPRING_JWKS_URL não configurada."""
-    url = settings.spring_jwks_url
-    if not url:
-        return None
-
-    cached_client = _jwk_client_cache.get('client')
-    cached_url = _jwk_client_cache.get('url')
-
-    if cached_client and cached_url == url:
-        return cached_client  # type: ignore[return-value]
-
-    try:
-        client = PyJWKClient(url, cache_keys=True)
-        _jwk_client_cache['client'] = client
-        _jwk_client_cache['url'] = url
-        return client
-    except Exception:
-        logger.warning('Falha ao criar PyJWKClient para %s', url, exc_info=True)
-        return None
 
 
 def validate_spring_jwt(token: str) -> str | None:
-    """Valida JWT emitido pelo Spring Boot via JWKS.
+    """Valida JWT HMAC256 do Spring Boot usando segredo compartilhado.
 
     Retorna o username (claim 'sub') se o token for válido, ou None
     caso contrário. Validações aplicadas:
-    - Assinatura RSA/EC contra chave pública do JWKS
+    - Assinatura HMAC256 contra JWT_SECRET compartilhado
     - Expiração (exp)
-    - Issuer (se SPRING_JWT_ISSUER configurado)
+    - Issuer ('API Cad PGM')
 
     Cadeia de chamada defensiva: qualquer exceção resulta em None.
     """
     if not token:
         return None
 
-    client = _get_jwk_client()
-    if client is None:
+    secret = settings.jwt_secret
+    if not secret:
         return None
 
     try:
-        signing_key = client.get_signing_key_from_jwt(token)
-        issuer = settings.spring_jwt_issuer or None
-
         payload = _jwt.decode(
             token,
-            signing_key.key,
-            algorithms=['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'],
-            issuer=issuer,
+            secret,
+            algorithms=['HS256'],
+            issuer='API Cad PGM',
         )
         return payload.get('sub')
 
