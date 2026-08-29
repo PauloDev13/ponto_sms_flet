@@ -8,6 +8,8 @@
   - Configura autorestart (restart automatico em falha) e logs em
     C:\ProgramData\PontoSmsWeb\logs.
   - Se o servico ja existir, apenas reaplica as configuracoes (idempotente).
+  - Resolve o profile path real do usuario via registro do Windows
+    (compativel com contas locais e de dominio AD).
 
 .PARAMETER ServiceName
   Nome do servico (padrao: PontoSmsWeb).
@@ -15,8 +17,18 @@
 .PARAMETER NssmExe
   Caminho do nssm.exe (padrao: tenta nssm no PATH).
 
+.PARAMETER ServiceUser
+  Conta que rodara o servico (ex: 'paulo.morais' ou 'PGM\paulo.morais').
+  Se omitido, o servico roda como LocalSystem.
+
+.PARAMETER ServicePassword
+  Senha da conta de servico.
+
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1
+  powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1 -ServiceUser 'paulo.morais' -ServicePassword 'senha'
+
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File scripts\install_service.ps1 -ServiceUser 'PGM\paulo.morais' -ServicePassword 'senha'
 #>
 [CmdletBinding()]
 param(
@@ -27,6 +39,30 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# ---------------------------------------------------------------------------
+# Funcao auxiliar: resolve o profile path real do usuario no Windows
+# ---------------------------------------------------------------------------
+# Em vez de assumir C:\Users\<username> (que falha para usuarios de dominio
+# com Folder Redirection ou profile em path alternativo), consulta o registro
+# do Windows para obter o ProfileImagePath real associado ao SID da conta.
+function Get-UserProfilePath {
+    param([string]$AccountName)
+    try {
+        $ntAccount = New-Object System.Security.Principal.NTAccount($AccountName)
+        $sid = $ntAccount.Translate([System.Security.Principal.SecurityIdentifier])
+        $regKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($sid.Value)"
+        $profilePath = (Get-ItemProperty -Path $regKey -ErrorAction Stop).ProfileImagePath
+        if ($profilePath -and (Test-Path $profilePath)) {
+            return $profilePath
+        }
+    } catch {
+        # Silencia: SID nao encontrado no registro (usuario nunca logou)
+    }
+    # Fallback: assume C:\Users\<username>
+    $username = ($AccountName -split '\\')[-1]
+    return "C:\Users\$username"
+}
 
 if (-not $NssmExe) {
     $cmd = Get-Command nssm -ErrorAction SilentlyContinue
@@ -69,20 +105,25 @@ New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 & $NssmExe set $ServiceName AppRestartDelay 5000
 
 # ---------------------------------------------------------------------------
-# Variaveis de ambiente do servico (HOME / USERPROFILE / PYTHONUTF8)
+# Variaveis de ambiente do servico (HOME / USERPROFILE / HOMEDRIVE / HOMEPATH)
 # ---------------------------------------------------------------------------
-# Garante que Path.home() resolva para o diretorio correto do usuario,
-# necessario para que ~/.ponto_sms_flet/cookies.json e chrome_profile
-# sejam encontrados pelo servico. Sem isto, LocalSystem usa
-# C:\Windows\system32\config\systemprofile\ como HOME.
+# Garante que Path.home() e os.path.expanduser('~') resolvam para o
+# diretorio correto do usuario, necessario para que
+# ~/.ponto_sms_flet/cookies.json e chrome_profile sejam encontrados.
+# Sem isto, LocalSystem usa C:\Windows\system32\config\systemprofile\ como HOME.
+# Para usuarios de dominio, o profile path real e obtido via registro do Windows
+# (contorna Folder Redirection e profiles em path alternativo).
 if ($ServiceUser) {
-    $Username = ($ServiceUser -split '\\')[-1]
-    $UserProfile = "C:\Users\$Username"
+    $UserProfile = Get-UserProfilePath -AccountName $ServiceUser
+    $Drive = $UserProfile.Substring(0, 1)
+    $HomePath = $UserProfile.Substring(1)
     & $NssmExe set $ServiceName AppEnvironmentExtra `
         "HOME=$UserProfile" `
         "USERPROFILE=$UserProfile" `
+        "HOMEDRIVE=$Drive" `
+        "HOMEPATH=$HomePath" `
         "PYTHONUTF8=1"
-    Write-Host "==> Variaveis de ambiente: HOME=$UserProfile, PYTHONUTF8=1" -ForegroundColor Cyan
+    Write-Host "==> Variaveis de ambiente: HOME=$UserProfile, HOMEDRIVE=$Drive, HOMEPATH=$HomePath, PYTHONUTF8=1" -ForegroundColor Cyan
 }
 
 # ---------------------------------------------------------------------------
@@ -118,16 +159,22 @@ if ($ServiceUser -and $ServicePassword) {
 }
 
 # ---------------------------------------------------------------------------
-# Verificacao pre-start: sessao do portal
+# Verificacao pre-start: profile do usuario e sessao do portal
 # ---------------------------------------------------------------------------
-# Para encontrar o diretorio correto do perfil do usuario, usa o caminho
-# do proprio diretorio de profiles do Windows (C:\Users\<username>).
+# Verifica se o profile do usuario existe na máquina (obrigatorio para
+# usuarios de dominio que devem fazer logon interativo pelo menos uma vez).
 if ($ServiceUser) {
-    # Extrai apenas o nome do usuario (remove dominio se houver)
-    $Username = ($ServiceUser -split '\\')[-1]
-    # Profile path padrao do Windows
-    $UserProfile = "C:\Users\$Username"
-    $CookieFile = "$UserProfile\.ponto_sms_flet\cookies.json"
+    $UserProfile = Get-UserProfilePath -AccountName $ServiceUser
+    if (-not (Test-Path $UserProfile)) {
+        Write-Warning "Profile do usuario NAO encontrado: $UserProfile"
+        Write-Warning "O usuario '$ServiceUser' deve fazer logon interativo pelo menos uma vez nesta maquina."
+        Write-Warning "Cancelando instalacao."
+        & $NssmExe stop $ServiceName | Out-Null
+        & $NssmExe remove $ServiceName confirm | Out-Null
+        exit 1
+    }
+    Write-Host "==> Profile do usuario encontrado: $UserProfile" -ForegroundColor Cyan
+    $CookieFile = Join-Path $UserProfile '.ponto_sms_flet\cookies.json'
 } else {
     $CookieFile = Join-Path $env:USERPROFILE '.ponto_sms_flet\cookies.json'
 }
