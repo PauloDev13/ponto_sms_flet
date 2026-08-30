@@ -187,15 +187,14 @@ def _save_cookies(driver) -> None:
 
 
 def _load_cookies(driver) -> bool:
-    """Injeta os cookies salvos na janela nova (mesma origem do portal).
+    """Injeta os cookies salvos e restaura a sessão do portal.
 
-    Filtra cookies cujo domínio não corresponde ao navegador atual —
-    Selenium rejeita silenciosamente cookies de domínio diferente, o que
-    deixa a sessão incompleta.
+    1. Navega para URL_INIT para estabelecer a origem (requisito do Selenium);
+    2. Injeta os cookies do disco (filtra domínio diferente);
+    3. Recarrega URL_INIT para que os cookies sejam enviados ao portal.
 
-    Retorna True se injetou cookies e o navegador ficou em URL_INIT
-    (chamador pode pular _session_alive — basta checar o formulário
-    na página atual).
+    Retorna True se injetou cookies e o navegador ficou em URL_INIT com a
+    sessão restaurada (chamador pode checar o formulário na página atual).
     """
     if not COOKIES_FILE.exists():
         logger.info('Sem cookies salvos: login será necessário nesta execução.')
@@ -227,7 +226,11 @@ def _load_cookies(driver) -> bool:
             logger.warning('Cookies de sessão: %d/%d injetados.', ok, len(cookies))
         else:
             logger.info('Cookies de sessão injetados (%d).', ok)
-        return True  # navegador em URL_INIT; chamador pode checar o formulário
+        # Recarrega URL_INIT para que os cookies injetados sejam enviados
+        # ao portal — sem isso, a página exibida é a que foi carregada
+        # ANTES da injeção e o portal redireciona para o login.
+        driver.get(settings.url_init)
+        return True
     except Exception as e:
         logger.warning('Falha ao injetar cookies de sessão: %s', e)
         return False
