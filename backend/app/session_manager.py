@@ -28,7 +28,9 @@ from selenium.webdriver.common.by import By
 
 from backend.core.settings import settings
 from backend.core.auth_core import authenticate
-from backend.core.browser_session import create_driver, default_profile_dir
+from backend.core.browser_session import (
+    create_driver, default_profile_dir, cleanup_all_selenium_browsers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -378,6 +380,10 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
             logger.info('Driver stale/sessão expirada; recarregando cookies do disco...')
             _quit(_driver)
             _driver = None
+
+        # Limpa TODOS os processos ChromeDriver/Chrome órfãos antes de criar
+        # um novo driver — garante start limpo em reinícios do serviço.
+        cleanup_all_selenium_browsers()
 
         # 2) Abre uma NOVA janela, já maximizada (evita flicker minimize→maximize),
         #    e injeta a sessão salva.

@@ -298,6 +298,31 @@ def default_edge_profile_dir() -> str:
     return os.path.join(os.path.dirname(default_profile_dir()), 'edge_profile')
 
 
+def _kill_pid(pid: int) -> bool:
+    """Tenta encerrar um processo por PID (taskkill → Windows API)."""
+    try:
+        result = subprocess.run(
+            ['taskkill', '/PID', str(pid), '/F'],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0:
+            return True
+    except Exception:
+        pass
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        PROCESS_TERMINATE = 0x0001
+        handle = kernel32.OpenProcess(PROCESS_TERMINATE, False, pid)
+        if handle:
+            kernel32.TerminateProcess(handle, 1)
+            kernel32.CloseHandle(handle)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
     """Encerra Chrome/Edge órfãos presos ao perfil persistente (Windows).
 
@@ -345,34 +370,82 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
                     pid = int(pid)
                 except (TypeError, ValueError):
                     continue
-                # Tentativa 1: taskkill
-                result = subprocess.run(
-                    ['taskkill', '/PID', str(pid), '/F'],
-                    capture_output=True, text=True, timeout=15,
-                )
-                if result.returncode == 0:
+                if _kill_pid(pid):
                     killed += 1
-                    continue
-                # Tentativa 2: Windows API direta (fallback)
-                try:
-                    import ctypes
-                    kernel32 = ctypes.windll.kernel32
-                    PROCESS_TERMINATE = 0x0001
-                    handle = kernel32.OpenProcess(PROCESS_TERMINATE, False, pid)
-                    if handle:
-                        kernel32.TerminateProcess(handle, 1)
-                        kernel32.CloseHandle(handle)
-                        killed += 1
-                        logger.warning(
-                            'Orfao PID %s morto via Windows API (taskkill falhou).', pid)
-                except Exception:
-                    pass
         if killed:
             logger.warning(
                 'cleanup_orphan_browsers: %d processo(s) encerrado(s) do perfil %s.',
                 killed, profile_dir)
     except Exception:
         logger.debug('cleanup_orphan_browsers falhou.', exc_info=True)
+
+
+def cleanup_all_selenium_browsers() -> None:
+    """Encerra TODOS os processos ChromeDriver e Chrome órfãos no Windows.
+
+    Diferente de cleanup_orphan_browsers (que só mata processos do perfil
+    da aplicação), esta função mata:
+      1) TODOS os chromedriver.exe (sempre são do Selenium/automatização);
+      2) TODOS os chrome.exe/msedge.exe que NÃO usem o profile DEFAULT do
+         Chrome (identificado por 'Google\\Chrome\\User Data' na cmdline).
+
+    Isso garante que a cada reinício do serviço, não haja conflito de
+    singleton lock entre Chrome órfão de execução anterior e a nova instância.
+    O browser do usuário (que usa o profile DEFAULT) NÃO é afetado.
+    """
+    if os.name != 'nt':
+        return
+    try:
+        ps = subprocess.run(
+            [
+                'powershell', '-NoProfile', '-Command',
+                "Get-CimInstance Win32_Process | "
+                "Where-Object { $_.Name -eq 'chrome.exe' -or "
+                "$_.Name -eq 'msedge.exe' -or "
+                "$_.Name -eq 'chromedriver.exe' } | "
+                "Select-Object ProcessId,Name,CommandLine | ConvertTo-Json -Compress",
+            ],
+            capture_output=True, text=True, timeout=30, errors='replace',
+        )
+        if ps.returncode != 0:
+            return
+
+        import json
+        data = json.loads(ps.stdout or '[]')
+        if isinstance(data, dict):
+            data = [data]
+
+        default_profile_norm = os.path.normcase(
+            os.path.join('Google', 'Chrome', 'User Data')).lower()
+        killed = 0
+        for proc in data:
+            name = (proc.get('Name') or '').lower()
+            cmd = (proc.get('CommandLine') or '')
+            pid = proc.get('ProcessId')
+            try:
+                pid = int(pid)
+            except (TypeError, ValueError):
+                continue
+
+            # chromedriver.exe → sempre mata (é do Selenium)
+            if name == 'chromedriver.exe':
+                if _kill_pid(pid):
+                    killed += 1
+                continue
+
+            # chrome.exe/msedge.exe → mata SE NÃO for o browser do usuário
+            # (profile DEFAULT = 'Google\Chrome\User Data' na cmdline)
+            cmd_norm = os.path.normcase(cmd).lower()
+            if default_profile_norm not in cmd_norm:
+                if _kill_pid(pid):
+                    killed += 1
+
+        if killed:
+            logger.warning(
+                'cleanup_all_selenium_browsers: %d processo(s) Selenium '
+                'encerrado(s) para limpeza de restart.', killed)
+    except Exception:
+        logger.debug('cleanup_all_selenium_browsers falhou.', exc_info=True)
 
 
 def create_driver(
