@@ -196,40 +196,48 @@ def _load_cookies(driver) -> bool:
     Retorna True se injetou cookies e o navegador ficou em URL_INIT com a
     sessão restaurada (chamador pode checar o formulário na página atual).
     """
+    logger.info('DIAG: COOKIES_FILE=%s (exists=%s, size=%s)',
+                 COOKIES_FILE, COOKIES_FILE.exists(),
+                 COOKIES_FILE.stat().st_size if COOKIES_FILE.exists() else 0)
     if not COOKIES_FILE.exists():
         logger.info('Sem cookies salvos: login será necessário nesta execução.')
         return False
     try:
         cookies = json.loads(COOKIES_FILE.read_text(encoding='utf-8'))
         if not cookies:
+            logger.warning('DIAG: cookies.json existe mas está vazio.')
             return False
+        logger.info('DIAG: %d cookies carregados de %s.', len(cookies), COOKIES_FILE)
         driver.get(settings.url_init)  # estabelece a origem para add_cookie
-        # Domínio corrente (ex.: "natal.rn.gov.br")
-        current_domain = driver.current_url.split('/')[2].split(':')[0]
+        current_url = driver.current_url
+        current_domain = current_url.split('/')[2].split(':')[0]
+        logger.info('DIAG: navigatei para %s — domínio=%s', current_url, current_domain)
         ok = 0
         skipped = 0
+        rejected = 0
         for cookie in cookies:
             cookie_domain = (cookie.get('domain') or '').lstrip('.')
+            cookie_name = cookie.get('name', '?')
             if cookie_domain and cookie_domain != current_domain:
                 skipped += 1
+                logger.info('DIAG: skip cookie %s (domain=%s != %s)',
+                             cookie_name, cookie_domain, current_domain)
                 continue
             try:
                 driver.add_cookie(cookie)
                 ok += 1
             except Exception as e:
-                logger.debug('add_cookie rejeitado (%s): %s',
-                             cookie.get('name'), str(e)[:200])
-        if skipped:
-            logger.info('Cookies de sessão: %d injetados, %d descartados '
-                        '(domínio não corresponde).', ok, skipped)
-        elif ok < len(cookies):
-            logger.warning('Cookies de sessão: %d/%d injetados.', ok, len(cookies))
-        else:
-            logger.info('Cookies de sessão injetados (%d).', ok)
+                rejected += 1
+                logger.warning('DIAG: add_cookie REJEITADO %s: %s',
+                               cookie_name, str(e)[:200])
+        logger.info(
+            'DIAG: resultado injeção: %d OK, %d skip(domínio), %d rejeitado '
+            '(total=%d)', ok, skipped, rejected, len(cookies))
         # Recarrega URL_INIT para que os cookies injetados sejam enviados
         # ao portal — sem isso, a página exibida é a que foi carregada
         # ANTES da injeção e o portal redireciona para o login.
         driver.get(settings.url_init)
+        logger.info('DIAG: após recarga — current_url=%s', driver.current_url)
         return True
     except Exception as e:
         logger.warning('Falha ao injetar cookies de sessão: %s', e)
@@ -375,6 +383,15 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
         #    e injeta a sessão salva.
         # Em contexto de serviço (Session 0), abre em headless (sem janela visível)
         # e pula maximize (não há desktop para exibir a janela).
+        logger.info(
+            'DIAG get_driver: _SERVICE_CONTEXT=%s, Path.home()=%s, '
+            'HOME=%s, USERPROFILE=%s, HOMEDRIVE=%s, HOMEPATH=%s, '
+            'COOKIES_FILE=%s, settings.url_init=%s',
+            _SERVICE_CONTEXT, Path.home(),
+            os.environ.get('HOME', '?'), os.environ.get('USERPROFILE', '?'),
+            os.environ.get('HOMEDRIVE', '?'), os.environ.get('HOMEPATH', '?'),
+            COOKIES_FILE, settings.url_init,
+        )
         try:
             driver = create_driver(
                 headless=_SERVICE_CONTEXT,
@@ -394,8 +411,11 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
         session_ok = False
         if _loaded:
             session_ok = not _has_login_form(driver)
+            logger.info('DIAG: após _load_cookies: _has_login_form=%s (session_ok=%s)',
+                        _has_login_form(driver), session_ok)
         else:
             session_ok = _session_alive(driver)
+            logger.info('DIAG: sem cookies — _session_alive=%s', session_ok)
 
         if session_ok:
             _driver = driver
@@ -411,6 +431,13 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
         # invisível ao usuário. Nesse caso, não adianta tentar login manual — o usuário
         # precisa rodar pre_login.py interativamente.
         if _is_service_context():
+            logger.warning(
+                'DIAG: sessão expirada em contexto de serviço — '
+                'raise RuntimeError. '
+                'current_url=%s, page_source[:200]=%s',
+                driver.current_url,
+                driver.page_source[:200] if hasattr(driver, 'page_source') else '?',
+            )
             _quit(driver)
             raise RuntimeError(
                 'SESSÃO DO PORTAL EXPIRADA.\n'

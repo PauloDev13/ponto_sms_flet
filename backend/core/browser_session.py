@@ -38,7 +38,10 @@ def resolve_browser_binary() -> str | None:
 
 def default_profile_dir() -> str:
     """Diretório do perfil persistente do navegador da aplicação."""
-    return os.path.join(os.path.expanduser('~'), '.ponto_sms_flet', 'chrome_profile')
+    _home = os.path.expanduser('~')
+    _path = os.path.join(_home, '.ponto_sms_flet', 'chrome_profile')
+    logger.info('DIAG default_profile_dir: expanduser(~)=%s -> %s', _home, _path)
+    return _path
 
 
 def build_chrome_options(
