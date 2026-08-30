@@ -383,7 +383,10 @@ def get_driver(manual_solve_wait: int = 300, preload_url: str = '') -> object:
 
         # Limpa TODOS os processos ChromeDriver/Chrome órfãos antes de criar
         # um novo driver — garante start limpo em reinícios do serviço.
-        cleanup_all_selenium_browsers()
+        # APENAS em contexto de serviço (Session 0): no modo manual, isso
+        # mataria o browser do usuário.
+        if _SERVICE_CONTEXT:
+            cleanup_all_selenium_browsers()
 
         # 2) Abre uma NOVA janela, já maximizada (evita flicker minimize→maximize),
         #    e injeta a sessão salva.
