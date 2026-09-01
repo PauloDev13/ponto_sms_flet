@@ -55,20 +55,83 @@ def _is_service_context() -> bool:
     Serviços NSSM rodam na Session 0 que não tem desktop interativo.
     Nesse contexto, o Chrome abre mas a janela é invisível ao usuário.
 
-    Método atual: consulta a API do Windows ProcessIdToSessionId.
-    Retorna True quando o processo atual pertence à Session 0.
+    Método atual: combina duas verificações:
+    1. ProcessIdToSessionId: confere se o PID pertence à Session 0
+    2. Verificação de desktop: confere se há desktop interativo acessível
+
+    Retorna True quando o processo está na Session 0 E não tem desktop
+    interativo (contexto de serviço real).
     """
     if os.name != 'nt':
+        logger.debug('_is_service_context: não é Windows, retornando False')
         return False
     try:
         import ctypes
         kernel32 = ctypes.windll.kernel32
         pid = kernel32.GetCurrentProcessId()
         session_id = ctypes.c_ulong()
-        if kernel32.ProcessIdToSessionId(pid, ctypes.byref(session_id)):
-            return session_id.value == 0
-    except Exception:
-        pass
+        if not kernel32.ProcessIdToSessionId(pid, ctypes.byref(session_id)):
+            logger.debug('_is_service_context: ProcessIdToSessionId falhou')
+            return False
+
+        logger.info(
+            '_is_service_context: PID=%d, SessionID=%d, HOME=%s, USERPROFILE=%s',
+            pid, session_id.value,
+            os.environ.get('HOME', '?'),
+            os.environ.get('USERPROFILE', '?'),
+        )
+
+        # Se não está na Session 0, definitivamente não é contexto de serviço
+        if session_id.value != 0:
+            logger.debug('_is_service_context: SessionID=%d != 0, retornando False',
+                         session_id.value)
+            return False
+
+        # Estamos na Session 0. Verificar se é serviço real ou processo
+        # interativo em contexto isolado.
+        # Serviços NSSM rodam como LocalSystem ou conta de serviço sem
+        # desktop interativo. Usuários interativos via -ServiceUser rodam
+        # na Session 1+ (mesmo que o serviço esteja configurado).
+        #
+        # Método adicional: verifica se o processo tem uma janela visível.
+        # Processos de serviço na Session 0 não têm janelas (desktop ausente).
+        user32 = ctypes.windll.user32
+        # GetProcessWindowStation retorna um handle; se for NULL, não há desktop
+        h_winsta = user32.GetProcessWindowStation()
+        logger.info('_is_service_context: Session 0 detectada, h_winsta=%s', h_winsta)
+
+        if h_winsta is None or h_winsta == 0:
+            # Sem estação de trabalho = contexto de serviço real
+            logger.info('_is_service_context: sem estação de trabalho, retornando True '
+                        '(serviço real)')
+            return True
+
+        # Se tem estação de trabalho, verificar se é a Service-0x0-xxx$ (serviço)
+        # ou Default (interativo). Infelizmente não há API simples para isso,
+        # então usamos um heuristic: se HOME/USERPROFILE aponta para systemprofile,
+        # é provável que seja LocalSystem (serviço).
+        home = os.environ.get('HOME', '') or os.environ.get('USERPROFILE', '')
+        if home:
+            home_lower = home.lower()
+            # systemprofile é o padrão do LocalSystem
+            if 'system32\\config\\systemprofile' in home_lower:
+                logger.info('_is_service_context: HOME/USERPROFILE aponta para '
+                            'systemprofile, retornando True (LocalSystem)')
+                return True
+            # Windows service accounts também usam caminhos específicos
+            if '\\serviceaccounts\\' in home_lower:
+                logger.info('_is_service_context: HOME/USERPROFILE aponta para '
+                            'serviceaccounts, retornando True (serviço)')
+                return True
+
+        # Se chegou aqui, está na Session 0 mas tem desktop interativo
+        # (provavelmente execução via RDP em sessão isolada) - não é serviço
+        logger.info('_is_service_context: Session 0 com desktop interativo, '
+                    'retornando False (RDP/sessão isolada)')
+        return False
+
+    except Exception as e:
+        logger.debug('_is_service_context: exceção=%s, retornando False', e)
     return False
 
     # --- MÉTODO 2 (comentado — SESSIONNAME: unreliable em serviços NSSM) ---

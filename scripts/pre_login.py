@@ -46,9 +46,11 @@ except ImportError:
 
 from backend.core.settings import settings  # noqa: E402 — carrega .env via load_dotenv
 from backend.core.auth_core import authenticate  # noqa: E402
-from backend.core.browser_session import create_driver, resolve_browser_binary  # noqa: E402
+from backend.core.browser_session import create_driver, resolve_browser_binary, default_profile_dir  # noqa: E402
 
-COOKIES_FILE = Path.home() / '.ponto_sms_flet' / 'cookies.json'
+# Usa a mesma função que o serviço para resolver o caminho dos cookies,
+# garantindo consistência entre execução interativa e serviço NSSM.
+COOKIES_FILE = Path(default_profile_dir()).parent / 'cookies.json'
 
 STATUS_MESSAGES = {
     'session_active': 'Sessão ativa reutilizada (sem captcha).',

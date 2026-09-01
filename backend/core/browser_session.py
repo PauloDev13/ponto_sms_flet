@@ -37,10 +37,45 @@ def resolve_browser_binary() -> str | None:
 
 
 def default_profile_dir() -> str:
-    """Diretório do perfil persistente do navegador da aplicação."""
-    _home = os.path.expanduser('~')
+    """Diretório do perfil persistente do navegador da aplicação.
+
+    Resolve o diretório home de forma consistente, independentemente do
+    contexto de execução (interativo, serviço LocalSystem, serviço com
+    -ServiceUser).
+
+    Prioridade de resolução:
+    1. Variável de ambiente HOME (configurada pelo install_service.ps1)
+    2. Variável de ambiente USERPROFILE (Windows padrão)
+    3. os.path.expanduser('~') (fallback)
+    """
+    home_raw = os.environ.get('HOME', '')
+    userprofile_raw = os.environ.get('USERPROFILE', '')
+    expanduser_raw = os.path.expanduser('~')
+
+    # Prioridade 1: HOME (configurada explicitamente pelo install_service.ps1)
+    _home = home_raw
+    source = 'HOME'
+
+    # Prioridade 2: USERPROFILE (padrão Windows)
+    if not _home or not os.path.isdir(_home):
+        _home = userprofile_raw
+        source = 'USERPROFILE'
+
+    # Prioridade 3: expanduser (fallback)
+    if not _home or not os.path.isdir(_home):
+        _home = expanduser_raw
+        source = 'expanduser'
+
     _path = os.path.join(_home, '.ponto_sms_flet', 'chrome_profile')
-    logger.info('DIAG default_profile_dir: expanduser(~)=%s -> %s', _home, _path)
+    logger.info(
+        'DIAG default_profile_dir: source=%s, HOME=%s (exists=%s), '
+        'USERPROFILE=%s (exists=%s), expanduser(~)=%s (exists=%s) -> %s',
+        source,
+        home_raw, os.path.isdir(home_raw) if home_raw else False,
+        userprofile_raw, os.path.isdir(userprofile_raw) if userprofile_raw else False,
+        expanduser_raw, os.path.isdir(expanduser_raw) if expanduser_raw else False,
+        _path,
+    )
     return _path
 
 
@@ -381,17 +416,22 @@ def cleanup_orphan_browsers(profile_dir: str | None = None) -> None:
 
 
 def cleanup_all_selenium_browsers() -> None:
-    """Encerra TODOS os processos ChromeDriver e Chrome órfãos no Windows.
+    """Encerra processos ChromeDriver e Chrome órfãos no Windows.
 
-    Diferente de cleanup_orphan_browsers (que só mata processos do perfil
-    da aplicação), esta função mata:
+    Esta função limpa processos Selenium que possam estar conflitando,
+    preservando:
+      1) O browser do usuário (profile DEFAULT = 'Google\\Chrome\\User Data');
+      2) O Chrome da aplicação (profile = 'ponto_sms_flet' na cmdline);
+      3) Qualquer Chrome que esteja sendo usado ativamente.
+
+    Processos encerrados:
       1) TODOS os chromedriver.exe (sempre são do Selenium/automatização);
-      2) TODOS os chrome.exe/msedge.exe que NÃO usem o profile DEFAULT do
-         Chrome (identificado por 'Google\\Chrome\\User Data' na cmdline).
+      2) chrome.exe/msedge.exe que NÃO usem o profile DEFAULT nem o
+         profile da aplicação (órfãos de execuções anteriores).
 
     Isso garante que a cada reinício do serviço, não haja conflito de
-    singleton lock entre Chrome órfão de execução anterior e a nova instância.
-    O browser do usuário (que usa o profile DEFAULT) NÃO é afetado.
+    singleton lock entre Chrome órfão de execução anterior e a nova
+    instância, sem fechar janelas do usuário ou da aplicação.
     """
     if os.name != 'nt':
         return
@@ -415,9 +455,16 @@ def cleanup_all_selenium_browsers() -> None:
         if isinstance(data, dict):
             data = [data]
 
+        # Profile DEFAULT do Chrome do usuário
         default_profile_norm = os.path.normcase(
             os.path.join('Google', 'Chrome', 'User Data')).lower()
+
+        # Profile da aplicação (ponto_sms_flet)
+        app_profile_norm = os.path.normcase('ponto_sms_flet').lower()
+
         killed = 0
+        preserved = 0
+        logger.info('cleanup_all_selenium_browsers: analisando %d processo(s)', len(data))
         for proc in data:
             name = (proc.get('Name') or '').lower()
             cmd = (proc.get('CommandLine') or '')
@@ -429,21 +476,39 @@ def cleanup_all_selenium_browsers() -> None:
 
             # chromedriver.exe → sempre mata (é do Selenium)
             if name == 'chromedriver.exe':
+                logger.info('cleanup_all_selenium_browsers: encerrando chromedriver '
+                            'PID=%d', pid)
                 if _kill_pid(pid):
                     killed += 1
                 continue
 
-            # chrome.exe/msedge.exe → mata SE NÃO for o browser do usuário
-            # (profile DEFAULT = 'Google\Chrome\User Data' na cmdline)
+            # chrome.exe/msedge.exe → verifica se é do usuário ou da aplicação
             cmd_norm = os.path.normcase(cmd).lower()
-            if default_profile_norm not in cmd_norm:
-                if _kill_pid(pid):
-                    killed += 1
 
-        if killed:
+            # Preserva se usa o profile DEFAULT do Chrome do usuário
+            if default_profile_norm in cmd_norm:
+                preserved += 1
+                logger.info('cleanup_all_selenium_browsers: preservando Chrome '
+                            'do usuário (PID=%d, profile=DEFAULT)', pid)
+                continue
+
+            # Preserva se usa o profile da aplicação (pre_login.py ou serviço)
+            if app_profile_norm in cmd_norm:
+                preserved += 1
+                logger.info('cleanup_all_selenium_browsers: preservando Chrome '
+                            'da aplicação (PID=%d, profile=ponto_sms_flet)', pid)
+                continue
+
+            # Chrome órfão (não é do usuário nem da aplicação) → mata
+            logger.info('cleanup_all_selenium_browsers: encerrando Chrome órfão '
+                        'PID=%d, cmdline=%s', pid, cmd[:200])
+            if _kill_pid(pid):
+                killed += 1
+
+        if killed or preserved:
             logger.warning(
-                'cleanup_all_selenium_browsers: %d processo(s) Selenium '
-                'encerrado(s) para limpeza de restart.', killed)
+                'cleanup_all_selenium_browsers: %d processo(s) encerrado(s), '
+                '%d preservado(s) (browser do usuário/aplicação).', killed, preserved)
     except Exception:
         logger.debug('cleanup_all_selenium_browsers falhou.', exc_info=True)
 
