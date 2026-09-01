@@ -361,11 +361,13 @@ def api_create_job(payload: PontoRequest, request: Request) -> object:
 @app.get('/api/v1/jobs')
 def api_list_jobs(
         request: Request,
-        limit: int = Query(default=20, ge=1, le=100),
+        limit: int = Query(default=None, ge=1, le=100),
 ) -> dict[str, object]:
     """Histórico navegável do usuário: jobs mais recentes primeiro (últimos N)."""
     user = get_current_user(request)
-    jobs = JOB_MANAGER.list(owner=user, limit=limit)
+    # Usa JOBS_HISTORY_LIMIT do .env como padrão se limit não for informado
+    effective_limit = limit if limit is not None else settings.jobs_history_limit
+    jobs = JOB_MANAGER.list(owner=user, limit=effective_limit)
     return {
         'ok': True,
         'count': len(jobs),

@@ -577,7 +577,7 @@
     // -------------------------------------------------------------- history
     async function loadHistory() {
       try {
-        const res = await fetch('/api/v1/jobs?limit=20');
+        const res = await fetch('/api/v1/jobs');
         if (res.status === 401) { showLogin('Sua sessão expirou. Entre novamente.'); return; }
         const data = await res.json();
         if (!data.ok) return;
