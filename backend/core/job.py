@@ -11,6 +11,7 @@
 O executor real (scraping + geração) é injetado via run_fn, o que
 permite testar todo o mecanismo com um runner fake (sem Chrome).
 """
+import json
 import logging
 import shutil
 import threading
@@ -107,6 +108,84 @@ class Job:
             data['payload'] = self.payload
         return data
 
+    def to_meta(self) -> dict[str, object]:
+        """Serializa o job para persistência em disco (_meta.json).
+
+        Diferente de to_dict(), inclui _meta_version para evolução futura
+        e sempre inclui payload (necessário para downloads reidratados).
+        """
+        data = self.to_dict(with_payload=True)
+        data['_meta_version'] = 1
+        return data
+
+    @classmethod
+    def from_meta(cls, data: dict[str, object]) -> 'Job':
+        """Reconstrói um Job a partir de um dict salvo em _meta.json.
+
+        Campos ausentes ou inválidos são ignorados (defaults sensatos).
+        """
+        job = cls(
+            id=str(data.get('id', '')),
+            payload=dict(data.get('payload', {})),  # type: ignore[arg-type]
+            owner=str(data.get('owner', '')),
+        )
+
+        # status
+        raw_status = data.get('status', 'DONE')
+        try:
+            job.status = JobStatus(raw_status)
+        except (ValueError, TypeError):
+            job.status = JobStatus.DONE
+
+        # timestamps
+        job.created_at = _parse_iso(data.get('created_at')) or datetime.now()
+        job.started_at = _parse_iso(data.get('started_at'))
+        job.done_at = _parse_iso(data.get('done_at'))
+
+        # progress
+        raw_progress = data.get('progress')
+        if isinstance(raw_progress, dict):
+            job.progress = {
+                'months_ok': raw_progress.get('months_ok', 0),
+                'months_total': raw_progress.get('months_total', 0),
+                'percent': raw_progress.get('percent', 0),
+                'message': raw_progress.get('message', ''),
+            }
+
+        # files
+        raw_files = data.get('files', [])
+        if isinstance(raw_files, list):
+            job.files = [
+                JobFile(name=str(f.get('name', '')), format=str(f.get('format', '')))
+                for f in raw_files
+                if isinstance(f, dict)
+            ]
+
+        # logs
+        raw_logs = data.get('logs', [])
+        if isinstance(raw_logs, list):
+            job.logs = [str(entry) for entry in raw_logs][-30:]
+
+        # error
+        job.error = str(data.get('error', ''))
+
+        # version (útil para debug; não afeta funcionalidade)
+        raw_version = data.get('version')
+        if isinstance(raw_version, (int, float)):
+            job.version = int(raw_version)
+
+        return job
+
+
+def _parse_iso(value: object) -> datetime | None:
+    """Converte uma string ISO 8601 para datetime; retorna None se inválida."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
 
 JobRunner = Callable[[str, dict[str, object], Path, Callable[[str], None],
                       Callable[[int, int], None], Callable[[], bool]],
@@ -136,6 +215,37 @@ class JobManager:
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers, thread_name_prefix='job')
+        self._hydrate_from_disk()
+
+    def _hydrate_from_disk(self) -> None:
+        """Reidrata jobs terminais a partir dos _meta.json salvos em disco.
+
+        Chamado uma única vez no __init__ (antes de aceitar requests).
+        Pastas sem _meta.json ou com JSON inválido são ignoradas.
+        """
+        jobs_dir = settings.output_dir / 'jobs'
+        if not jobs_dir.is_dir():
+            return
+
+        hydrated = 0
+        for child in sorted(jobs_dir.iterdir()):
+            if not child.is_dir():
+                continue
+            meta_path = child / '_meta.json'
+            if not meta_path.is_file():
+                continue
+            try:
+                raw = json.loads(meta_path.read_text(encoding='utf-8'))
+                job = Job.from_meta(raw)
+            except (json.JSONDecodeError, OSError, KeyError, ValueError) as exc:
+                logger.warning('Ignorando _meta.json corrompido em %s: %s',
+                               meta_path, exc)
+                continue
+            self._jobs[job.id] = job
+            hydrated += 1
+
+        if hydrated:
+            logger.info('Reidratado(s) %s job(s) do disco.', hydrated)
 
     # ----------------------------- criação -----------------------------
 
@@ -209,6 +319,7 @@ class JobManager:
                 job.status = JobStatus.CANCELLED
                 job.done_at = datetime.now()
                 job.version += 1
+            self._persist_meta(job)
             self._add_log(job_id, 'Processamento cancelado antes de iniciar.')
             return
 
@@ -245,6 +356,7 @@ class JobManager:
                 job.files = list(files)
                 job.progress['percent'] = 100
                 job.version += 1
+            self._persist_meta(job)
             self._add_log(job_id,
                           f'Concluído: {len(job.files)} arquivo(s) gerado(s).')
         except JobCancelledError as e:
@@ -255,6 +367,7 @@ class JobManager:
                 job.done_at = datetime.now()
                 job.error = message
                 job.version += 1
+            self._persist_meta(job)
             self._add_log(job_id, f'Cancelado: {message}')
         except Exception as e:  # noqa: BLE001 - qualquer falha marca FAILED
             logger.exception('Job %s falhou', job_id)
@@ -264,6 +377,7 @@ class JobManager:
                 job.done_at = datetime.now()
                 job.error = message
                 job.version += 1
+            self._persist_meta(job)
             self._add_log(job_id, f'Falha: {message}')
 
     def cancel(self, job_id: str) -> str:
@@ -313,6 +427,17 @@ class JobManager:
             job.logs.append(text)
             job.logs = job.logs[-30:]
             job.version += 1
+
+    def _persist_meta(self, job: Job) -> None:
+        """Grava _meta.json na pasta do job (estado terminal)."""
+        meta_path = job.directory / '_meta.json'
+        try:
+            meta_path.write_text(
+                json.dumps(job.to_meta(), ensure_ascii=False, indent=2),
+                encoding='utf-8',
+            )
+        except OSError:
+            logger.warning('Não foi possível gravar _meta.json em %s', meta_path)
 
     # --------------------------- limpeza -------------------------------
 
