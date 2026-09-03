@@ -38,7 +38,7 @@ _lock = threading.Lock()
 _driver = None
 
 # --- Keepalive: renova sessão do portal periodicamente (sessão dura 60 min) ---
-_KEEPALIVE_INTERVAL = 30 * 60  # 5 minutos (temporário para testes)
+_KEEPALIVE_INTERVAL = 15 * 60  # 5 minutos (temporário para testes)
 _keepalive_stop = threading.Event()
 _keepalive_thread: threading.Thread | None = None
 
