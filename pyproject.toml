@@ -7,7 +7,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.11,<3.13"
 flet = "0.24.1"
 selenium = "^4.22.0"
 xlsxwriter = "^3.2.0"
@@ -21,6 +21,7 @@ pandas = "^2.2.2"
 winshell = "^0.6"
 pywin32 = "^306"
 pypdf = "^4.3.1"
+pymupdf = "^1.24.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,29 +1,25 @@
-"""Geração, combinação, compressão e divisão de arquivos PDF.
+"""Geração, combinação, compressão e divisão de arquivos PDF via PyMuPDF.
 
-Port de services/data/generate_pdf_service.py + services/compress_pdf_file.py
-+ services/divide_pdf_file.py sem dependências de UI (Flet).
-
-Diferenças em relação ao desktop:
-- O binário do Ghostscript é localizado por settings.ghostscript_binary
-  (environment GHOSTSCRIPT_BIN) ou por shutil.which, em vez do path fixo.
-- Os arquivos temporários da divisão são criados em um diretório temporário
-  controlado, não no diretório de trabalho (CWD).
+Requisitos de negócio:
+- Substituição do Ghostscript por PyMuPDF (fitz) 100% em código Python puro.
+- Conversão nativa em escala de cinza (DeviceGray) e compressão otimizada.
+- Divisão condicional: fatiamento apenas se o arquivo consolidado for > 5MB.
+  Nenhuma parte individual pode ultrapassar 5MB.
+- Gerenciamento de arquivos: se <= 5MB mantém apenas o arquivo consolidado;
+  se > 5MB gera partes no padrão `_part_01.pdf` e exclui o arquivo original.
 """
 import base64
 import logging
 import os
-import shutil
-import subprocess
-import tempfile
-from io import BytesIO
 from pathlib import Path
 
-from pypdf import PdfReader, PdfWriter
+import pymupdf
 
 from .exceptions import FileGenerationError
-from .settings import settings
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_MAX_SIZE_MB: float = 5.0
 
 
 def capture_pdf_bytes(driver, url_search: str) -> bytes:
@@ -64,39 +60,74 @@ def capture_pdf_bytes(driver, url_search: str) -> bytes:
     return base64.b64decode(result['data'])
 
 
-def combine_pdfs(pdf_bytes_list: list[bytes], output_path: str | Path) -> Path:
-    """Combina os PDFs individuais num único arquivo.
-
-    Retorna o caminho do arquivo combinado (sem compressão/divisão, que
-    ficam a cargo da camada de chamada — ver process_pdf_artifact).
-    """
+def combine_pdfs(
+        pdf_bytes_list: list[bytes],
+        output_path: str | Path,
+        compress_grayscale: bool = True,
+) -> Path:
+    """Combina os PDFs individuais num único arquivo com compressão e escala de cinza."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        pdf_writer = PdfWriter()
+        merged = pymupdf.open()
         for pdf_bytes in pdf_bytes_list:
             if not pdf_bytes:
                 continue
-            pdf_reader = PdfReader(BytesIO(pdf_bytes))
-            pdf_writer.append(pdf_reader)
+            src = pymupdf.open(stream=pdf_bytes, filetype='pdf')
+            merged.insert_pdf(src)
+            src.close()
 
-        with open(output, 'wb') as output_pdf:
-            pdf_writer.write(output_pdf)
+        if compress_grayscale and len(merged) > 0:
+            try:
+                merged.recolor(1)  # Converte páginas para DeviceGray (1 componente)
+            except Exception as e:
+                logger.warning('Aviso ao aplicar grayscale no PDF: %s', e)
+
+        merged.save(
+            str(output),
+            deflate=True,
+            deflate_images=True,
+            deflate_fonts=True,
+            garbage=4,
+            clean=True,
+        )
+        merged.close()
         return output
     except Exception as e:
         raise FileGenerationError(f'Erro ao combinar PDFs: {e}', cause=e) from e
 
 
-def find_ghostscript() -> str | None:
-    """Localiza o executável do Ghostscript (env, PATH ou path padrão)."""
-    if settings.ghostscript_binary and Path(settings.ghostscript_binary).exists():
-        return settings.ghostscript_binary
-    found = shutil.which('gswin64c') or shutil.which('gswin32c') or shutil.which('gs')
-    if found:
-        return found
-    default = Path(r'C:\Program Files\gs\gs10.04.0\bin\gswin64c.exe')
-    return str(default) if default.exists() else None
+def compress_pdf(
+        input_pdf: str | Path,
+        output_pdf: str | Path,
+        grayscale: bool = True,
+) -> Path:
+    """Compacta e converte para escala de cinza um arquivo PDF existente."""
+    input_path = Path(input_pdf)
+    output_path = Path(output_pdf)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        doc = pymupdf.open(str(input_path))
+        if grayscale and len(doc) > 0:
+            try:
+                doc.recolor(1)
+            except Exception as e:
+                logger.warning('Aviso ao aplicar grayscale: %s', e)
+
+        doc.save(
+            str(output_path),
+            deflate=True,
+            deflate_images=True,
+            deflate_fonts=True,
+            garbage=4,
+            clean=True,
+        )
+        doc.close()
+        return output_path
+    except Exception as e:
+        raise FileGenerationError(f'Erro ao compactar PDF: {e}', cause=e) from e
 
 
 def compress_pdf_with_ghostscript(
@@ -105,130 +136,146 @@ def compress_pdf_with_ghostscript(
         quality: str = 'screen',
         binary: str | None = None,
 ) -> Path:
-    """Compacta (e converte para grayscale) o PDF usando Ghostscript."""
-    gs = binary or find_ghostscript()
-    if not gs:
-        logger.warning('Ghostscript não encontrado; PDF será mantido sem compressão.')
-        raise FileGenerationError('Ghostscript não encontrado: instale o Ghostscript ou defina GHOSTSCRIPT_BIN.')
-
-    output = Path(output_pdf)
-    output.parent.mkdir(parents=True, exist_ok=True)
-
-    gs_command = [
-        gs,
-        '-sDEVICE=pdfwrite',
-        '-sColorConversionStrategy=Gray',
-        '-dProcessColorModel=/DeviceGray',
-        f'-dPDFSETTINGS=/{quality}',
-        '-dNOPAUSE',
-        '-dQUIET',
-        '-dBATCH',
-        f'-sOutputFile={output}',
-        str(input_pdf),
-    ]
-    try:
-        result = subprocess.run(gs_command, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise FileGenerationError(
-                f'Ghostscript falhou (código {result.returncode}): {result.stderr[:500]}')
-        return output
-    except FileNotFoundError as e:
-        raise FileGenerationError(f'Executável Ghostscript não encontrado: {gs}', cause=e) from e
-
-
-def get_page_size(reader: PdfReader, page_num: int, workdir: Path) -> int:
-    """Tamanho em bytes de uma única página (escrita em workdir temporário)."""
-    temp_writer = PdfWriter()
-    temp_writer.add_page(reader.pages[page_num])
-
-    temp_filename = workdir / f"temp_page_{page_num}.pdf"
-    with open(temp_filename, "wb") as temp_file:
-        temp_writer.write(temp_file)
-
-    size = os.path.getsize(temp_filename)
-    temp_filename.unlink(missing_ok=True)
-    return size
+    """Compatibilidade legada: delega a compressão ao motor nativo PyMuPDF."""
+    return compress_pdf(input_pdf, output_pdf, grayscale=True)
 
 
 def divide_pdf_by_size(
         input_pdf: str | Path,
-        max_size_mb: float,
-        output_prefix: str | Path,
+        max_size_mb: float = DEFAULT_MAX_SIZE_MB,
+        output_prefix: str | Path | None = None,
 ) -> list[Path]:
-    """Divide o PDF em partes de até max_size_mb, retornando os caminhos criados."""
-    max_size_bytes = max_size_mb * 1024 * 1024
-    reader = PdfReader(str(input_pdf))
-    total_pages = len(reader.pages)
+    """Divide o PDF em partes de até max_size_mb com sufixos _part_01.pdf, _part_02.pdf.
 
-    created: list[Path] = []
-    prefix = Path(output_prefix)
-    # prefix.name (e não prefix.stem): o stem interpretaria os pontos do
-    # CPF (ex.: 'CPF_026.930.289-14') como extensões e cortaria o nome.
+    Garante que nenhuma parte exceda o limite de bytes estipulado.
+    """
+    input_path = Path(input_pdf)
+    max_size_bytes = int(max_size_mb * 1024 * 1024)
+
+    if output_prefix is None:
+        prefix = input_path.with_suffix('')
+    else:
+        prefix = Path(output_prefix)
+
+    # prefix.name (e não prefix.stem): preserva pontuações do CPF no nome
     base_name = prefix.name
+    parent_dir = prefix.parent
 
-    with tempfile.TemporaryDirectory(prefix='pdfsplit_') as tmp:
-        tmp_dir = Path(tmp)
-        writer = PdfWriter()
+    try:
+        doc = pymupdf.open(str(input_path))
+        total_pages = len(doc)
+        created: list[Path] = []
+
+        if total_pages == 0:
+            doc.close()
+            return created
+
         part_number = 1
-        current_size = 0
+        start_page = 0
+        current_doc = pymupdf.open()
 
-        for page_num in range(total_pages):
-            page_size = get_page_size(reader, page_num, tmp_dir)
+        for page_idx in range(total_pages):
+            current_doc.insert_pdf(doc, from_page=page_idx, to_page=page_idx)
+            current_bytes = current_doc.tobytes(
+                deflate=True,
+                deflate_images=True,
+                deflate_fonts=True,
+                garbage=4,
+                clean=True,
+            )
 
-            if current_size + page_size > max_size_bytes:
-                output_filename = f"{base_name}_part{part_number}.pdf"
-                output_path = prefix.with_name(output_filename)
-                with open(output_path, "wb") as output_file:
-                    writer.write(output_file)
+            # Se ultrapassou o limite e já havia páginas acumuladas na parte
+            if len(current_bytes) > max_size_bytes and len(current_doc) > 1:
+                current_doc.close()
+
+                # Salva o bloco anterior que cabe no limite
+                valid_doc = pymupdf.open()
+                valid_doc.insert_pdf(doc, from_page=start_page, to_page=page_idx - 1)
+                output_path = parent_dir / f'{base_name}_part_{part_number:02d}.pdf'
+                valid_doc.save(
+                    str(output_path),
+                    deflate=True,
+                    deflate_images=True,
+                    deflate_fonts=True,
+                    garbage=4,
+                    clean=True,
+                )
+                valid_doc.close()
                 created.append(output_path)
 
-                writer = PdfWriter()
-                current_size = 0
                 part_number += 1
+                start_page = page_idx
 
-            writer.add_page(reader.pages[page_num])
-            current_size += page_size
+                current_doc = pymupdf.open()
+                current_doc.insert_pdf(doc, from_page=page_idx, to_page=page_idx)
 
-        if current_size > 0:
-            final_output = f'{base_name}_part{part_number}.pdf'
-            output_path = prefix.with_name(final_output)
-            with open(output_path, "wb") as output_file:
-                writer.write(output_file)
+        if len(current_doc) > 0:
+            output_path = parent_dir / f'{base_name}_part_{part_number:02d}.pdf'
+            current_doc.save(
+                str(output_path),
+                deflate=True,
+                deflate_images=True,
+                deflate_fonts=True,
+                garbage=4,
+                clean=True,
+            )
+            current_doc.close()
             created.append(output_path)
 
-    return created
+        doc.close()
+        return created
+    except Exception as e:
+        raise FileGenerationError(f'Erro ao dividir PDF: {e}', cause=e) from e
 
 
 def process_pdf_artifact(
         pdf_bytes_list: list[bytes],
         output_path: str | Path,
-        max_size_mb: float = 6.5,
+        max_size_mb: float = DEFAULT_MAX_SIZE_MB,
         compress: bool = True,
         binary: str | None = None,
 ) -> list[Path]:
-    """Pipeline completo do artefato PDF (combina + compacta + divide).
+    """Pipeline completo do artefato PDF (combina + grayscale/compressão + divisão condicional).
 
-    Retorna a lista dos arquivos finais gerados. Se a compressão com
-    Ghostscript não estiver disponível, o PDF combinado é mantido como está
-    (com aviso no log) em vez de quebrar o fluxo.
+    Regras de negócio:
+    1. Combina os PDFs em um único arquivo consolidado com compressão e escala de cinza.
+    2. Verifica o tamanho final do arquivo consolidado em disco:
+       - Se <= max_size_mb (5MB por padrão): mantém apenas o arquivo consolidado otimizado.
+       - Se > max_size_mb: divide em partes '_part_01.pdf', '_part_02.pdf', etc.,
+         garantindo que nenhuma parte ultrapasse max_size_mb, e EXCLUI PERMANENTEMENTE
+         o arquivo original consolidado.
     """
-    combined = combine_pdfs(pdf_bytes_list, output_path)
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
-    if not compress:
-        return [combined]
+    combined = combine_pdfs(pdf_bytes_list, output, compress_grayscale=compress)
 
-    compressed_path = combined.with_name(combined.stem + '_pb.pdf')
+    max_size_bytes = int(max_size_mb * 1024 * 1024)
+    file_size = output.stat().st_size
+
+    # Se o arquivo tem até 5MB, mantém apenas o arquivo consolidado
+    if file_size <= max_size_bytes:
+        logger.info(
+            'PDF consolidado tem %.2f MB (<= %.2f MB). Nenhuma divisão necessária: %s',
+            file_size / (1024 * 1024), max_size_mb, output.name,
+        )
+        return [output]
+
+    # Se maior que 5MB, divide em partes
+    logger.info(
+        'PDF consolidado tem %.2f MB (> %.2f MB). Dividindo em partes: %s',
+        file_size / (1024 * 1024), max_size_mb, output.name,
+    )
+    prefix = output.with_suffix('')
     try:
-        compress_pdf_with_ghostscript(combined, compressed_path, binary=binary)
-    except FileGenerationError:
-        logger.warning('Compressão indisponível; mantendo PDF combinado original.')
-        compressed_path = combined
-
-    prefix = compressed_path.with_suffix('')
-    try:
-        parts = divide_pdf_by_size(compressed_path, max_size_mb, prefix)
+        parts = divide_pdf_by_size(output, max_size_mb=max_size_mb, output_prefix=prefix)
+        # Se dividiu em múltiplas partes, remove o arquivo original consolidado
+        if len(parts) > 1:
+            if output.exists():
+                output.unlink(missing_ok=True)
+                logger.info('Arquivo original consolidado removido com sucesso: %s', output.name)
+            return parts
+        return parts or [output]
     except Exception as e:
-        logger.warning('Falha na divisão do PDF: %s', e)
-        parts = [compressed_path]
-
-    return parts
+        logger.warning('Falha na divisão do PDF: %s. Mantendo arquivo original consolidado.', e)
+        return [output]
