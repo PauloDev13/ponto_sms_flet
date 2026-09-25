@@ -112,7 +112,7 @@ def run_ponto_flow(
             pdf_parts = pdf_service.process_pdf_artifact(
                 pdf_bytes_list=list(result.pdf_bytes_list),
                 output_path=out_dir / f'{employee_name} - {period}.pdf',
-                max_size_mb=5.0,
+                max_size_mb=1.0,
             )
             files.extend(pdf_parts)
 
@@ -244,7 +244,7 @@ def run_job_flow(
             files.extend(pdf_service.process_pdf_artifact(
                 pdf_bytes_list=list(result.pdf_bytes_list),
                 output_path=job_dir / f'{employee_name} - {period}.pdf',
-                max_size_mb=5.0,
+                max_size_mb=1.0,
             ))
 
         if not files:

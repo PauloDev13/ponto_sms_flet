@@ -34,22 +34,18 @@ def combine_pdfs(pdf_bytes_list: List[bytes], output_path: str) -> None:
         parts = core_pdf.process_pdf_artifact(
             pdf_bytes_list=pdf_bytes_list,
             output_path=output_path,
-            max_size_mb=6.5,
+            max_size_mb=1.0,
         )
 
         # Remove a barra de progresso que está sendo exibida
         page.overlay.pop()
         page.update()
 
-        # Exclui os arquivos intermediários (original combinado e compactado),
-        # mantendo apenas as partes geradas como entregáveis
+        # Garante que arquivos intermediários não persistam se houver partes geradas
         combined = Path(output_path)
-        candidates = [combined, combined.with_name(combined.stem + '_pb.pdf')]
         parts_names = {str(p) for p in parts}
-
-        for candidate in candidates:
-            if candidate.exists() and str(candidate) not in parts_names:
-                candidate.unlink()
+        if combined.exists() and str(combined) not in parts_names:
+            combined.unlink(missing_ok=True)
 
         # Limpa o array que contém os arquivos PDF em formato binário.
         pdf_bytes_list.clear()

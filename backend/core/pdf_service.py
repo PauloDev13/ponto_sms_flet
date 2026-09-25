@@ -2,11 +2,11 @@
 
 Requisitos de negócio:
 - Substituição do Ghostscript por PyMuPDF (fitz) 100% em código Python puro.
-- Conversão nativa em escala de cinza (DeviceGray) e compressão otimizada.
-- Divisão condicional: fatiamento apenas se o arquivo consolidado for > 5MB.
-  Nenhuma parte individual pode ultrapassar 5MB.
-- Gerenciamento de arquivos: se <= 5MB mantém apenas o arquivo consolidado;
-  se > 5MB gera partes no padrão `_part_01.pdf` e exclui o arquivo original.
+- Geração colorida com preservação de sRGB/DeviceRGB e compressão otimizada.
+- Divisão condicional: fatiamento apenas se o arquivo consolidado for > 1MB.
+  Nenhuma parte individual pode ultrapassar 1MB.
+- Gerenciamento de arquivos: se <= 1MB mantém apenas o arquivo consolidado;
+  se > 1MB gera partes no padrão `_parte_1.pdf`, `_parte_2.pdf` e exclui o arquivo original.
 """
 import base64
 import logging
@@ -19,42 +19,192 @@ from .exceptions import FileGenerationError
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MAX_SIZE_MB: float = 5.0
+DEFAULT_MAX_SIZE_MB: float = 1.0
+
+
+def inject_print_stylesheet(driver) -> None:
+    """Injeta CSS e manipulação DOM segura para eliminar menu superior e rodapé azul sem afetar o conteúdo."""
+    custom_css = """
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 12mm 10mm 12mm 10mm;
+        }
+        body, html {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            color: #000000 !important;
+            background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
+        }
+        /* Oculta apenas tags de navegação e rodapés estruturais */
+        nav, footer, #footer, #rodape, .footer, .rodape {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        /* Assegura visibilidade irrestrita da tabela de dados e do título */
+        #mesatual, #mesatual table, span.titulodetalhes, div.titulodetalhes {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        #mesatual table {
+            display: table !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        #mesatual table tr {
+            display: table-row !important;
+            visibility: visible !important;
+        }
+        #mesatual table th, #mesatual table td {
+            display: table-cell !important;
+            visibility: visible !important;
+        }
+        /* Cabeçalho da Tabela */
+        #mesatual table thead tr, #mesatual table tr:first-child th, #mesatual table tr:first-child td {
+            background-color: #1F4E79 !important;
+            color: #FFFFFF !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            font-size: 8.5pt !important;
+            border: 1px solid #1F4E79 !important;
+        }
+        /* Zebra Striping nas linhas */
+        #mesatual table tr:nth-child(even) td {
+            background-color: #FFFFFF !important;
+        }
+        #mesatual table tr:nth-child(odd):not(:first-child) td {
+            background-color: #EDEDED !important;
+        }
+        #mesatual table td {
+            font-size: 8pt !important;
+            padding: 4px !important;
+            border-bottom: 0.5px solid #D0D0D0 !important;
+        }
+        /* Destaques de Totais e Status */
+        .total-contabilizado { color: #008000 !important; font-weight: bold !important; }
+        .carga-horaria, .total-trabalhada { color: #002060 !important; font-weight: bold !important; }
+        .total-justificada { color: #FF8C00 !important; font-weight: bold !important; }
+    }
+    """
+    js_code = f"""
+    // 1. Injeta stylesheet de impressão seguro
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.appendChild(document.createTextNode(`{custom_css}`));
+    document.head.appendChild(style);
+
+    // 2. Oculta a barra de menu superior via link do perfil (sem remover do DOM)
+    const perfilLink = document.querySelector('a[href*="perfil.php"]');
+    if (perfilLink) {{
+        let menuBar = perfilLink.closest('nav, .navbar, #navbar, #menu');
+        if (!menuBar) {{
+            let curr = perfilLink.parentElement;
+            while (curr && curr !== document.body && !curr.querySelector('#mesatual')) {{
+                menuBar = curr;
+                curr = curr.parentElement;
+            }}
+        }}
+        if (menuBar && menuBar !== document.body && !menuBar.querySelector('#mesatual')) {{
+            menuBar.style.setProperty('display', 'none', 'important');
+        }}
+    }}
+
+    // 3. Oculta o container do botão Relatórios e qualquer elemento residual acima do título
+    const titleEl = Array.from(document.querySelectorAll('span, div, font, p, h1, h2, h3')).find(
+        el => el.textContent && el.textContent.includes('Detalhamento do Ponto Digital')
+    );
+
+    if (titleEl) {{
+        const titleRect = titleEl.getBoundingClientRect();
+        document.querySelectorAll('div, a, button, li, ul, nav, span').forEach(el => {{
+            if (!el.contains(titleEl) && !el.closest('#mesatual') && !el.querySelector('#mesatual')) {{
+                const rect = el.getBoundingClientRect();
+                if (rect.bottom <= titleRect.top + 5 && rect.height > 0) {{
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('background', 'none', 'important');
+                    el.style.setProperty('background-color', 'transparent', 'important');
+                }}
+            }}
+        }});
+    }}
+
+    // Varredura de segurança: anula qualquer container com fundo escuro/azul fora da tabela
+    document.querySelectorAll('div, nav, header, ul, li').forEach(el => {{
+        if (!el.closest('#mesatual') && !el.querySelector('#mesatual')) {{
+            const text = el.textContent || '';
+            if (!text.includes('Detalhamento') && !text.includes('Horas')) {{
+                const bg = window.getComputedStyle(el).backgroundColor;
+                if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== 'rgb(255, 255, 255)') {{
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('background', 'none', 'important');
+                    el.style.setProperty('background-color', 'transparent', 'important');
+                }}
+            }}
+        }}
+    }});
+
+    // 4. Oculta apenas elementos irmãos diretamente após o #mesatual (área azul inferior)
+    const mesAtual = document.querySelector('#mesatual');
+    if (mesAtual) {{
+        mesAtual.style.setProperty('display', 'block', 'important');
+        mesAtual.style.setProperty('visibility', 'visible', 'important');
+        let next = mesAtual.nextElementSibling;
+        while (next) {{
+            if (!next.querySelector('table')) {{
+                next.style.setProperty('display', 'none', 'important');
+            }}
+            next = next.nextElementSibling;
+        }}
+    }}
+
+    // 5. Remove backgrounds residuais de containers externos
+    document.body.style.setProperty('background', '#FFFFFF', 'important');
+    document.body.style.setProperty('background-color', '#FFFFFF', 'important');
+    """
+    execute_script = getattr(driver, 'execute_script', None)
+    if callable(execute_script):
+        try:
+            execute_script(js_code)
+        except Exception as e:
+            logger.debug('Aviso ao injetar stylesheet e limpeza de impressão: %s', e)
 
 
 def capture_pdf_bytes(driver, url_search: str) -> bytes:
-    """Navega até a URL e captura o PDF da página (via CDP).
+    """Navega até a URL, injeta a estilização visual e captura o PDF colorido via CDP.
 
-    Retorna os bytes do PDF individual do mês. Não acumula em variáveis
-    globais (o desktop usa o array global 'array_pdf_files').
+    Retorna os bytes do PDF individual do mês formatado conforme o Design System.
     """
     driver.get(url_search)
+    inject_print_stylesheet(driver)
 
     result = driver.execute_cdp_cmd('Page.printToPDF', {
         'landscape': False,
-        'paperWidth': 8.27,   # Largura do papel (A4)
-        'paperHeight': 11.69,  # Altura do papel (A4)
-        'marginTop': 0.5,      # Margem superior
-        'marginBottom': 0.5,   # Margem inferior
-        'marginLeft': 0.5,     # Margem esquerda
-        'marginRight': 0.5,    # Margem direita
-        'printBackground': False,
-        # Escala reduzida para o modo retrato: a tabela de ponto do portal
-        # é larga e, em A4 vertical (área útil ~7,27"), estoura a margem
-        # direita (corte) e transborda para uma 2ª página em branco. Com
-        # scale 0.6 o conteúdo cabe na área imprimível de uma única página.
-        'scale': 0.6,
+        'paperWidth': 8.27,    # Largura do papel (A4 em polegadas)
+        'paperHeight': 11.69,  # Altura do papel (A4 em polegadas)
+        'marginTop': 0.45,      # Margem superior
+        'marginBottom': 0.45,   # Margem inferior
+        'marginLeft': 0.40,     # Margem esquerda
+        'marginRight': 0.40,    # Margem direita
+        'printBackground': True,  # Permite cores de fundo, cabeçalhos azuis e zebras
+        'scale': 0.62,
         'displayHeaderFooter': True,
-        # Cabeçalho intencionalmente vazio: evita expor o título da página.
-        'headerTemplate': '',
-        # Rodapé com apenas data/hora e numeração de páginas. O token
-        # "url" (que continha o CPF na query string) foi removido para
-        # não vazar dados sensíveis do servidor no PDF.
+        'headerTemplate': '''
+            <div style="font-size: 8pt; font-family: 'Times New Roman', serif; font-style: italic; width: 100%; margin: 0 10mm; padding-bottom: 2px; border-bottom: 0.8px solid #000; display: flex; justify-content: space-between;">
+                <span>Secretaria Municipal de Saúde</span>
+                <span>Sistema de Pontos</span>
+                <span class="date"></span>
+            </div>''',
         'footerTemplate': '''
-                <div style="font-size:10px; width: 100%; text-align: center;">
-                    <span class="date"></span> |
-                    Página <span class="pageNumber"></span> de <span class="totalPages"></span>
-                </div>''',
+            <div style="font-size: 8pt; font-family: 'Times New Roman', serif; font-style: italic; width: 100%; margin: 0 10mm; padding-top: 2px; border-top: 0.8px solid #000; display: flex; justify-content: space-between;">
+                <span>Relatório Batidas por período</span>
+                <span class="pageNumber"></span>
+            </div>''',
     })
 
     return base64.b64decode(result['data'])
@@ -63,9 +213,10 @@ def capture_pdf_bytes(driver, url_search: str) -> bytes:
 def combine_pdfs(
         pdf_bytes_list: list[bytes],
         output_path: str | Path,
-        compress_grayscale: bool = True,
+        compress: bool = True,
+        **_kwargs,
 ) -> Path:
-    """Combina os PDFs individuais num único arquivo com compressão e escala de cinza."""
+    """Combina múltiplos PDFs num único arquivo com compressão máxima e preservação de cores."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -77,12 +228,6 @@ def combine_pdfs(
             src = pymupdf.open(stream=pdf_bytes, filetype='pdf')
             merged.insert_pdf(src)
             src.close()
-
-        if compress_grayscale and len(merged) > 0:
-            try:
-                merged.recolor(1)  # Converte páginas para DeviceGray (1 componente)
-            except Exception as e:
-                logger.warning('Aviso ao aplicar grayscale no PDF: %s', e)
 
         merged.save(
             str(output),
@@ -101,21 +246,15 @@ def combine_pdfs(
 def compress_pdf(
         input_pdf: str | Path,
         output_pdf: str | Path,
-        grayscale: bool = True,
+        **_kwargs,
 ) -> Path:
-    """Compacta e converte para escala de cinza um arquivo PDF existente."""
+    """Compacta e otimiza um arquivo PDF existente sem comprometer a legibilidade ou cores."""
     input_path = Path(input_pdf)
     output_path = Path(output_pdf)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
         doc = pymupdf.open(str(input_path))
-        if grayscale and len(doc) > 0:
-            try:
-                doc.recolor(1)
-            except Exception as e:
-                logger.warning('Aviso ao aplicar grayscale: %s', e)
-
         doc.save(
             str(output_path),
             deflate=True,
@@ -137,7 +276,7 @@ def compress_pdf_with_ghostscript(
         binary: str | None = None,
 ) -> Path:
     """Compatibilidade legada: delega a compressão ao motor nativo PyMuPDF."""
-    return compress_pdf(input_pdf, output_pdf, grayscale=True)
+    return compress_pdf(input_pdf, output_pdf)
 
 
 def divide_pdf_by_size(
@@ -145,9 +284,9 @@ def divide_pdf_by_size(
         max_size_mb: float = DEFAULT_MAX_SIZE_MB,
         output_prefix: str | Path | None = None,
 ) -> list[Path]:
-    """Divide o PDF em partes de até max_size_mb com sufixos _part_01.pdf, _part_02.pdf.
+    """Divide o PDF em partes de até max_size_mb com sufixos _parte_1.pdf, _parte_2.pdf.
 
-    Garante que nenhuma parte exceda o limite de bytes estipulado.
+    Garante que nenhuma parte exceda o limite de bytes estipulado (1 MB por padrão).
     """
     input_path = Path(input_pdf)
     max_size_bytes = int(max_size_mb * 1024 * 1024)
@@ -191,7 +330,7 @@ def divide_pdf_by_size(
                 # Salva o bloco anterior que cabe no limite
                 valid_doc = pymupdf.open()
                 valid_doc.insert_pdf(doc, from_page=start_page, to_page=page_idx - 1)
-                output_path = parent_dir / f'{base_name}_part_{part_number:02d}.pdf'
+                output_path = parent_dir / f'{base_name}_parte_{part_number}.pdf'
                 valid_doc.save(
                     str(output_path),
                     deflate=True,
@@ -210,7 +349,7 @@ def divide_pdf_by_size(
                 current_doc.insert_pdf(doc, from_page=page_idx, to_page=page_idx)
 
         if len(current_doc) > 0:
-            output_path = parent_dir / f'{base_name}_part_{part_number:02d}.pdf'
+            output_path = parent_dir / f'{base_name}_parte_{part_number}.pdf'
             current_doc.save(
                 str(output_path),
                 deflate=True,
@@ -235,33 +374,33 @@ def process_pdf_artifact(
         compress: bool = True,
         binary: str | None = None,
 ) -> list[Path]:
-    """Pipeline completo do artefato PDF (combina + grayscale/compressão + divisão condicional).
+    """Pipeline completo do artefato PDF (combina + compressão colorida + divisão condicional).
 
     Regras de negócio:
-    1. Combina os PDFs em um único arquivo consolidado com compressão e escala de cinza.
+    1. Combina os PDFs em um único arquivo consolidado com compressão máxima e cores preservadas.
     2. Verifica o tamanho final do arquivo consolidado em disco:
-       - Se <= max_size_mb (5MB por padrão): mantém apenas o arquivo consolidado otimizado.
-       - Se > max_size_mb: divide em partes '_part_01.pdf', '_part_02.pdf', etc.,
+       - Se <= max_size_mb (1MB por padrão): mantém apenas o arquivo consolidado otimizado.
+       - Se > max_size_mb: divide em partes '_parte_1.pdf', '_parte_2.pdf', etc.,
          garantindo que nenhuma parte ultrapasse max_size_mb, e EXCLUI PERMANENTEMENTE
          o arquivo original consolidado.
     """
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    combined = combine_pdfs(pdf_bytes_list, output, compress_grayscale=compress)
+    combined = combine_pdfs(pdf_bytes_list, output, compress=compress)
 
     max_size_bytes = int(max_size_mb * 1024 * 1024)
     file_size = output.stat().st_size
 
-    # Se o arquivo tem até 5MB, mantém apenas o arquivo consolidado
+    # Se o arquivo tem até 1MB, mantém apenas o arquivo consolidado
     if file_size <= max_size_bytes:
         logger.info(
-            'PDF consolidado tem %.2f MB (<= %.2f MB). Nenhuma divisão necessária: %s',
-            file_size / (1024 * 1024), max_size_mb, output.name,
+            'PDF consolidado tem %.2f KB (<= %.2f MB). Nenhuma divisão necessária: %s',
+            file_size / 1024, max_size_mb, output.name,
         )
         return [output]
 
-    # Se maior que 5MB, divide em partes
+    # Se maior que 1MB, divide em partes
     logger.info(
         'PDF consolidado tem %.2f MB (> %.2f MB). Dividindo em partes: %s',
         file_size / (1024 * 1024), max_size_mb, output.name,

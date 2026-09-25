@@ -529,7 +529,7 @@ def api_job_download(
 
     format=xlsx        -> planilha gerada (falha se o job não gerou Excel)
     format=pdf         -> PDF único
-    format=pdf&parts=zip -> ZIP com as partes (_part1..N.pdf)
+    format=pdf&parts=zip -> ZIP com as partes (_parte_1..N.pdf)
     format=zip         -> todos os arquivos compactados
     """
     user = get_current_user(request)
